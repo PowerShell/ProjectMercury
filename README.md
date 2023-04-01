@@ -1,1 +1,1 @@
-# PSAIMode
+# Microsoft.PowerShell.CoPilot
