@@ -34,12 +34,14 @@ namespace Microsoft.PowerShell.CoPilot
         const int MAX_TOKENS = 64;
         const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
         const string INSTRUCTIONS = "\x1b[0mType 'help' for instructions.";
-        const string OPENAI_COMPLETION_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/completions?api-version=2022-12-01";
+        const string OPENAI_COMPLETION_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
         private static HttpClient _httpClient;
         private static SecureString _openaiKey;
         private static System.Management.Automation.PowerShell _pwsh;
         private static List<string> _history = new();
         private static int _maxHistory = 256;
+        private static List<string> _promptHistory = new();
+        private static List<string> _assistHistory = new();
         private static StringBuilder _buffer = new();
         private static int _maxBuffer = 4096;
 
@@ -92,6 +94,7 @@ namespace Microsoft.PowerShell.CoPilot
             var inputBuilder = new StringBuilder();
             while (!exit)
             {
+                var historyIndex = _history.Count - 1;
                 inputBuilder.Clear();
                 WriteConsole(PROMPT);
 
@@ -105,35 +108,47 @@ namespace Microsoft.PowerShell.CoPilot
                         case ConsoleKeyInfo { Key: ConsoleKey.UpArrow, Modifiers: 0 }:
                             if (_history.Count > 0)
                             {
+                                historyIndex--;
+                                if (historyIndex < 0)
+                                {
+                                    historyIndex = 0;
+                                }
+
                                 Console.CursorLeft = promptLength;
                                 Console.Write(" ".PadRight(Console.WindowWidth - promptLength));
                                 Console.CursorLeft = promptLength;
-                                Console.Write(_history[^1]);
+                                Console.Write(_history[historyIndex]);
                                 inputBuilder.Clear();
-                                inputBuilder.Append(_history[^1]);
+                                inputBuilder.Append(_history[historyIndex]);
                             }
                             break;
                         // down arrow
                         case ConsoleKeyInfo { Key: ConsoleKey.DownArrow, Modifiers: 0 }:
                             if (_history.Count > 0)
                             {
+                                historyIndex++;
+                                if (historyIndex >= _history.Count)
+                                {
+                                    historyIndex = _history.Count - 1;
+                                }
+
                                 Console.CursorLeft = promptLength;
                                 Console.Write(" ".PadRight(Console.WindowWidth - promptLength));
                                 Console.CursorLeft = promptLength;
-                                Console.Write(_history[0]);
+                                Console.Write(_history[historyIndex]);
                                 inputBuilder.Clear();
-                                inputBuilder.Append(_history[0]);
+                                inputBuilder.Append(_history[historyIndex]);
                             }
                             break;
                         // enter
                         case ConsoleKeyInfo { Key: ConsoleKey.Enter, Modifiers: 0 }:
-                            Console.WriteLine();
+                            WriteLineConsole("");
                             if (inputBuilder.Length > 0)
                             {
-                                _history.Insert(0, inputBuilder.ToString());
+                                _history.Add(inputBuilder.ToString());
                                 if (_history.Count > _maxHistory)
                                 {
-                                    _history.RemoveAt(_history.Count - 1);
+                                    _history.RemoveAt(0);
                                 }
                             }
                             inputReceived = true;
@@ -190,8 +205,10 @@ namespace Microsoft.PowerShell.CoPilot
                 {
                     case "help":
                         WriteLineConsole($"{PSStyle.Instance.Foreground.BrightCyan}Just type whatever you want to send to CoPilot.");
-                        WriteLineConsole("Type 'exit' to exit the chat.");
-                        WriteLineConsole("Type 'clear' to clear the screen.");
+                        WriteLineConsole($"{PSStyle.Instance.Underline}Up{PSStyle.Instance.UnderlineOff} and {PSStyle.Instance.Underline}down{PSStyle.Instance.UnderlineOff} arrows will cycle through your history.");
+                        WriteLineConsole($"{PSStyle.Instance.Underline}Ctrl+u{PSStyle.Instance.UnderlineOff} will clear the current line.");
+                        WriteLineConsole($"Type {PSStyle.Instance.Underline}exit{PSStyle.Instance.UnderlineOff} to exit the chat.");
+                        WriteLineConsole($"Type {PSStyle.Instance.Underline}clear{PSStyle.Instance.UnderlineOff} to clear the screen.");
                         break;
                     case "clear":
                         Console.Clear();
@@ -207,6 +224,12 @@ namespace Microsoft.PowerShell.CoPilot
                         var lastError = GetLastError();
                         WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {lastError}");
                         // TODO: send to AI
+                        break;
+                    case "history":
+                        foreach (var item in _history)
+                        {
+                            WriteLineConsole(item);
+                        }
                         break;
                     case "exit":
                         exit = true;
@@ -241,7 +264,6 @@ namespace Microsoft.PowerShell.CoPilot
                                 Console.CursorTop = cursorTop;
                                 Console.CursorLeft = 0;
                                 Console.Write($"{task.Status}... {SPINNER[i++ % SPINNER.Length]}".PadRight(Console.WindowWidth));
-                                // see if ctrl+c was pressed
                                 if (Console.KeyAvailable)
                                 {
                                     ConsoleKeyInfo keyInfo = Console.ReadKey(true);
@@ -257,7 +279,15 @@ namespace Microsoft.PowerShell.CoPilot
                             Console.CursorLeft = 0;
                             Console.WriteLine(" ".PadRight(Console.WindowWidth));
                             var output = task.Result;
-                            WriteLineConsole(output);
+                            _assistHistory.Add(output);
+                            _promptHistory.Add(input);
+                            if (_assistHistory.Count > _maxHistory)
+                            {
+                                _assistHistory.RemoveAt(0);
+                                _promptHistory.RemoveAt(0);
+                            }
+
+                            WriteLineConsole($"{PSStyle.Instance.Background.FromRgb(20, 0, 20)}{PSStyle.Instance.Foreground.BrightYellow}{output}{PSStyle.Instance.Reset}\n");
                         }
                         catch (Exception e)
                         {
@@ -270,29 +300,25 @@ namespace Microsoft.PowerShell.CoPilot
 
         private void WriteConsole(string text)
         {
-            _buffer.Append(text);
-            if (_buffer.Length > _maxBuffer)
-            {
-                _buffer.Remove(0, _buffer.Length - _maxBuffer);
-            }
-
+            AddToBuffer(text);
             Console.Write(text);
         }
 
         private void WriteLineConsole(string text)
         {
-            _buffer.AppendLine(text);
-            if (_buffer.Length > _maxBuffer)
-            {
-                _buffer.Remove(0, _buffer.Length - _maxBuffer);
-            }
-
+            AddToBuffer(text);
             Console.WriteLine(text);
         }
 
         private void WriteLineBuffer(string text)
         {
-            _buffer.AppendLine(text);
+            AddToBuffer(text);
+            AddToBuffer("\n");
+        }
+
+        private void AddToBuffer(string text)
+        {
+            _buffer.Append(text);
             if (_buffer.Length > _maxBuffer)
             {
                 _buffer.Remove(0, _buffer.Length - _maxBuffer);
@@ -320,7 +346,7 @@ namespace Microsoft.PowerShell.CoPilot
                 var requestBody = GetRequestBody(prompt);
                 if (debug)
                 {
-                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: RequestBody: {requestBody}");
+                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: RequestBody:\n{GetPrettyJson(requestBody)}");
                 }
 
                 var bodyContent = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
@@ -333,11 +359,11 @@ namespace Microsoft.PowerShell.CoPilot
 
                 if (debug)
                 {
-                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: ResponseContent: {responseContent}");
+                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: ResponseContent:\n{GetPrettyJson(responseContent)}");
                 }
                 var responseJson = JsonNode.Parse(responseContent);
-                var output = responseJson!["choices"][0]["text"].ToString();
-                return $"{PSStyle.Instance.Background.FromRgb(20,0,20)}{PSStyle.Instance.Foreground.BrightGreen}{output}{PSStyle.Instance.Reset}\n";
+                var output = responseJson!["choices"][0]["message"]["content"].ToString();
+                return output;
             }
             catch (OperationCanceledException)
             {
@@ -374,6 +400,12 @@ namespace Microsoft.PowerShell.CoPilot
             }
         }
 
+        private static string GetPrettyJson(string json)
+        {
+            using var jDoc = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(jDoc, new JsonSerializerOptions { WriteIndented = true });
+        }
+
         private static string ConvertSecureString(SecureString ss)
         {
             IntPtr unmanagedString = IntPtr.Zero;
@@ -390,19 +422,49 @@ namespace Microsoft.PowerShell.CoPilot
 
         private static string GetRequestBody(string prompt)
         {
-            var promptMessage = $"The following is a conversation with an AI assistant with experise in PowerShell and the command line. The assistant is helpful, creative, clever, and very friendly.\n\nHuman: {prompt}\nAI:";
+            var messages = new List<object>();
+            messages.Add(
+                new
+                {
+                    role = "system",
+                    content = "You are an AI assistant with experise in PowerShell and the command line. You are helpful, creative, clever, and very friendly."
+                }
+            );
+            for (int i = 0; i < _assistHistory.Count; i++)
+            {
+                messages.Add(
+                    new
+                    {
+                        role = "user",
+                        content = _promptHistory[i]
+                    }
+                );
+                messages.Add(
+                    new
+                    {
+                        role = "assistant",
+                        content = _assistHistory[i]
+                    }
+                );
+            }
 
-            // TODO: save history of human and AI responses to send as context, but track limits of tokens
+            messages.Add(
+                new
+                {
+                    role = "user",
+                    content = prompt
+                }
+            );
 
             var requestBody = new
             {
-                prompt = promptMessage,
-                max_tokens = 256,
+                messages = messages,
+                max_tokens = 800,
                 frequency_penalty = 0,
                 presence_penalty = 0,
-                top_p = 1,
-                temperature = 0.9,
-                stop = new string[] { "Human:", "AI:" }
+                top_p = 0.95,
+                temperature = 0.7,
+                stop = (string)null
             };
 
             return JsonSerializer.Serialize(requestBody);
