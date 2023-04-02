@@ -75,8 +75,11 @@ namespace Microsoft.PowerShell.CoPilot
                 if (LastError)
                 {
                     var input = GetLastError();
-                    WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{PSStyle.Instance.Reset}");
-                    SendPrompt(input, false, _cancelToken);
+                    if (input.Length > 0)
+                    {
+                        WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{PSStyle.Instance.Reset}");
+                        SendPrompt(input, false, _cancelToken);
+                    }
                 }
 
                 EnterInputLoop();
@@ -232,8 +235,11 @@ namespace Microsoft.PowerShell.CoPilot
                         break;
                     case "get-error":
                         input = GetLastError();
-                        WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{PSStyle.Instance.Reset}");
-                        SendPrompt(input, debug, _cancelToken);
+                        if (input.Length > 0)
+                        {
+                            WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{PSStyle.Instance.Reset}");
+                            SendPrompt(input, debug, _cancelToken);
+                        }
                         break;
                     default:
                         if (input.Length > 0)
@@ -335,7 +341,7 @@ namespace Microsoft.PowerShell.CoPilot
 
         private string GetLastError()
         {
-            var errorVar = GetVariableValue("error");
+            var errorVar = GetVariableValue("global:error");
             if (errorVar is ArrayList errorArray && errorArray.Count > 0)
             {
                 _pwsh.AddCommand("Get-Error").AddParameter("InputObject", errorArray[0]);
@@ -348,6 +354,10 @@ namespace Microsoft.PowerShell.CoPilot
                 }
 
                 return sb.ToString();
+            }
+            else
+            {
+                WriteConsole($"{PSStyle.Instance.Foreground.BrightMagenta}No error found.{PSStyle.Instance.Reset}\n");
             }
 
             return string.Empty;
