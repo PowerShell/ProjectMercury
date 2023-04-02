@@ -155,7 +155,7 @@ namespace Microsoft.PowerShell.CoPilot
                                 }
                             }
                             inputReceived = true;
-                            WriteLineBuffer(PROMPT + inputBuilder.ToString());
+                            WriteLineBuffer(inputBuilder.ToString());
                             break;
                         // backspace
                         case ConsoleKeyInfo { Key: ConsoleKey.Backspace, Modifiers: 0 }:
