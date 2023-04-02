@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Management.Automation.Internal;
@@ -16,12 +17,6 @@ using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.CoPilot
 {
-    [Alias("wtf")]
-    [Cmdlet(VerbsDiagnostic.Resolve, "Error")]
-    public sealed class ResolveError : PSCmdlet
-    {
-    }
-
     [Alias("copilot")]
     [Cmdlet(VerbsCommon.Enter, "CoPilot")]
     public sealed class EnterCoPlot : PSCmdlet
@@ -44,6 +39,8 @@ namespace Microsoft.PowerShell.CoPilot
         private static List<string> _assistHistory = new();
         private static StringBuilder _buffer = new();
         private static int _maxBuffer = 4096;
+        private static CancellationTokenSource _cancellationTokenSource = new();
+        private static CancellationToken _cancelToken = _cancellationTokenSource.Token;
 
         [Parameter(Mandatory = false)]
         public SwitchParameter LastError { get; set; }
@@ -51,7 +48,6 @@ namespace Microsoft.PowerShell.CoPilot
         public EnterCoPlot()
         {
             _pwsh = System.Management.Automation.PowerShell.Create();
-            _pwsh.Runspace = Runspace.DefaultRunspace;
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
         }
@@ -74,6 +70,13 @@ namespace Microsoft.PowerShell.CoPilot
                 else
                 {
                     Console.CursorTop = Console.WindowHeight - 1;
+                }
+
+                if (LastError)
+                {
+                    var input = GetLastError();
+                    WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{PSStyle.Instance.Reset}");
+                    SendPrompt(input, false, _cancelToken);
                 }
 
                 EnterInputLoop();
@@ -199,8 +202,6 @@ namespace Microsoft.PowerShell.CoPilot
                 }
 
                 string input = inputBuilder.ToString();
-                var cancelSource = new CancellationTokenSource();
-                var cancelToken = cancelSource.Token;
                 switch (input)
                 {
                     case "help":
@@ -220,11 +221,6 @@ namespace Microsoft.PowerShell.CoPilot
                         WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Debug mode is now {(debug ? "on" : "off")}.");
                         WriteLineConsole($"PID: {Environment.ProcessId}");
                         break;
-                    case "get-error":
-                        var lastError = GetLastError();
-                        WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {lastError}");
-                        // TODO: send to AI
-                        break;
                     case "history":
                         foreach (var item in _history)
                         {
@@ -234,67 +230,80 @@ namespace Microsoft.PowerShell.CoPilot
                     case "exit":
                         exit = true;
                         break;
+                    case "get-error":
+                        input = GetLastError();
+                        WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{PSStyle.Instance.Reset}");
+                        SendPrompt(input, debug, _cancelToken);
+                        break;
                     default:
-                        try
+                        if (input.Length > 0)
                         {
-                            var task = new Task<string>(() =>
-                            {
-                                return GetCompletion(input, debug, cancelToken);
-                            });
-                            task.Start();
-                            int i = 0;
-                            int cursorTop = Console.CursorTop;
-                            bool taskCompleted = false;
-                            while (!taskCompleted && task.Status != TaskStatus.RanToCompletion)
-                            {
-                                switch (task.Status)
-                                {
-                                    case TaskStatus.Canceled:
-                                        WriteLineConsole($"{PSStyle.Instance.Foreground.BrightRed}Task was cancelled.");
-                                        taskCompleted = true;
-                                        break;
-                                    case TaskStatus.Faulted:
-                                        WriteLineConsole($"{PSStyle.Instance.Foreground.BrightRed}Task faulted.");
-                                        taskCompleted = true;
-                                        break;
-                                    default:
-                                        break;
-                                }
-
-                                Console.CursorTop = cursorTop;
-                                Console.CursorLeft = 0;
-                                Console.Write($"{task.Status}... {SPINNER[i++ % SPINNER.Length]}".PadRight(Console.WindowWidth));
-                                if (Console.KeyAvailable)
-                                {
-                                    ConsoleKeyInfo keyInfo = Console.ReadKey(true);
-                                    if (keyInfo.Key == ConsoleKey.C && keyInfo.Modifiers == ConsoleModifiers.Control)
-                                    {
-                                        cancelSource.Cancel();
-                                        break;
-                                    }
-                                }
-                                System.Threading.Thread.Sleep(100);
-                            }
-                            Console.CursorTop = cursorTop;
-                            Console.CursorLeft = 0;
-                            Console.WriteLine(" ".PadRight(Console.WindowWidth));
-                            var output = task.Result;
-                            _assistHistory.Add(output);
-                            _promptHistory.Add(input);
-                            if (_assistHistory.Count > _maxHistory)
-                            {
-                                _assistHistory.RemoveAt(0);
-                                _promptHistory.RemoveAt(0);
-                            }
-
-                            WriteLineConsole($"{PSStyle.Instance.Background.FromRgb(20, 0, 20)}{PSStyle.Instance.Foreground.BrightYellow}{output}{PSStyle.Instance.Reset}\n");
-                        }
-                        catch (Exception e)
-                        {
-                            WriteLineConsole($"{PSStyle.Instance.Foreground.BrightRed}EXCEPTION: {e.Message}\n{e.StackTrace}");
+                            SendPrompt(input, debug, _cancelToken);
                         }
                         break;
                 }
+            }
+        }
+
+        private void SendPrompt(string input, bool debug, CancellationToken cancelToken)
+        {
+            try
+            {
+                var task = new Task<string>(() =>
+                {
+                    return GetCompletion(input, debug, cancelToken);
+                });
+                task.Start();
+                int i = 0;
+                int cursorTop = Console.CursorTop;
+                bool taskCompleted = false;
+                while (!taskCompleted && task.Status != TaskStatus.RanToCompletion)
+                {
+                    switch (task.Status)
+                    {
+                        case TaskStatus.Canceled:
+                            WriteLineConsole($"{PSStyle.Instance.Foreground.BrightRed}Task was cancelled.");
+                            taskCompleted = true;
+                            break;
+                        case TaskStatus.Faulted:
+                            WriteLineConsole($"{PSStyle.Instance.Foreground.BrightRed}Task faulted.");
+                            taskCompleted = true;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    Console.CursorTop = cursorTop;
+                    Console.CursorLeft = 0;
+                    Console.Write($"{task.Status}... {SPINNER[i++ % SPINNER.Length]}".PadRight(Console.WindowWidth));
+                    if (Console.KeyAvailable)
+                    {
+                        ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+                        if (keyInfo.Key == ConsoleKey.C && keyInfo.Modifiers == ConsoleModifiers.Control)
+                        {
+                            _cancellationTokenSource.Cancel();
+                            break;
+                        }
+                    }
+                    System.Threading.Thread.Sleep(100);
+                }
+                Console.CursorTop = cursorTop;
+                Console.CursorLeft = 0;
+                Console.WriteLine(" ".PadRight(Console.WindowWidth));
+                var output = task.Result;
+                _assistHistory.Add(output);
+                _promptHistory.Add(input);
+                if (_assistHistory.Count > _maxHistory)
+                {
+                    _assistHistory.RemoveAt(0);
+                    _promptHistory.RemoveAt(0);
+                }
+
+                WriteLineConsole($"{PSStyle.Instance.Background.FromRgb(20, 0, 20)}{PSStyle.Instance.Foreground.BrightYellow}{output}{PSStyle.Instance.Reset}\n");
+            }
+            catch (Exception e)
+            {
+                WriteLineConsole($"{PSStyle.Instance.Foreground.BrightRed}EXCEPTION: {e.Message}\n{e.StackTrace}");
             }
         }
 
@@ -327,16 +336,22 @@ namespace Microsoft.PowerShell.CoPilot
 
         private string GetLastError()
         {
-            _pwsh.AddCommand("Get-Error").AddParameter("Newest", 1);
-            _pwsh.AddCommand("Out-String");
-            var result = _pwsh.Invoke<string>();
-            var sb = new StringBuilder();
-            foreach (var item in result)
+            var errorVar = GetVariableValue("error");
+            if (errorVar is ArrayList errorArray && errorArray.Count > 0)
             {
-                sb.AppendLine(item);
+                _pwsh.AddCommand("Get-Error").AddParameter("InputObject", errorArray[0]);
+                _pwsh.AddCommand("Out-String");
+                var result = _pwsh.Invoke<string>();
+                var sb = new StringBuilder();
+                foreach (var item in result)
+                {
+                    sb.AppendLine(item);
+                }
+
+                return sb.ToString();
             }
 
-            return sb.ToString();
+            return string.Empty;
         }
 
         private static string GetCompletion(string prompt, bool debug, CancellationToken cancelToken)
