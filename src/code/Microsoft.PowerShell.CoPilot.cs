@@ -145,7 +145,6 @@ namespace Microsoft.PowerShell.CoPilot
                             break;
                         // enter
                         case ConsoleKeyInfo { Key: ConsoleKey.Enter, Modifiers: 0 }:
-                            WriteLineConsole("");
                             if (inputBuilder.Length > 0)
                             {
                                 _history.Add(inputBuilder.ToString());
@@ -156,6 +155,7 @@ namespace Microsoft.PowerShell.CoPilot
                             }
                             inputReceived = true;
                             WriteLineBuffer(inputBuilder.ToString());
+                            WriteLineConsole("");
                             break;
                         // backspace
                         case ConsoleKeyInfo { Key: ConsoleKey.Backspace, Modifiers: 0 }:
@@ -315,14 +315,13 @@ namespace Microsoft.PowerShell.CoPilot
 
         private void WriteLineConsole(string text)
         {
-            AddToBuffer(text);
+            AddToBuffer(text + "\n");
             Console.WriteLine(text);
         }
 
         private void WriteLineBuffer(string text)
         {
-            AddToBuffer(text);
-            AddToBuffer("\n");
+            AddToBuffer(text + "\n");
         }
 
         private void AddToBuffer(string text)
