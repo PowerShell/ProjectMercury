@@ -21,15 +21,26 @@ namespace Microsoft.PowerShell.CoPilot
     [Cmdlet(VerbsCommon.Enter, "CoPilot")]
     public sealed class EnterCoPlot : PSCmdlet
     {
-        const string ALTERNATE_SCREEN_BUFFER = "\x1b[?1049h";
-        const string MAIN_SCREEN_BUFFER = "\x1b[?1049l";
-        const string PROMPT = "\x1b[0;1;32mCoPilot> \x1b[0m";
-        const string MODEL = "gpt-35-turbo";
-        const string SPINNER = "|/-\\";
-        const int MAX_TOKENS = 64;
-        const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
-        const string INSTRUCTIONS = "\x1b[0mType 'help' for instructions.";
-        const string OPENAI_COMPLETION_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
+        private const string ALTERNATE_SCREEN_BUFFER = "\x1b[?1049h";
+        private const string MAIN_SCREEN_BUFFER = "\x1b[?1049l";
+        private const string PROMPT = "\x1b[0;1;32mCoPilot> \x1b[0m";
+        private const string MODEL = "gpt-35-turbo";
+        private static string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
+        private const int MAX_TOKENS = 64;
+        private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
+        private const string INSTRUCTIONS = "\x1b[0mType 'help' for instructions.";
+        private const string OPENAI_COMPLETION_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
+        private const string LOGO = @"
+ _______   ______   ______           _______  __ __            __
+|       \ /      \ /      \         |       \|  \  \          |  \
+| ▓▓▓▓▓▓▓\  ▓▓▓▓▓▓\  ▓▓▓▓▓▓\ ______ | ▓▓▓▓▓▓▓\\▓▓ ▓▓ ______  _| ▓▓_
+| ▓▓__/ ▓▓ ▓▓___\▓▓ ▓▓   \▓▓/      \| ▓▓__/ ▓▓  \ ▓▓/      \|   ▓▓ \
+| ▓▓    ▓▓\▓▓    \| ▓▓     |  ▓▓▓▓▓▓\ ▓▓    ▓▓ ▓▓ ▓▓  ▓▓▓▓▓▓\\▓▓▓▓▓▓
+| ▓▓▓▓▓▓▓ _\▓▓▓▓▓▓\ ▓▓   __| ▓▓  | ▓▓ ▓▓▓▓▓▓▓| ▓▓ ▓▓ ▓▓  | ▓▓ | ▓▓ __
+| ▓▓     |  \__| ▓▓ ▓▓__/  \ ▓▓__/ ▓▓ ▓▓     | ▓▓ ▓▓ ▓▓__/ ▓▓ | ▓▓|  \
+| ▓▓      \▓▓    ▓▓\▓▓    ▓▓\▓▓    ▓▓ ▓▓     | ▓▓ ▓▓\▓▓    ▓▓  \▓▓  ▓▓
+ \▓▓       \▓▓▓▓▓▓  \▓▓▓▓▓▓  \▓▓▓▓▓▓ \▓▓      \▓▓\▓▓ \▓▓▓▓▓▓    \▓▓▓▓
+";
         private static HttpClient _httpClient;
         private static SecureString _openaiKey;
         private static System.Management.Automation.PowerShell _pwsh;
@@ -70,6 +81,7 @@ namespace Microsoft.PowerShell.CoPilot
                 else
                 {
                     Console.CursorTop = Console.WindowHeight - 1;
+                    Console.Write(LOGO);
                 }
 
                 if (LastError)
@@ -249,6 +261,8 @@ namespace Microsoft.PowerShell.CoPilot
                         break;
                 }
             }
+
+            Console.TreatControlCAsInput = false;
         }
 
         private void SendPrompt(string input, bool debug, CancellationToken cancelToken)
@@ -281,13 +295,15 @@ namespace Microsoft.PowerShell.CoPilot
 
                     Console.CursorTop = cursorTop;
                     Console.CursorLeft = 0;
-                    Console.Write($"{task.Status}... {SPINNER[i++ % SPINNER.Length]}".PadRight(Console.WindowWidth));
+                    Console.CursorVisible = false;
+                    Console.Write($"{PSStyle.Instance.Reset}{task.Status}... {SPINNER[i++ % SPINNER.Length]}".PadRight(Console.WindowWidth));
                     if (Console.KeyAvailable)
                     {
                         ConsoleKeyInfo keyInfo = Console.ReadKey(true);
                         if (keyInfo.Key == ConsoleKey.C && keyInfo.Modifiers == ConsoleModifiers.Control)
                         {
                             _cancellationTokenSource.Cancel();
+                            Console.CursorVisible = true;
                             break;
                         }
                     }
@@ -295,7 +311,8 @@ namespace Microsoft.PowerShell.CoPilot
                 }
                 Console.CursorTop = cursorTop;
                 Console.CursorLeft = 0;
-                Console.WriteLine(" ".PadRight(Console.WindowWidth));
+                Console.Write(" ".PadRight(Console.WindowWidth));
+                Console.CursorVisible = true;
                 var output = task.Result;
                 _assistHistory.Add(output);
                 _promptHistory.Add(input);
@@ -386,7 +403,7 @@ namespace Microsoft.PowerShell.CoPilot
                     Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: ResponseContent:\n{GetPrettyJson(responseContent)}");
                 }
                 var responseJson = JsonNode.Parse(responseContent);
-                var output = responseJson!["choices"][0]["message"]["content"].ToString();
+                var output = "\n" + responseJson!["choices"][0]["message"]["content"].ToString();
                 return output;
             }
             catch (OperationCanceledException)
