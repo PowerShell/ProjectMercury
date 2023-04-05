@@ -40,6 +40,7 @@ namespace Microsoft.PowerShell.CoPilot
 | ▓▓     |  \__| ▓▓ ▓▓__/  \ ▓▓__/ ▓▓ ▓▓     | ▓▓ ▓▓ ▓▓__/ ▓▓ | ▓▓|  \
 | ▓▓      \▓▓    ▓▓\▓▓    ▓▓\▓▓    ▓▓ ▓▓     | ▓▓ ▓▓\▓▓    ▓▓  \▓▓  ▓▓
  \▓▓       \▓▓▓▓▓▓  \▓▓▓▓▓▓  \▓▓▓▓▓▓ \▓▓      \▓▓\▓▓ \▓▓▓▓▓▓    \▓▓▓▓
+
 ";
         private static HttpClient _httpClient;
         private static SecureString _openaiKey;
