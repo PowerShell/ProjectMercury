@@ -15,7 +15,7 @@ function Enable-PSCoPilotKeyHandler {
             $chord = "F$i"
             if ($null -eq (Get-PSReadlineKeyHandler -Chord $chord)) {
                 Set-PSReadlineKeyHandler -Chord $chord -Description 'PSCoPilot: Enter PSCopilot chat mode' -ScriptBlock {
-                    Invoke-CoPilot
+                    Enter-CoPilot
                 }
                 break
             }

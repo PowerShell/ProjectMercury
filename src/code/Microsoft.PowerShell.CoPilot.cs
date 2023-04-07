@@ -455,9 +455,8 @@ namespace Microsoft.PowerShell.CoPilot
 
         private void WriteToolbar()
         {
-            // lock the top line from scrolling
-            Console.Write($"{ESC}[1;{Console.WindowHeight-1}r");
-            Console.CursorTop = Console.WindowHeight - 1;
+            Console.Write($"{ESC}[2;{Console.WindowHeight}r");
+            Console.CursorTop = 0;
             Console.CursorLeft = 0;
             var color = PSStyle.Instance.Background.FromRgb(100, 0, 100) + PSStyle.Instance.Foreground.BrightYellow;
             var reset = PSStyle.Instance.Reset;
@@ -629,7 +628,7 @@ namespace Microsoft.PowerShell.CoPilot
             var requestBody = new
             {
                 messages = messages,
-                max_tokens = 800,
+                max_tokens = 4096,
                 frequency_penalty = 0,
                 presence_penalty = 0,
                 top_p = 0.95,
