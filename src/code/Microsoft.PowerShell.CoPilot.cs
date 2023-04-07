@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Management.Automation.Internal;
+using System.Management.Automation.Language;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -96,7 +97,7 @@ namespace Microsoft.PowerShell.CoPilot
         private void RedrawScreen()
         {
             Console.Clear();
-            WriteToolbar();
+            // WriteToolbar();
             Console.CursorTop = 1;
             Console.CursorLeft = 0;
             if (_buffer.Length > 0)
@@ -268,6 +269,8 @@ namespace Microsoft.PowerShell.CoPilot
                         WriteLineConsole($"{PSStyle.Instance.Foreground.BrightCyan}Just type whatever you want to send to CoPilot.");
                         WriteLineConsole($"{PSStyle.Instance.Underline}Up{PSStyle.Instance.UnderlineOff} and {PSStyle.Instance.Underline}down{PSStyle.Instance.UnderlineOff} arrows will cycle through your history.");
                         WriteLineConsole($"{PSStyle.Instance.Underline}Ctrl+u{PSStyle.Instance.UnderlineOff} will clear the current line.");
+                        WriteLineConsole($"{PSStyle.Instance.Underline}Ctrl+c{PSStyle.Instance.UnderlineOff} or {PSStyle.Instance.Underline}Copy-Code{PSStyle.Instance.UnderlineOff} will copy the current line to the clipboard.");
+                        WriteLineConsole($"{PSStyle.Instance.Underline}Ctrl+e{PSStyle.Instance.UnderlineOff} or {PSStyle.Instance.Underline}Get-Error{PSStyle.Instance.UnderlineOff} will get the last error.");
                         WriteLineConsole($"Type {PSStyle.Instance.Underline}exit{PSStyle.Instance.UnderlineOff} to exit the chat.");
                         WriteLineConsole($"Type {PSStyle.Instance.Underline}clear{PSStyle.Instance.UnderlineOff} to clear the screen.");
                         break;
@@ -419,7 +422,40 @@ namespace Microsoft.PowerShell.CoPilot
                 }
 
                 GetCodeSnippet(output);
-                WriteLineConsole($"{PSStyle.Instance.Background.FromRgb(20, 0, 20)}{PSStyle.Instance.Foreground.BrightYellow}{output}{PSStyle.Instance.Reset}");
+
+                // colorize code sections
+                // split into lines
+                var lines = output.Split(new[] { '\n' });
+                var colorOutput = new StringBuilder();
+                var codeSnippet = new StringBuilder();
+                bool inCode = false;
+                foreach (var line in lines)
+                {
+                    if (line.StartsWith("```"))
+                    {
+                        inCode = !inCode;
+                        if (inCode)
+                        {
+                            colorOutput.AppendLine($"{PSStyle.Instance.Foreground.White}{line}");
+                        }
+                        else
+                        {
+                            colorOutput.AppendLine(GetPrettyPowerShellScript(codeSnippet.ToString()));
+                            codeSnippet.Clear();
+                            colorOutput.AppendLine($"{PSStyle.Instance.Foreground.White}{line}");
+                        }
+                    }
+                    else if (inCode)
+                    {
+                        codeSnippet.AppendLine(line);
+                    }
+                    else
+                    {
+                        colorOutput.AppendLine($"{PSStyle.Instance.Foreground.BrightYellow}{line}");
+                    }
+                }
+
+                WriteLineConsole($"{colorOutput.ToString()}{PSStyle.Instance.Reset}");
             }
             catch (Exception e)
             {
@@ -567,6 +603,84 @@ namespace Microsoft.PowerShell.CoPilot
 
                 return ss;
             }
+        }
+
+        private static string GetPrettyPowerShellScript(string script)
+        {
+            // parse the script to ast
+            var ast = Parser.ParseInput(script, out Token[] tokens, out ParseError[] errors);
+            // walk through the tokens and color them depending on type
+            var sb = new StringBuilder();
+            var colorTokens = new List<(int, string)>(); // (start, color)
+            foreach (var token in tokens)
+            {
+                var color = PSStyle.Instance.Reset;
+                switch (token.Kind)
+                {
+                    case TokenKind.Command:
+                        color = PSStyle.Instance.Foreground.BrightYellow;
+                        break;
+                    case TokenKind.Parameter:
+                        color = PSStyle.Instance.Foreground.BrightBlack;
+                        break;
+                    case TokenKind.Number:
+                        color = PSStyle.Instance.Foreground.BrightWhite;
+                        break;
+                    case TokenKind.Variable:
+                    case TokenKind.SplattedVariable:
+                        color = PSStyle.Instance.Foreground.BrightGreen;
+                        break;
+                    case TokenKind.StringExpandable:
+                    case TokenKind.StringLiteral:
+                    case TokenKind.HereStringExpandable:
+                    case TokenKind.HereStringLiteral:
+                        color = PSStyle.Instance.Foreground.Cyan;
+                        break;
+                    case TokenKind.Comment:
+                        color = PSStyle.Instance.Foreground.Green;
+                        break;
+                    default:
+                        color = PSStyle.Instance.Foreground.White;
+                        break;
+                }
+
+                if (token.TokenFlags.HasFlag(TokenFlags.CommandName))
+                {
+                    color = PSStyle.Instance.Foreground.BrightYellow;
+                }
+                else if (token.TokenFlags.HasFlag(TokenFlags.Keyword))
+                {
+                    color = PSStyle.Instance.Foreground.BrightGreen;
+                }
+                else if (token.TokenFlags.HasFlag(TokenFlags.TypeName))
+                {
+                    color = PSStyle.Instance.Foreground.White;
+                }
+                else if (token.TokenFlags.HasFlag(TokenFlags.MemberName))
+                {
+                    color = PSStyle.Instance.Foreground.White;
+                }
+                // check for all operators
+                else if (token.Kind == TokenKind.Generic && token.Text.StartsWith("-"))
+                {
+                    color = PSStyle.Instance.Foreground.BrightBlack;
+                }
+
+                colorTokens.Add((token.Extent.StartOffset, color));
+            }
+
+            // walk backwards through the tokens and insert the color codes
+            sb.Append(script);
+            for (int i = colorTokens.Count - 1; i >= 0; i--)
+            {
+                var (start, color) = colorTokens[i];
+                if (start < sb.Length)
+                {
+                    sb.Insert(start, color);
+                }
+            }
+
+            return sb.ToString();
         }
 
         private static string GetPrettyJson(string json)
