@@ -456,8 +456,8 @@ namespace Microsoft.PowerShell.CoPilot
         private void WriteToolbar()
         {
             // lock the top line from scrolling
-            Console.Write($"{ESC}[2;{Console.WindowHeight}r");
-            Console.CursorTop = 0;
+            Console.Write($"{ESC}[1;{Console.WindowHeight-1}r");
+            Console.CursorTop = Console.WindowHeight - 1;
             Console.CursorLeft = 0;
             var color = PSStyle.Instance.Background.FromRgb(100, 0, 100) + PSStyle.Instance.Foreground.BrightYellow;
             var reset = PSStyle.Instance.Reset;
