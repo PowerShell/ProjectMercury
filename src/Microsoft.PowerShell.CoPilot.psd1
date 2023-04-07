@@ -2,8 +2,8 @@
 # Licensed under the MIT License.
 
 @{
-    RootModule = '.\Microsoft.PowerShell.CoPilot.dll'
-    NestedModules = @('.\Microsoft.PowerShell.CoPilot.psm1')
+    RootModule = '.\Microsoft.PowerShell.CoPilot.psm1'
+    NestedModules = @('.\Microsoft.PowerShell.CoPilot.dll')
     ModuleVersion = '0.1.0'
     CompatiblePSEditions = @('Core')
     GUID = '4e30f432-98c2-4bf9-b6bd-b5514c704f52'
@@ -13,7 +13,7 @@
     Description = "This module enables an AI chat mode to work interactively with large language models."
     PowerShellVersion = '7.0'
     CmdletsToExport = @(
-        'Enter-CoPilot', 'Get-WhatsTheFix'
+        'Enter-CoPilot', 'Enable-PSCoPilotKeyHandler', 'Get-WhatsTheFix'
     )
     AliasesToExport = @(
         'copilot', 'wtf'

@@ -1,11 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Management.Automation.Internal;
-using System.Management.Automation.Runspaces;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -21,6 +20,7 @@ namespace Microsoft.PowerShell.CoPilot
     [Cmdlet(VerbsCommon.Enter, "CoPilot")]
     public sealed class EnterCoPlot : PSCmdlet
     {
+        private const char ESC = '\x1b';
         private const string ALTERNATE_SCREEN_BUFFER = "\x1b[?1049h";
         private const string MAIN_SCREEN_BUFFER = "\x1b[?1049l";
         private const string PROMPT = "\x1b[0;1;32mCoPilot> \x1b[0m";
@@ -28,7 +28,7 @@ namespace Microsoft.PowerShell.CoPilot
         private static string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private const int MAX_TOKENS = 64;
         private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
-        private const string INSTRUCTIONS = "\x1b[0mType 'help' for instructions.";
+        private const string INSTRUCTIONS = "\x1b[0m\nType 'help' for instructions.";
         private const string OPENAI_COMPLETION_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
         private const string LOGO = @"
  _______   ______   ______           _______  __ __            __
@@ -39,12 +39,11 @@ namespace Microsoft.PowerShell.CoPilot
 | ▓▓▓▓▓▓▓ _\▓▓▓▓▓▓\ ▓▓   __| ▓▓  | ▓▓ ▓▓▓▓▓▓▓| ▓▓ ▓▓ ▓▓  | ▓▓ | ▓▓ __
 | ▓▓     |  \__| ▓▓ ▓▓__/  \ ▓▓__/ ▓▓ ▓▓     | ▓▓ ▓▓ ▓▓__/ ▓▓ | ▓▓|  \
 | ▓▓      \▓▓    ▓▓\▓▓    ▓▓\▓▓    ▓▓ ▓▓     | ▓▓ ▓▓\▓▓    ▓▓  \▓▓  ▓▓
- \▓▓       \▓▓▓▓▓▓  \▓▓▓▓▓▓  \▓▓▓▓▓▓ \▓▓      \▓▓\▓▓ \▓▓▓▓▓▓    \▓▓▓▓
-
+ \▓▓       \▓▓▓▓▓▓  \▓▓▓▓▓▓  \▓▓▓▓▓▓ \▓▓      \▓▓\▓▓ \▓▓▓▓▓▓    \▓▓▓▓  v0.1
 ";
-        private static HttpClient _httpClient;
+        private static HttpClient _httpClient = new HttpClient();
         private static SecureString _openaiKey;
-        private static System.Management.Automation.PowerShell _pwsh;
+        private static System.Management.Automation.PowerShell _pwsh = System.Management.Automation.PowerShell.Create();
         private static List<string> _history = new();
         private static int _maxHistory = 256;
         private static List<string> _promptHistory = new();
@@ -53,14 +52,14 @@ namespace Microsoft.PowerShell.CoPilot
         private static int _maxBuffer = 4096;
         private static CancellationTokenSource _cancellationTokenSource = new();
         private static CancellationToken _cancelToken = _cancellationTokenSource.Token;
+        private readonly ConsoleKeyInfo _exitKeyInfo = GetPSReadLineKeyHandler();
+        private static string _lastCodeSnippet = string.Empty;
 
         [Parameter(Mandatory = false)]
         public SwitchParameter LastError { get; set; }
 
         public EnterCoPlot()
         {
-            _pwsh = System.Management.Automation.PowerShell.Create();
-            _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
         }
 
@@ -75,16 +74,7 @@ namespace Microsoft.PowerShell.CoPilot
             try
             {
                 Console.Write(ALTERNATE_SCREEN_BUFFER);
-                if (_buffer.Length > 0)
-                {
-                    Console.Write(_buffer.ToString());
-                }
-                else
-                {
-                    Console.CursorTop = Console.WindowHeight - 1;
-                    Console.Write(LOGO);
-                }
-
+                RedrawScreen();
                 if (LastError)
                 {
                     var input = GetLastError();
@@ -103,18 +93,37 @@ namespace Microsoft.PowerShell.CoPilot
             }
         }
 
+        private void RedrawScreen()
+        {
+            Console.Clear();
+            WriteToolbar();
+            Console.CursorTop = 1;
+            Console.CursorLeft = 0;
+            if (_buffer.Length > 0)
+            {
+                Console.Write(_buffer.ToString());
+            }
+            else
+            {
+                WriteLineConsole($"{PSStyle.Instance.Reset}{LOGO}");
+                WriteLineConsole($"{INSTRUCTIONS}");
+            }
+        }
+
         private void EnterInputLoop()
         {
             bool debug = false;
             bool exit = false;
             Console.TreatControlCAsInput = true;
-            WriteLineConsole(INSTRUCTIONS);
             var promptLength = (new StringDecorated(PROMPT)).ContentLength;
             var inputBuilder = new StringBuilder();
+            var consoleHeight = Console.WindowHeight;
+            var consoleWidth = Console.WindowWidth;
             while (!exit)
             {
                 var historyIndex = _history.Count - 1;
                 inputBuilder.Clear();
+                WriteLineConsole($"{PSStyle.Instance.Reset}");
                 WriteConsole(PROMPT);
 
                 bool inputReceived = false;
@@ -172,6 +181,15 @@ namespace Microsoft.PowerShell.CoPilot
                             inputReceived = true;
                             WriteLineBuffer(inputBuilder.ToString());
                             WriteLineConsole("");
+
+                            // see if terminal was resized
+                            if (consoleHeight != Console.WindowHeight || consoleWidth != Console.WindowWidth)
+                            {
+                                consoleHeight = Console.WindowHeight;
+                                consoleWidth = Console.WindowWidth;
+                                RedrawScreen();
+                            }
+
                             break;
                         // backspace
                         case ConsoleKeyInfo { Key: ConsoleKey.Backspace, Modifiers: 0 }:
@@ -183,9 +201,14 @@ namespace Microsoft.PowerShell.CoPilot
                                 Console.CursorLeft = promptLength + inputBuilder.Length;
                             }
                             break;
-                        // ctrl+c
+                        // ctrl+c to copy to clipboard
                         case ConsoleKeyInfo { Key: ConsoleKey.C, Modifiers: ConsoleModifiers.Control }:
-                            return;
+                            inputBuilder.Clear();
+                            inputBuilder.Append("copy-code");
+                            inputReceived = true;
+                            WriteLineConsole(inputBuilder.ToString());
+                            WriteLineConsole("");
+                            break;
                         // left arrow
                         case ConsoleKeyInfo { Key: ConsoleKey.LeftArrow, Modifiers: 0 }:
                             if (Console.CursorLeft > promptLength)
@@ -207,7 +230,28 @@ namespace Microsoft.PowerShell.CoPilot
                             Console.CursorLeft = promptLength;
                             inputBuilder.Clear();
                             break;
+                        // ctrl+e to get error
+                        case ConsoleKeyInfo { Key: ConsoleKey.E, Modifiers: ConsoleModifiers.Control }:
+                            inputBuilder.Clear();
+                            inputBuilder.Append("Get-Error");
+                            inputReceived = true;
+                            WriteLineConsole(inputBuilder.ToString());
+                            WriteLineConsole("");
+                            break;
                         default:
+                            if (keyInfo == _exitKeyInfo)
+                            {
+                                // remove last line from buffer
+                                var stringBuffer = _buffer.ToString();
+                                var last = stringBuffer.LastIndexOf('\n');
+                                if (last > 0)
+                                {
+                                    _buffer.Remove(last, _buffer.Length - last);
+                                }
+
+                                return;
+                            }
+
                             if (keyInfo.KeyChar != '\0')
                             {
                                 inputBuilder.Append(keyInfo.KeyChar);
@@ -218,7 +262,7 @@ namespace Microsoft.PowerShell.CoPilot
                 }
 
                 string input = inputBuilder.ToString();
-                switch (input)
+                switch (input.ToLowerInvariant())
                 {
                     case "help":
                         WriteLineConsole($"{PSStyle.Instance.Foreground.BrightCyan}Just type whatever you want to send to CoPilot.");
@@ -230,7 +274,7 @@ namespace Microsoft.PowerShell.CoPilot
                     case "clear":
                         Console.Clear();
                         _buffer.Clear();
-                        Console.CursorTop = Console.WindowHeight - 1;
+                        Console.CursorTop = Console.WindowHeight - 2;
                         break;
                     case "debug":
                         debug = !debug;
@@ -245,6 +289,20 @@ namespace Microsoft.PowerShell.CoPilot
                         break;
                     case "exit":
                         exit = true;
+                        // remove last line from buffer
+                        var stringBuffer = _buffer.ToString();
+                        var last = stringBuffer.LastIndexOf('\n');
+                        if (last > 0)
+                        {
+                            _buffer.Remove(last, _buffer.Length - last);
+                        }
+                        break;
+                    case "copy-code":
+                        if (_lastCodeSnippet.Length > 0)
+                        {
+                            CopyToClipboard(_lastCodeSnippet);
+                            WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Code snippet copied to clipboard.{PSStyle.Instance.Reset}");
+                        }
                         break;
                     case "get-error":
                         input = GetLastError();
@@ -264,6 +322,43 @@ namespace Microsoft.PowerShell.CoPilot
             }
 
             Console.TreatControlCAsInput = false;
+        }
+
+        private void GetCodeSnippet(string input)
+        {
+            // split input into lines
+            var lines = input.Split(new[] { '\n' });
+            var codeSnippet = new StringBuilder();
+            // find the first line that starts with 3 backticks and copy to next line that starts with 3 backticks
+            bool foundStart = false;
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("```"))
+                {
+                    if (foundStart)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        foundStart = true;
+                    }
+                }
+                else if (foundStart)
+                {
+                    codeSnippet.AppendLine(line);
+                }
+            }
+
+            _lastCodeSnippet = codeSnippet.ToString();
+        }
+
+        private void CopyToClipboard(string input)
+        {
+            _pwsh.Commands.Clear();
+            _pwsh.AddCommand("Set-Clipboard");
+            _pwsh.AddParameter("Value", input);
+            _pwsh.Invoke();
         }
 
         private void SendPrompt(string input, bool debug, CancellationToken cancelToken)
@@ -323,7 +418,8 @@ namespace Microsoft.PowerShell.CoPilot
                     _promptHistory.RemoveAt(0);
                 }
 
-                WriteLineConsole($"{PSStyle.Instance.Background.FromRgb(20, 0, 20)}{PSStyle.Instance.Foreground.BrightYellow}{output}{PSStyle.Instance.Reset}\n");
+                GetCodeSnippet(output);
+                WriteLineConsole($"{PSStyle.Instance.Background.FromRgb(20, 0, 20)}{PSStyle.Instance.Foreground.BrightYellow}{output}{PSStyle.Instance.Reset}");
             }
             catch (Exception e)
             {
@@ -357,11 +453,23 @@ namespace Microsoft.PowerShell.CoPilot
             }
         }
 
+        private void WriteToolbar()
+        {
+            // lock the top line from scrolling
+            Console.Write($"{ESC}[2;{Console.WindowHeight}r");
+            Console.CursorTop = 0;
+            Console.CursorLeft = 0;
+            var color = PSStyle.Instance.Background.FromRgb(100, 0, 100) + PSStyle.Instance.Foreground.BrightYellow;
+            var reset = PSStyle.Instance.Reset;
+            Console.Write($" {color}[Exit '{_exitKeyInfo.Key}']{reset} {color}[Get-Error 'Ctrl+E']{reset} {color}[Copy-Code 'Ctrl+C']{reset}");
+        }
+
         private string GetLastError()
         {
             var errorVar = GetVariableValue("global:error");
             if (errorVar is ArrayList errorArray && errorArray.Count > 0)
             {
+                _pwsh.Commands.Clear();
                 _pwsh.AddCommand("Get-Error").AddParameter("InputObject", errorArray[0]);
                 _pwsh.AddCommand("Out-String");
                 var result = _pwsh.Invoke<string>();
@@ -379,6 +487,26 @@ namespace Microsoft.PowerShell.CoPilot
             }
 
             return string.Empty;
+        }
+
+        private static ConsoleKeyInfo GetPSReadLineKeyHandler()
+        {
+            var key = "F3";
+            /* // TODO: doesn't currently work as the cmdlet is not found
+            _pwsh.Commands.Clear();
+            _pwsh.AddCommand("Microsoft.PowerShell.CoPilot\\Enable-PSCoPilotKeyHandler").AddParameter("ReturnChord", true);
+            var result = _pwsh.Invoke<string>();
+            if (result.Count > 0)
+            {
+                key = result[0];
+            }
+            else
+            {
+                key = "F3";
+            }
+            */
+
+            return new ConsoleKeyInfo('\0', (ConsoleKey)Enum.Parse(typeof(ConsoleKey), key), shift: false, alt: false, control: false);
         }
 
         private static string GetCompletion(string prompt, bool debug, CancellationToken cancelToken)
