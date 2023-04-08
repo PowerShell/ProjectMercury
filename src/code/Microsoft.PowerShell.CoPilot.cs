@@ -22,14 +22,15 @@ namespace Microsoft.PowerShell.CoPilot
     public sealed class EnterCoPlot : PSCmdlet
     {
         private const char ESC = '\x1b';
+        private readonly string RESET = $"{PSStyle.Instance.Reset}{PSStyle.Instance.Background.FromRgb(20, 0, 20)}";
         private const string ALTERNATE_SCREEN_BUFFER = "\x1b[?1049h";
         private const string MAIN_SCREEN_BUFFER = "\x1b[?1049l";
-        private const string PROMPT = "\x1b[0;1;32mCoPilot> \x1b[0m";
+        private readonly string PROMPT = $"{PSStyle.Instance.Foreground.BrightGreen}CoPilot> {PSStyle.Instance.Foreground.White}";
         private const string MODEL = "gpt-35-turbo";
         private static string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private const int MAX_TOKENS = 64;
         private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
-        private const string INSTRUCTIONS = "\x1b[0m\nType 'help' for instructions.";
+        private readonly string INSTRUCTIONS = $"{PSStyle.Instance.Foreground.Cyan}Type 'help' for instructions.";
         private const string OPENAI_COMPLETION_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
         private const string LOGO = @"
  _______   ______   ______           _______  __ __            __
@@ -81,7 +82,7 @@ namespace Microsoft.PowerShell.CoPilot
                     var input = GetLastError();
                     if (input.Length > 0)
                     {
-                        WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{PSStyle.Instance.Reset}");
+                        WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{RESET}");
                         SendPrompt(input, false, _cancelToken);
                     }
                 }
@@ -96,6 +97,7 @@ namespace Microsoft.PowerShell.CoPilot
 
         private void RedrawScreen()
         {
+            Console.Write($"{RESET}");
             Console.Clear();
             // WriteToolbar();
             Console.CursorTop = Console.WindowHeight - 1;
@@ -106,7 +108,7 @@ namespace Microsoft.PowerShell.CoPilot
             }
             else
             {
-                WriteLineConsole($"{PSStyle.Instance.Reset}{LOGO}");
+                WriteLineConsole($"{RESET}{LOGO}");
                 WriteLineConsole($"{INSTRUCTIONS}");
             }
         }
@@ -124,7 +126,7 @@ namespace Microsoft.PowerShell.CoPilot
             {
                 var historyIndex = _history.Count - 1;
                 inputBuilder.Clear();
-                WriteLineConsole($"{PSStyle.Instance.Reset}");
+                WriteLineConsole($"{RESET}");
                 WriteConsole(PROMPT);
 
                 bool inputReceived = false;
@@ -266,13 +268,15 @@ namespace Microsoft.PowerShell.CoPilot
                 switch (input.ToLowerInvariant())
                 {
                     case "help":
-                        WriteLineConsole($"{PSStyle.Instance.Foreground.BrightCyan}Just type whatever you want to send to CoPilot.");
-                        WriteLineConsole($"{PSStyle.Instance.Underline}Up{PSStyle.Instance.UnderlineOff} and {PSStyle.Instance.Underline}down{PSStyle.Instance.UnderlineOff} arrows will cycle through your history.");
-                        WriteLineConsole($"{PSStyle.Instance.Underline}Ctrl+u{PSStyle.Instance.UnderlineOff} will clear the current line.");
-                        WriteLineConsole($"{PSStyle.Instance.Underline}Ctrl+c{PSStyle.Instance.UnderlineOff} or {PSStyle.Instance.Underline}Copy-Code{PSStyle.Instance.UnderlineOff} will copy the current line to the clipboard.");
-                        WriteLineConsole($"{PSStyle.Instance.Underline}Ctrl+e{PSStyle.Instance.UnderlineOff} or {PSStyle.Instance.Underline}Get-Error{PSStyle.Instance.UnderlineOff} will get the last error.");
-                        WriteLineConsole($"Type {PSStyle.Instance.Underline}exit{PSStyle.Instance.UnderlineOff} to exit the chat.");
-                        WriteLineConsole($"Type {PSStyle.Instance.Underline}clear{PSStyle.Instance.UnderlineOff} to clear the screen.");
+                        var highlight = PSStyle.Instance.Underline + PSStyle.Instance.Foreground.BrightCyan + PSStyle.Instance.Bold;
+                        var highlightOff = PSStyle.Instance.UnderlineOff + PSStyle.Instance.Foreground.Cyan + PSStyle.Instance.BoldOff;
+                        WriteLineConsole($"\n{highlightOff}Just type whatever you want to send to CoPilot.");
+                        WriteLineConsole($"{highlight}Up{highlightOff} and {highlight}down{highlightOff} arrows will cycle through your history.");
+                        WriteLineConsole($"{highlight}Ctrl+u{highlightOff} will clear the current line.");
+                        WriteLineConsole($"{highlight}Ctrl+c{highlightOff} or {highlight}Copy-Code{highlightOff} will copy the current line to the clipboard.");
+                        WriteLineConsole($"{highlight}Ctrl+e{highlightOff} or {highlight}Get-Error{highlightOff} will get the last error.");
+                        WriteLineConsole($"Type {highlight}exit{highlightOff} to exit the chat.");
+                        WriteLineConsole($"Type {highlight}clear{highlightOff} to clear the screen.");
                         break;
                     case "clear":
                         Console.Clear();
@@ -304,14 +308,14 @@ namespace Microsoft.PowerShell.CoPilot
                         if (_lastCodeSnippet.Length > 0)
                         {
                             CopyToClipboard(_lastCodeSnippet);
-                            WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Code snippet copied to clipboard.{PSStyle.Instance.Reset}");
+                            WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Code snippet copied to clipboard.{RESET}");
                         }
                         break;
                     case "get-error":
                         input = GetLastError();
                         if (input.Length > 0)
                         {
-                            WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{PSStyle.Instance.Reset}");
+                            WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{RESET}");
                             SendPrompt(input, debug, _cancelToken);
                         }
                         break;
@@ -393,7 +397,7 @@ namespace Microsoft.PowerShell.CoPilot
                     Console.CursorTop = cursorTop;
                     Console.CursorLeft = 0;
                     Console.CursorVisible = false;
-                    Console.Write($"{PSStyle.Instance.Reset}{task.Status}... {SPINNER[i++ % SPINNER.Length]}".PadRight(Console.WindowWidth));
+                    Console.Write($"{RESET}{task.Status}... {SPINNER[i++ % SPINNER.Length]}".PadRight(Console.WindowWidth));
                     if (Console.KeyAvailable)
                     {
                         ConsoleKeyInfo keyInfo = Console.ReadKey(true);
@@ -451,34 +455,7 @@ namespace Microsoft.PowerShell.CoPilot
                     }
                 }
 
-/*
-                foreach (var line in lines)
-                {
-                    if (line.StartsWith("```"))
-                    {
-                        inCode = !inCode;
-                        if (inCode)
-                        {
-                            colorOutput.AppendLine($"{PSStyle.Instance.Foreground.White}{line}");
-                        }
-                        else
-                        {
-                            colorOutput.AppendLine(GetPrettyPowerShellScript(codeSnippet.ToString()));
-                            codeSnippet.Clear();
-                            colorOutput.AppendLine($"{PSStyle.Instance.Foreground.White}{line}");
-                        }
-                    }
-                    else if (inCode)
-                    {
-                        codeSnippet.AppendLine(line);
-                    }
-                    else
-                    {
-                        colorOutput.AppendLine($"{PSStyle.Instance.Foreground.BrightYellow}{line}");
-                    }
-                }
-*/
-                WriteLineConsole($"{colorOutput.ToString()}{PSStyle.Instance.Reset}");
+                WriteConsole($"{colorOutput.ToString()}{RESET}");
             }
             catch (Exception e)
             {
@@ -519,8 +496,7 @@ namespace Microsoft.PowerShell.CoPilot
             Console.CursorTop = 0;
             Console.CursorLeft = 0;
             var color = PSStyle.Instance.Background.FromRgb(100, 0, 100) + PSStyle.Instance.Foreground.BrightYellow;
-            var reset = PSStyle.Instance.Reset;
-            Console.Write($" {color}[Exit '{_exitKeyInfo.Key}']{reset} {color}[Get-Error 'Ctrl+E']{reset} {color}[Copy-Code 'Ctrl+C']{reset}");
+            Console.Write($" {color}[Exit '{_exitKeyInfo.Key}']{RESET} {color}[Get-Error 'Ctrl+E']{RESET} {color}[Copy-Code 'Ctrl+C']{RESET}");
         }
 
         private string GetLastError()
@@ -542,7 +518,7 @@ namespace Microsoft.PowerShell.CoPilot
             }
             else
             {
-                WriteConsole($"{PSStyle.Instance.Foreground.BrightMagenta}No error found.{PSStyle.Instance.Reset}\n");
+                WriteConsole($"{PSStyle.Instance.Foreground.BrightMagenta}No error found.{RESET}\n");
             }
 
             return string.Empty;
@@ -638,7 +614,7 @@ namespace Microsoft.PowerShell.CoPilot
             var colorTokens = new List<(int, string)>(); // (start, color)
             foreach (var token in tokens)
             {
-                var color = PSStyle.Instance.Reset;
+                var color = PSStyle.Instance.Foreground.White;
                 switch (token.Kind)
                 {
                     case TokenKind.Command:
@@ -674,11 +650,11 @@ namespace Microsoft.PowerShell.CoPilot
                 }
                 else if (token.TokenFlags.HasFlag(TokenFlags.Keyword))
                 {
-                    color = PSStyle.Instance.Foreground.BrightGreen;
+                    color = PSStyle.Instance.Foreground.BrightCyan;
                 }
                 else if (token.TokenFlags.HasFlag(TokenFlags.TypeName))
                 {
-                    color = PSStyle.Instance.Foreground.White;
+                    color = PSStyle.Instance.Foreground.BrightBlue;
                 }
                 else if (token.TokenFlags.HasFlag(TokenFlags.MemberName))
                 {
