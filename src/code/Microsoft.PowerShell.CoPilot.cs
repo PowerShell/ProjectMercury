@@ -98,7 +98,7 @@ namespace Microsoft.PowerShell.CoPilot
         {
             Console.Clear();
             // WriteToolbar();
-            Console.CursorTop = 1;
+            Console.CursorTop = Console.WindowHeight - 1;
             Console.CursorLeft = 0;
             if (_buffer.Length > 0)
             {
@@ -332,22 +332,20 @@ namespace Microsoft.PowerShell.CoPilot
             // split input into lines
             var lines = input.Split(new[] { '\n' });
             var codeSnippet = new StringBuilder();
-            // find the first line that starts with 3 backticks and copy to next line that starts with 3 backticks
+            // find the first line that starts with ```powershell and copy the lines until ``` is found
             bool foundStart = false;
+            bool foundEnd = false;
             foreach (var line in lines)
             {
-                if (line.StartsWith("```"))
+                if (line.StartsWith("```powershell"))
                 {
-                    if (foundStart)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        foundStart = true;
-                    }
+                    foundStart = true;
                 }
-                else if (foundStart)
+                else if (line.StartsWith("```"))
+                {
+                    foundEnd = true;
+                }
+                else if (foundStart && !foundEnd)
                 {
                     codeSnippet.AppendLine(line);
                 }
@@ -431,6 +429,31 @@ namespace Microsoft.PowerShell.CoPilot
                 bool inCode = false;
                 foreach (var line in lines)
                 {
+                    if (line.StartsWith("```powershell"))
+                    {
+                        inCode = true;
+                        colorOutput.AppendLine($"{PSStyle.Instance.Foreground.BrightBlack}```");
+                    }
+                    else if (line.StartsWith("```"))
+                    {
+                        inCode = false;
+                        colorOutput.Append(GetPrettyPowerShellScript(codeSnippet.ToString()));
+                        codeSnippet.Clear();
+                        colorOutput.AppendLine($"{PSStyle.Instance.Foreground.BrightBlack}```");
+                    }
+                    else if (inCode)
+                    {
+                        codeSnippet.AppendLine(line);
+                    }
+                    else
+                    {
+                        colorOutput.AppendLine($"{PSStyle.Instance.Foreground.BrightYellow}{line}");
+                    }
+                }
+
+/*
+                foreach (var line in lines)
+                {
                     if (line.StartsWith("```"))
                     {
                         inCode = !inCode;
@@ -454,7 +477,7 @@ namespace Microsoft.PowerShell.CoPilot
                         colorOutput.AppendLine($"{PSStyle.Instance.Foreground.BrightYellow}{line}");
                     }
                 }
-
+*/
                 WriteLineConsole($"{colorOutput.ToString()}{PSStyle.Instance.Reset}");
             }
             catch (Exception e)
@@ -491,6 +514,7 @@ namespace Microsoft.PowerShell.CoPilot
 
         private void WriteToolbar()
         {
+            // lock the top row
             Console.Write($"{ESC}[2;{Console.WindowHeight}r");
             Console.CursorTop = 0;
             Console.CursorLeft = 0;
@@ -710,7 +734,7 @@ namespace Microsoft.PowerShell.CoPilot
                 new
                 {
                     role = "system",
-                    content = "You are an AI assistant with experise in PowerShell and the command line. You are helpful, creative, clever, and very friendly."
+                    content = "You are an AI assistant with experise in PowerShell and the command line. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks."
                 }
             );
             for (int i = 0; i < _assistHistory.Count; i++)
