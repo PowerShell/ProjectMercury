@@ -17,6 +17,12 @@ using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.CoPilot
 {
+    public enum Deployment
+    {
+        GPT_35_Turbo,
+        GPT_4,
+    }
+
     [Alias("copilot")]
     [Cmdlet(VerbsCommon.Enter, "CoPilot")]
     public sealed class EnterCoPlot : PSCmdlet
@@ -31,7 +37,8 @@ namespace Microsoft.PowerShell.CoPilot
         private const int MAX_TOKENS = 64;
         private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
         private readonly string INSTRUCTIONS = $"{PSStyle.Instance.Foreground.Cyan}Type 'help' for instructions.";
-        private const string OPENAI_COMPLETION_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
+        private const string OPENAI_GPT35_TURBO_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
+        private const string OPENAI_GPT4_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4/chat/completions?api-version=2023-03-15-preview";
         private const string LOGO = @"
  _______   ______   ______           _______  __ __            __
 |       \ /      \ /      \         |       \|  \  \          |  \
@@ -56,9 +63,17 @@ namespace Microsoft.PowerShell.CoPilot
         private static CancellationToken _cancelToken = _cancellationTokenSource.Token;
         private readonly ConsoleKeyInfo _exitKeyInfo = GetPSReadLineKeyHandler();
         private static string _lastCodeSnippet = string.Empty;
+        private static Deployment _deployment = Deployment.GPT_35_Turbo;
 
         [Parameter(Mandatory = false)]
         public SwitchParameter LastError { get; set; }
+
+        [Parameter(Mandatory = false)]
+        public Deployment Deployment
+        {
+            get { return _deployment; }
+            set { _deployment = value; }
+        }
 
         public EnterCoPlot()
         {
@@ -555,7 +570,17 @@ namespace Microsoft.PowerShell.CoPilot
                 }
 
                 var bodyContent = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
-                var response = _httpClient.PostAsync(OPENAI_COMPLETION_URL, bodyContent, cancelToken).GetAwaiter().GetResult();
+                string openai_url;
+                switch (_deployment)
+                {
+                    case Deployment.GPT_4:
+                        openai_url = OPENAI_GPT4_URL;
+                        break;
+                    default:
+                        openai_url = OPENAI_GPT35_TURBO_URL;
+                        break;
+                }
+                var response = _httpClient.PostAsync(openai_url , bodyContent, cancelToken).GetAwaiter().GetResult();
                 var responseContent = response.Content.ReadAsStringAsync(cancelToken).GetAwaiter().GetResult();
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 {
