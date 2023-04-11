@@ -19,8 +19,8 @@ namespace Microsoft.PowerShell.CoPilot
 {
     public enum Deployment
     {
-        GPT_35_Turbo,
-        GPT_4,
+        GPT35_Turbo,
+        GPT4,
     }
 
     [Alias("copilot")]
@@ -63,7 +63,7 @@ namespace Microsoft.PowerShell.CoPilot
         private static CancellationToken _cancelToken = _cancellationTokenSource.Token;
         private readonly ConsoleKeyInfo _exitKeyInfo = GetPSReadLineKeyHandler();
         private static string _lastCodeSnippet = string.Empty;
-        private static Deployment _deployment = Deployment.GPT_35_Turbo;
+        private static Deployment _deployment = Deployment.GPT35_Turbo;
 
         [Parameter(Mandatory = false)]
         public SwitchParameter LastError { get; set; }
@@ -573,7 +573,7 @@ namespace Microsoft.PowerShell.CoPilot
                 string openai_url;
                 switch (_deployment)
                 {
-                    case Deployment.GPT_4:
+                    case Deployment.GPT4:
                         openai_url = OPENAI_GPT4_URL;
                         break;
                     default:
