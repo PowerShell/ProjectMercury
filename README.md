@@ -7,3 +7,4 @@ Additional opportunities:
 - integration with debugger to get assistance
 - identifying and fixing issues in a script file, enhance fixes with existing pester tests
 - generation of Pester tests
+- malware, unsafe security issues detection
