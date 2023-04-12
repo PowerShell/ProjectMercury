@@ -137,6 +137,7 @@ namespace Microsoft.PowerShell.CoPilot
             var inputBuilder = new StringBuilder();
             var consoleHeight = Console.WindowHeight;
             var consoleWidth = Console.WindowWidth;
+            WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {_deployment}");
             while (!exit)
             {
                 var historyIndex = _history.Count - 1;
