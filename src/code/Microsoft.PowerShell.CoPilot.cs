@@ -15,23 +15,23 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.PowerShell.CoPilot
+namespace Microsoft.PowerShell.Copilot
 {
-    public enum Deployment
+    public enum Model
     {
         GPT35_Turbo,
         GPT4,
     }
 
-    [Alias("copilot")]
-    [Cmdlet(VerbsCommon.Enter, "CoPilot")]
+    [Alias("Copilot")]
+    [Cmdlet(VerbsCommon.Enter, "Copilot")]
     public sealed class EnterCoPlot : PSCmdlet
     {
         private const char ESC = '\x1b';
         private readonly string RESET = $"{PSStyle.Instance.Reset}{PSStyle.Instance.Background.FromRgb(20, 0, 20)}";
         private const string ALTERNATE_SCREEN_BUFFER = "\x1b[?1049h";
         private const string MAIN_SCREEN_BUFFER = "\x1b[?1049l";
-        private readonly string PROMPT = $"{PSStyle.Instance.Foreground.BrightGreen}CoPilot> {PSStyle.Instance.Foreground.White}";
+        private readonly string PROMPT = $"{PSStyle.Instance.Foreground.BrightGreen}Copilot> {PSStyle.Instance.Foreground.White}";
         private const string MODEL = "gpt-35-turbo";
         private static string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private const int MAX_TOKENS = 64;
@@ -40,15 +40,13 @@ namespace Microsoft.PowerShell.CoPilot
         private const string OPENAI_GPT35_TURBO_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
         private const string OPENAI_GPT4_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4/chat/completions?api-version=2023-03-15-preview";
         private const string LOGO = @"
- _______   ______   ______           _______  __ __            __
-|       \ /      \ /      \         |       \|  \  \          |  \
-| ▓▓▓▓▓▓▓\  ▓▓▓▓▓▓\  ▓▓▓▓▓▓\ ______ | ▓▓▓▓▓▓▓\\▓▓ ▓▓ ______  _| ▓▓_
-| ▓▓__/ ▓▓ ▓▓___\▓▓ ▓▓   \▓▓/      \| ▓▓__/ ▓▓  \ ▓▓/      \|   ▓▓ \
-| ▓▓    ▓▓\▓▓    \| ▓▓     |  ▓▓▓▓▓▓\ ▓▓    ▓▓ ▓▓ ▓▓  ▓▓▓▓▓▓\\▓▓▓▓▓▓
-| ▓▓▓▓▓▓▓ _\▓▓▓▓▓▓\ ▓▓   __| ▓▓  | ▓▓ ▓▓▓▓▓▓▓| ▓▓ ▓▓ ▓▓  | ▓▓ | ▓▓ __
-| ▓▓     |  \__| ▓▓ ▓▓__/  \ ▓▓__/ ▓▓ ▓▓     | ▓▓ ▓▓ ▓▓__/ ▓▓ | ▓▓|  \
-| ▓▓      \▓▓    ▓▓\▓▓    ▓▓\▓▓    ▓▓ ▓▓     | ▓▓ ▓▓\▓▓    ▓▓  \▓▓  ▓▓
- \▓▓       \▓▓▓▓▓▓  \▓▓▓▓▓▓  \▓▓▓▓▓▓ \▓▓      \▓▓\▓▓ \▓▓▓▓▓▓    \▓▓▓▓  v0.1
+
+██████╗ ███████╗ ██████╗ ██████╗ ██████╗ ██╗██╗      ██████╗ ████████╗
+██╔══██╗██╔════╝██╔════╝██╔═══██╗██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+██████╔╝███████╗██║     ██║   ██║██████╔╝██║██║     ██║   ██║   ██║
+██╔═══╝ ╚════██║██║     ██║   ██║██╔═══╝ ██║██║     ██║   ██║   ██║
+██║     ███████║╚██████╗╚██████╔╝██║     ██║███████╗╚██████╔╝   ██║
+╚═╝     ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝   v0.1
 ";
         private static HttpClient _httpClient = new HttpClient();
         private static SecureString _openaiKey;
@@ -63,16 +61,16 @@ namespace Microsoft.PowerShell.CoPilot
         private static CancellationToken _cancelToken = _cancellationTokenSource.Token;
         private readonly ConsoleKeyInfo _exitKeyInfo = GetPSReadLineKeyHandler();
         private static string _lastCodeSnippet = string.Empty;
-        private static Deployment _deployment = Deployment.GPT35_Turbo;
+        private static Model _model = Model.GPT35_Turbo;
 
         [Parameter(Mandatory = false)]
         public SwitchParameter LastError { get; set; }
 
         [Parameter(Mandatory = false)]
-        public Deployment Deployment
+        public Model Model
         {
-            get { return _deployment; }
-            set { _deployment = value; }
+            get { return _model; }
+            set { _model = value; }
         }
 
         public EnterCoPlot()
@@ -137,7 +135,7 @@ namespace Microsoft.PowerShell.CoPilot
             var inputBuilder = new StringBuilder();
             var consoleHeight = Console.WindowHeight;
             var consoleWidth = Console.WindowWidth;
-            WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {_deployment}");
+            WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {_model}");
             while (!exit)
             {
                 var historyIndex = _history.Count - 1;
@@ -286,7 +284,7 @@ namespace Microsoft.PowerShell.CoPilot
                     case "help":
                         var highlight = PSStyle.Instance.Underline + PSStyle.Instance.Foreground.BrightCyan + PSStyle.Instance.Bold;
                         var highlightOff = PSStyle.Instance.UnderlineOff + PSStyle.Instance.Foreground.Cyan + PSStyle.Instance.BoldOff;
-                        WriteLineConsole($"\n{highlightOff}Just type whatever you want to send to CoPilot.");
+                        WriteLineConsole($"\n{highlightOff}Just type whatever you want to send to Copilot.");
                         WriteLineConsole($"{highlight}Up{highlightOff} and {highlight}down{highlightOff} arrows will cycle through your history.");
                         WriteLineConsole($"{highlight}Ctrl+u{highlightOff} will clear the current line.");
                         WriteLineConsole($"{highlight}Ctrl+c{highlightOff} or {highlight}Copy-Code{highlightOff} will copy the current line to the clipboard.");
@@ -545,7 +543,7 @@ namespace Microsoft.PowerShell.CoPilot
             var key = "F3";
             /* // TODO: doesn't currently work as the cmdlet is not found
             _pwsh.Commands.Clear();
-            _pwsh.AddCommand("Microsoft.PowerShell.CoPilot\\Enable-PSCoPilotKeyHandler").AddParameter("ReturnChord", true);
+            _pwsh.AddCommand("Microsoft.PowerShell.Copilot\\Enable-PSCopilotKeyHandler").AddParameter("ReturnChord", true);
             var result = _pwsh.Invoke<string>();
             if (result.Count > 0)
             {
@@ -572,9 +570,9 @@ namespace Microsoft.PowerShell.CoPilot
 
                 var bodyContent = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
                 string openai_url;
-                switch (_deployment)
+                switch (_model)
                 {
-                    case Deployment.GPT4:
+                    case Model.GPT4:
                         openai_url = OPENAI_GPT4_URL;
                         break;
                     default:

@@ -15,7 +15,7 @@ param (
 try {
     Push-Location "$PSScriptRoot/src/code"
 
-    $outPath = "$PSScriptRoot/out/Microsoft.PowerShell.CoPilot"
+    $outPath = "$PSScriptRoot/out/Microsoft.PowerShell.Copilot"
 
     if ($Clean) {
         if (Test-Path $outPath) {
