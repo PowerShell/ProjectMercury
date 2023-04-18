@@ -122,6 +122,7 @@ namespace Microsoft.PowerShell.Copilot
             else
             {
                 WriteLineConsole($"{RESET}{LOGO}");
+                WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {_model}");
                 WriteLineConsole($"{INSTRUCTIONS}");
             }
         }
@@ -135,7 +136,6 @@ namespace Microsoft.PowerShell.Copilot
             var inputBuilder = new StringBuilder();
             var consoleHeight = Console.WindowHeight;
             var consoleWidth = Console.WindowWidth;
-            WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {_model}");
             while (!exit)
             {
                 var historyIndex = _history.Count - 1;
