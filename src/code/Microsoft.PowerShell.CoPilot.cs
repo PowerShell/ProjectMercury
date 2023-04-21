@@ -62,6 +62,7 @@ namespace Microsoft.PowerShell.Copilot
         private readonly ConsoleKeyInfo _exitKeyInfo = GetPSReadLineKeyHandler();
         private static string _lastCodeSnippet = string.Empty;
         private static Model _model = Model.GPT35_Turbo;
+        private static string _os = GetOS();
 
         [Parameter(Mandatory = false)]
         public SwitchParameter LastError { get; set; }
@@ -351,6 +352,7 @@ namespace Microsoft.PowerShell.Copilot
             var lines = input.Split(new[] { '\n' });
             var codeSnippet = new StringBuilder();
             // find the first line that starts with ```powershell and copy the lines until ``` is found
+            // TODO: handle case where there isn't a PowerShell but just a command-line block
             bool foundStart = false;
             bool foundEnd = false;
             foreach (var line in lines)
@@ -604,6 +606,26 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
+        private static string GetOS()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return "windows";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return "linux";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return "macos";
+            }
+            else
+            {
+                return "unknown";
+            }
+        }
+
         private SecureString GetApiKey()
         {
             string key = Environment.GetEnvironmentVariable(API_ENV_VAR);
@@ -734,7 +756,7 @@ namespace Microsoft.PowerShell.Copilot
                 new
                 {
                     role = "system",
-                    content = "You are an AI assistant with experise in PowerShell and the command line. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks."
+                    content = $"You are an AI assistant with experise in PowerShell, Azure, and the command line.  Assume user is using {_os} operating system unless specified. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks."
                 }
             );
             for (int i = 0; i < _assistHistory.Count; i++)
