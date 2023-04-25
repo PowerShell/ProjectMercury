@@ -37,6 +37,7 @@ namespace Microsoft.PowerShell.Copilot
         private const int MAX_TOKENS = 64;
         private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
         private const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
+        private const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
         private readonly string INSTRUCTIONS = $"{PSStyle.Instance.Foreground.Cyan}Type 'help' for instructions.";
         private const string OPENAI_GPT35_TURBO_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
         private const string OPENAI_GPT4_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4/chat/completions?api-version=2023-03-15-preview";
@@ -772,13 +773,28 @@ namespace Microsoft.PowerShell.Copilot
         private static string GetRequestBody(string prompt)
         {
             var messages = new List<object>();
-            messages.Add(
-                new
-                {
-                    role = "system",
-                    content = $"You are an AI assistant with experise in PowerShell, Azure, and the command line.  Assume user is using {_os} operating system unless specified. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks."
-                }
-            );
+            string system_prompt = Environment.GetEnvironmentVariable(SYSTEM_PROMPT_ENV_VAR);
+            if (system_prompt is null)
+            {
+                messages.Add(
+                    new
+                    {
+                        role = "system",
+                        content = $"You are an AI assistant with experise in PowerShell, Azure, and the command line.  Assume user is using {_os} operating system unless specified. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks."
+                    }
+                );
+            }
+            else
+            {
+                messages.Add(
+                    new
+                    {
+                        role = "system",
+                        content = system_prompt
+                    }
+                );
+            }
+
             for (int i = 0; i < _assistHistory.Count; i++)
             {
                 messages.Add(
