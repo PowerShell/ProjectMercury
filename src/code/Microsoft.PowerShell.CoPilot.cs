@@ -36,6 +36,7 @@ namespace Microsoft.PowerShell.Copilot
         private static string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private const int MAX_TOKENS = 64;
         private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
+        private const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
         private readonly string INSTRUCTIONS = $"{PSStyle.Instance.Foreground.Cyan}Type 'help' for instructions.";
         private const string OPENAI_GPT35_TURBO_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
         private const string OPENAI_GPT4_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4/chat/completions?api-version=2023-03-15-preview";
@@ -123,7 +124,16 @@ namespace Microsoft.PowerShell.Copilot
             else
             {
                 WriteLineConsole($"{RESET}{LOGO}");
-                WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {_model}");
+                string openai_url = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR);
+                if (openai_url is null)
+                {
+                    WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {_model}");
+                }
+                else
+                {
+                    WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {openai_url}");
+                }
+
                 WriteLineConsole($"{INSTRUCTIONS}");
             }
         }
@@ -571,16 +581,25 @@ namespace Microsoft.PowerShell.Copilot
                 }
 
                 var bodyContent = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
-                string openai_url;
-                switch (_model)
+                string openai_url = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR);
+                if (openai_url is null)
                 {
-                    case Model.GPT4:
-                        openai_url = OPENAI_GPT4_URL;
-                        break;
-                    default:
-                        openai_url = OPENAI_GPT35_TURBO_URL;
-                        break;
+                    switch (_model)
+                    {
+                        case Model.GPT4:
+                            openai_url = OPENAI_GPT4_URL;
+                            break;
+                        default:
+                            openai_url = OPENAI_GPT35_TURBO_URL;
+                            break;
+                    }
                 }
+
+                if (debug)
+                {
+                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: OpenAI URL: {openai_url}");
+                }
+
                 var response = _httpClient.PostAsync(openai_url , bodyContent, cancelToken).GetAwaiter().GetResult();
                 var responseContent = response.Content.ReadAsStringAsync(cancelToken).GetAwaiter().GetResult();
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
@@ -592,6 +611,7 @@ namespace Microsoft.PowerShell.Copilot
                 {
                     Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: ResponseContent:\n{GetPrettyJson(responseContent)}");
                 }
+
                 var responseJson = JsonNode.Parse(responseContent);
                 var output = "\n" + responseJson!["choices"][0]["message"]["content"].ToString();
                 return output;
