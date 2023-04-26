@@ -5,29 +5,38 @@ function Get-WhatsTheFix {
 Set-Alias -Name wtf -Value Get-WhatsTheFix
 
 function Enable-PSCopilotKeyHandler {
-    [CmdletBinding()]
     param(
+        [string]$Chord,
         [switch]$ReturnChord
     )
 
-    if ($null -eq ($handler = Get-PSReadLineKeyHandler -Bound | Where-Object { $_.Description.StartsWith('PSCopilot:') })) {
-        for ($i = 3; $i -le 12; $i++) {
-            $chord = "F$i"
-            if ($null -eq (Get-PSReadlineKeyHandler -Chord $chord)) {
-                Set-PSReadlineKeyHandler -Chord $chord -Description 'PSCopilot: Enter PSCopilot chat mode' -ScriptBlock {
-                    Enter-Copilot
+    $setHandler = $false
+    if ('' -eq $Chord) {
+        if ($null -eq ($handler = Get-PSReadLineKeyHandler -Bound | Where-Object { $_.Description.StartsWith('PSCopilot:') })) {
+            for ($i = 3; $i -le 12; $i++) {
+                $Chord = "F$i"
+                if ($null -eq (Get-PSReadlineKeyHandler -Chord $Chord)) {
+                    $setHandler = $true
+                    break
                 }
-                break
             }
         }
+        else {
+            $chord = $handler.Key
+        }
+    } else {
+        $setHandler = $true
     }
-    else {
-        $chord = $handler.Key
+
+    if ($setHandler) {
+        Set-PSReadlineKeyHandler -Chord $Chord -Description 'PSCopilot: Enter PSCopilot chat mode' -ScriptBlock {
+            Enter-Copilot
+        }
     }
 
     if ($ReturnChord) {
-        $chord
+        $Chord
     } else {
-        Write-Host "PSCopilot registered for '$chord'"
+        Write-Host "PSCopilot registered for '$Chord'"
     }
 }

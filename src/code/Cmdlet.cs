@@ -28,7 +28,7 @@ namespace Microsoft.PowerShell.Copilot
         private static CancellationToken _cancelToken = _cancellationTokenSource.Token;
         internal static readonly ConsoleKeyInfo _exitKeyInfo = Pwsh.GetPSReadLineKeyHandler();
         internal static Model _model = Model.GPT35_Turbo;
-        private static OpenAI _openai = new();
+        private static OpenAI _openai;
 
         [Parameter(Mandatory = false)]
         public SwitchParameter LastError { get; set; }
@@ -42,6 +42,14 @@ namespace Microsoft.PowerShell.Copilot
 
         public EnterCopilot()
         {
+            try
+            {
+                _openai = new OpenAI();
+            }
+            catch (Exception e)
+            {
+                ThrowTerminatingError(new ErrorRecord(e, "OpenAIError", ErrorCategory.InvalidArgument, null));
+            }
         }
 
         protected override void BeginProcessing()

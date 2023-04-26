@@ -41,19 +41,14 @@ namespace Microsoft.PowerShell.Copilot
         internal static ConsoleKeyInfo GetPSReadLineKeyHandler()
         {
             var key = "F3";
-            /* // TODO: doesn't currently work as the cmdlet is not found
+            var script = @"(Get-PSReadLineKeyHandler -Bound | Where-Object { $_.Description.StartsWith('PSCopilot:') }).Key";
             _pwsh.Commands.Clear();
-            _pwsh.AddCommand("Microsoft.PowerShell.Copilot\\Enable-PSCopilotKeyHandler").AddParameter("ReturnChord", true);
+            _pwsh.AddScript(script);
             var result = _pwsh.Invoke<string>();
             if (result.Count > 0)
             {
                 key = result[0];
             }
-            else
-            {
-                key = "F3";
-            }
-            */
 
             return new ConsoleKeyInfo('\0', (ConsoleKey)Enum.Parse(typeof(ConsoleKey), key), shift: false, alt: false, control: false);
         }
