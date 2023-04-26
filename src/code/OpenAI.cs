@@ -19,6 +19,7 @@ namespace Microsoft.PowerShell.Copilot
         internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
         private const string OPENAI_GPT35_TURBO_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
         private const string OPENAI_GPT4_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4/chat/completions?api-version=2023-03-15-preview";
+        private const string OPENAI_GPT4_32K_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4-32k/chat/completions?api-version=2023-03-15-preview";
         private static SecureString _openaiKey;
 
         private static readonly string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
@@ -158,6 +159,9 @@ namespace Microsoft.PowerShell.Copilot
                     {
                         case Model.GPT4:
                             openai_url = OPENAI_GPT4_URL;
+                            break;
+                        case Model.GPT4_32K:
+                            openai_url = OPENAI_GPT4_32K_URL;
                             break;
                         default:
                             openai_url = OPENAI_GPT35_TURBO_URL;

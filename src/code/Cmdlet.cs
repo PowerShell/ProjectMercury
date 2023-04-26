@@ -16,6 +16,7 @@ namespace Microsoft.PowerShell.Copilot
     {
         GPT35_Turbo,
         GPT4,
+        GPT4_32K,
     }
 
     [Alias("Copilot")]
