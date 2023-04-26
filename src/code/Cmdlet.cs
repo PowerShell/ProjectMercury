@@ -61,7 +61,7 @@ namespace Microsoft.PowerShell.Copilot
                 Screenbuffer.RedrawScreen();
                 if (LastError)
                 {
-                    var input = Pwsh.GetLastError();
+                    var input = Pwsh.GetLastError(this);
                     if (input.Length > 0)
                     {
                         Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{Screenbuffer.RESET}");
@@ -69,7 +69,7 @@ namespace Microsoft.PowerShell.Copilot
                     }
                 }
 
-                Readline.EnterInputLoop(_cancelToken);
+                Readline.EnterInputLoop(this, _cancelToken);
             }
             finally
             {

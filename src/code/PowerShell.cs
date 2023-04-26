@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Text;
 using System.Management.Automation;
 
@@ -8,26 +9,29 @@ namespace Microsoft.PowerShell.Copilot
     {
         private static System.Management.Automation.PowerShell _pwsh = System.Management.Automation.PowerShell.Create();
 
-        internal static string GetLastError()
+        internal static string GetLastError(PSCmdlet cmdlet)
         {
-            _pwsh.Commands.Clear();
-            _pwsh.AddCommand("Get-Error");
-            _pwsh.AddCommand("Out-String");
-            var result = _pwsh.Invoke<string>();
-            var sb = new StringBuilder();
-            foreach (var item in result)
+            var errorVar = cmdlet.GetVariableValue("global:error");
+            if (errorVar is ArrayList errorArray && errorArray.Count > 0)
             {
-                sb.AppendLine(item);
+                _pwsh.Commands.Clear();
+                _pwsh.AddCommand("Get-Error").AddParameter("InputObject", errorArray[0]);
+                _pwsh.AddCommand("Out-String");
+                var result = _pwsh.Invoke<string>();
+                var sb = new StringBuilder();
+                foreach (var item in result)
+                {
+                    sb.AppendLine(item);
+                }
+
+                return sb.ToString();
+            }
+            else
+            {
+                Screenbuffer.WriteConsole($"{PSStyle.Instance.Foreground.BrightMagenta}No error found.{PSStyle.Instance.Reset}\n");
             }
 
-            var error = sb.ToString();
-
-            if (string.IsNullOrEmpty(error))
-            {
-                Screenbuffer.WriteConsole($"{PSStyle.Instance.Foreground.BrightMagenta}No error found.{Screenbuffer.RESET}\n");
-            }
-
-            return error;
+            return string.Empty;
         }
 
         internal static void CopyToClipboard(string input)

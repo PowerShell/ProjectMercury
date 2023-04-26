@@ -14,7 +14,7 @@ namespace Microsoft.PowerShell.Copilot
         private static int _maxHistory = 256;
         private static OpenAI _openai = new();
 
-        internal static void EnterInputLoop(CancellationToken cancelToken)
+        internal static void EnterInputLoop(PSCmdlet cmdlet, CancellationToken cancelToken)
         {
             bool debug = false;
             bool exit = false;
@@ -202,7 +202,7 @@ namespace Microsoft.PowerShell.Copilot
                         }
                         break;
                     case "get-error":
-                        input = Pwsh.GetLastError();
+                        input = Pwsh.GetLastError(cmdlet);
                         if (input.Length > 0)
                         {
                             Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{Screenbuffer.RESET}");
