@@ -61,6 +61,12 @@ their API key in SecretManagement.
 
 An optional `-NewKey` switch would generate a new key and store it in SecretManagement and invalidate the old key.
 
+From a priority perspective, this is the lowest priority as additional work would be needed to enable this scenario:
+
+- Need custom REST front-end to authenticate users and generate API keys
+  - This front end would proxy requests to the PowerShell team OpenAI instance
+- Need to provide a way to limit the number of requests per user
+
 ## Telemetry
 
 There will be both client side and server side telemetry.
