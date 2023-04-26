@@ -45,7 +45,7 @@ namespace Microsoft.PowerShell.Copilot
             _pwsh.Commands.Clear();
             _pwsh.AddScript(script);
             var result = _pwsh.Invoke<string>();
-            if (result.Count > 0)
+            if (result.Count > 0 && result[0].Length > 0)
             {
                 key = result[0];
             }

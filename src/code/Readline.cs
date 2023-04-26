@@ -170,7 +170,9 @@ namespace Microsoft.PowerShell.Copilot
                         Screenbuffer.WriteLineConsole($"{highlight}Ctrl+c{highlightOff} or {highlight}Copy-Code{highlightOff} will copy the current line to the clipboard.");
                         Screenbuffer.WriteLineConsole($"{highlight}Ctrl+e{highlightOff} or {highlight}Get-Error{highlightOff} will get the last error.");
                         Screenbuffer.WriteLineConsole($"Type {highlight}exit{highlightOff} to exit the chat.");
-                        Screenbuffer.WriteLineConsole($"Type {highlight}clear{highlightOff} to clear the screen.");
+                        Screenbuffer.WriteLineConsole($"Type {highlight}clear{highlightOff} to clear the screen.\n");
+                        Screenbuffer.WriteLineConsole($"{highlight}$env:{OpenAI.ENDPOINT_ENV_VAR}{highlightOff} sets the endpoint URL.");
+                        Screenbuffer.WriteLineConsole($"{highlight}$env:{OpenAI.SYSTEM_PROMPT_ENV_VAR}{highlightOff} sets the system prompt.");
                         break;
                     case "clear":
                         Console.Clear();

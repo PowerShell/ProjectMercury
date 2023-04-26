@@ -16,7 +16,7 @@ namespace Microsoft.PowerShell.Copilot
     {
         private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
         internal const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
-        private const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
+        internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
         private const string OPENAI_GPT35_TURBO_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
         private const string OPENAI_GPT4_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4/chat/completions?api-version=2023-03-15-preview";
         private static SecureString _openaiKey;
