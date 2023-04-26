@@ -18,6 +18,7 @@ The primary feature needed to enable this is a formal model registration system:
   - The model name
   - The model endpoint
   - The model description
+  - Max tokens for context and response
   - The name of the secret that contains the API key
   - Whether the model is trusted to send data to
 - API keys are stored and retreived from SecretManagement
