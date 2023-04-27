@@ -1,4 +1,4 @@
-# Design intent for v1 of PSCopilot
+# Design intent for v1 of PSCopilot [Superceded by AzCopilot_v1.md]
 
 The goal for PSCopilot is to be the primary user experience for PowerShell users interacting with ChatGPT models.
 We may separately train and provide domain specific models, but the focus is to enable an extensibility model
