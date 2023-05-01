@@ -139,7 +139,7 @@ There will be both client side and server side telemetry.
 
 ### Client side telemetry
 
-Client side telemetry would use ApplicationInsights and woudl be opt-out.
+Client side telemetry would use ApplicationInsights and would be opt-out.
 
 On the client side, we would like to collect:
 
