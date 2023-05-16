@@ -33,7 +33,7 @@ The AI-enhanced CLI will analyze the user's input and provide relevant suggestio
 command history, context, and available commands. This will help users discover new commands and
 options, as well as reduce the need to memorize or look up command syntax.
 
-Example pre-execution:
+- Example pre-execution:
 
 ```powershell
 Get-ChildItem -<TAB>
@@ -41,8 +41,20 @@ Get-ChildItem -<TAB>
 
 The AI-enhanced CLI will provide suggestions for available parameters and values, such as `-Path`, `-Filter`, and `-Recurse`. This falls under the **Shell Assitant** bucket.
 
-Example post-execution:
+- Example post-execution:
 
+```powershell
+# TODO: create a better example
+PS> uname
+Darwin
+
+[JSON Adapter]
+  The most similar commands are:
+    ➤ uname | uname-json | ConvertFrom-JSON
+    ➤ uname | jc --uname | ConvertFrom-JSON
+```
+
+The AI-enhanced CLI will provide suggestions for available parameters and values, such as `-Path`, `-Filter`, and `-Recurse`. This falls under the **Shell Assitant** bucket.
 
 ### Scenario 2: Automatic Command Completion
 
@@ -62,28 +74,30 @@ The AI-enhanced CLI will automatically complete the command as `Stop-Process`. T
 
 The AI-enhanced CLI will understand natural language input and translate it into PowerShell
 commands. This will enable users to interact with PowerShell using more intuitive and human-like
-language, rather than having to learn and use specific command syntax. This falls under the **Shell
-Assitant** bucket. 
+language, rather than having to learn and use specific command syntax. 
 
 Example:
 
 ```powershell
->Show me all files in the current directory
+> "Show me all files in the current directory"
 ```
 
 The AI-enhanced CLI will translate the natural language input into the appropriate PowerShell
 command, such as `Get-ChildItem`. This is similar to the current prototype experience for asking
-question in an alternate screen buffer. This falls under the **Shell Assitant** bucket.
+question in an alternate screen buffer. A future approach could be executing _purely_ based off of
+natural language input, however I believe this expeirence is far in the future. This falls under the
+**Shell Assitant** bucket.
 
 ### Scenario 4: Natural Langauge Error Explanation and Recovery
 
 The AI enhanced CLI will get the error message that just occured in the shell and then provide a better natural language explanation of what happened and provide remediation steps if possible.
 
-Example:
+Example (PowerShell specific):
 ![Error to NL and recovery picture](./media/Assistive_scenarios/ErrorNLRecovery.png)
 
-The shell will translate the error into more digestable wording and provide potential error recovery
-steps to give the user remediation cmds to run.
+The AI-enhanced CLI will translate the error into more digestable wording and provide potential
+error recovery steps to give the user remediation cmds to run. This falls under the **Error
+Recovery** bucket.
 
 ### Scenario 5: Error prevention indications
 
@@ -91,61 +105,32 @@ The AI-enhanced CLI will be able to assist the user by attempting to prevent err
 
 ```powershell
 # Commands not found on the system could be identified and highlighted
->Get-Cntent -Path ~/myfile.txt #(the typo to the left is underlined)
+Get-Cntent -Path ~/myfile.txt #(the typo to the left is underlined)
 ```
 
 ### Scenario 6: Roaming Profile
+
+The AI-enhanced CLI will be able to keep customizable data from sources like their `$PROFILE`, `powershell.config.json`, or history files across the different platforms and environments they use.
+
+```powershell
+# Local Shell
+>Get-ChildItem -Filter *.ps1
+
+# In a different shell registered with the AI-enhanced CLI and PSReadLine Listview enabled
+>PS /Users/stevenbucher> Get-                        
+> Get-ChildItem -Filter *.ps1                                         [History]
+```
 
 ## Requirements Table
 
 | Requirement | Description | Priority |
 | --- | --- | --- |
 | 1. Intelligent Suggestions | Implement AI-powered suggestions for commands and parameters based on user input and context. | 0 |
-| 2. Automatic Command Completion | Enable AI-powered automatic command completion based on user input and context. | 1 |
-| 3. Natural Language Understanding | Implement AI-powered natural language understanding for translating user input into PowerShell commands. | 2 |
-| 4. Extensibility | Ensure the AI-enhanced CLI experience can be extended and customized by third-party developers and modules. | 2 |
-| 5. Performance | Optimize AI performance to minimize latency and ensure a seamless user experience. | 1 |
-| 6. Privacy | Ensure that user data and command history is securely stored and processed, adhering to privacy regulations and best practices. | 0 |
-
-
-
-## Notes
-
-what are top scenarios people would use AI for without realizing they are using AI
-
-what type of problems you have resolving automation
-??
-
-Explore having different system prompts to have the chat sessison tuned to a type of helper..
-- different kinds of helpers
- thinkg about different kind of doctors, therapist, physicians etc
-
- here are key use cases we want to solve today and here are the integration stuff that will help
-
- shell integration hides the implementation details that this is not powershell.
-
- Same expierence with other powershell 
-
- Start with the prompting stuff. 
-
- defining the use cases
- prompting for those use cases, setting those context
-
- https://learn.microsoft.com/en-us/azure/api-management/api-management-key-concepts
-
-What is the most pain pointed error
-
-## Shell Assitance
-- Tab completion intelligence
-    - Smarter Tab completion besides alphabetically
-    - Cmd/cmdlets
-    - parameters/flags
-- Successful executions
-- Comment questions
-
-
-Develop OKRs for the AzPoliot 
-## Error Prevention
-- Prediction
-
-## Error Recovery
+| 2. Automatic Command Completion | Enable AI-powered automatic command completion based on user input and context. | 0 |
+| 3. Natural Language Understanding | Implement AI-powered natural language understanding for translating user input into PowerShell commands. | 0 |
+| 4. Natural Langauge Error Explanation and Recovery | Enable AI-powered automatic error explanation and recovery steps | 0 |
+| 5. Error prevention indications | Incorporate some kind of pre-execution indication of an error that will occur | 1 |
+| 6. Roaming Profile | User is able to keep customizable portions of the CLI experience across environments. | 2 |
+| 7. Model Extensibility | Ensure the user can utilize their own models. | 2 |
+| 8. Performance | Optimize AI performance to minimize latency and ensure a seamless user experience. | 1 |
+| 9. Privacy | Ensure that user data and command history is securely stored and processed, adhering to privacy regulations and best practices. | 0 |
