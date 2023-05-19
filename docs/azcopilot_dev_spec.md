@@ -24,7 +24,7 @@ Is this also a target?
      Instead of using API key in this case, we probably will be using the AAD token (**how?** need research).
 
    - When not logged in, what data is needed for the registration?
-     - Auzre OpenAI: `endpoint URL`, `api-key`, `model`
+     - Azure OpenAI: `endpoint URL`, `api-key`, `model`
      - Public OpenAI: `api-key`, `model`
 
    - What to store for registrations?
