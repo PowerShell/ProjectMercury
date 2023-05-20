@@ -7,6 +7,7 @@ Target scenarios for the intern project:
 - Provide a public facing endpoint that is backed by a PowerShell-team owned Azure OpenAI service deployment
   - Allow a user to try out the command-line experience for free
 - Enable interactive chat session in terminal with appealing UX in terminal
+- Deploy in CloudShell bash and PowerShell
 
 ### Feature list based on scenarios
 
@@ -30,7 +31,7 @@ Target scenarios for the intern project:
      - When using the alternate buffer, change the default background color to differentiate from main screen buffer
      - Need to make it easy to indicate which message is from AI and which is from user.
      - Need to parse the response text with markdown parser and render accordingly (e.g. bold effect)
-       - think about a "specification" AI model
+       - think about an AI-model for generating "specification"
        - the Bing system prompt asks AI to encapsulate relevant text in bold in markdown
        - this is where we **may** use `Spectre.Console`, like for table rendering
      - syntax highlighting for the code snippet in response.
@@ -47,17 +48,16 @@ Target scenarios for the intern project:
 
 ### scenarios
 
-- Allow to create Azure Cognitive Services account and deploy Azure.OpenAI instances
+- Automatically create Azure Cognitive Services account and deploy Azure.OpenAI instances after user approval
 - Allow to use existing Azure OpenAI service deployment
   - For the public OpenAI service, it's not a goal for now. The objective is to drive Azure.OpenAI usage.
-- AI model registration management
-  - The term "_AI model_" is an abstract concept, representing a specific AI usage scenario. For example:
-    - "Azure PowerShell" AI model
-    - "Bash and Az CLI" AI model
-    - "PowerShell scripting" AI model
-  - An "_AI model_" consists of 2 components: an OpenAI endpoint, a system prompt.
+- AI-model management
+  - The term "_AI-model_" is an abstract concept, representing a specific AI usage scenario. For example:
+    - "Azure PowerShell" AI-model
+    - "Bash and Az CLI" AI-model
+    - "PowerShell scripting" AI-model
+  - An "_AI-model_" consists of 2 components: an OpenAI endpoint, a system prompt.
   - An "_OpenAI endpoint_" consists of 3 parts: endpoint URL, api-key OR AAD token, deployment name.
-
 
 ### Feature list based on scenarios
 
@@ -67,27 +67,31 @@ Target scenarios for the intern project:
    - If the user has logged in with az cli, is it possible for our exe to get access too?
      - Or, if it's used in Cloud Shell, is it possible to get access without authentication?
 
-1. Endpoint registraion
+1. AI-model management
 
-   - Ideally, when logged in, we should be able to auto-discover existing Azure OpenAI deployments,
+   - **Need a demo.ps1 script to show how the AI-model registraion scenarios work.**
+     - dev design depends on the demo script to show how the AI-model management works.
+
+   - **OLD** endpoint registration management (may not apply to the AI-model management)
+     - Ideally, when logged in, we should be able to auto-discover existing Azure OpenAI deployments,
      and auto-register the ones approved by the user (prompt to ask for approval).
      Instead of using API key in this case, we probably will be using the AAD token (**how?** need research).
 
-   - When not logged in, what data is needed for the registration?
-     - Azure OpenAI: `endpoint URL`, `api-key`, `model`
-     - Public OpenAI: `api-key`, `model`
+    - When not logged in, what data is needed for the registration?
+      - Azure OpenAI: `endpoint URL`, `api-key`, `deployment` (e.g. gpt4, gpt3.5-turbo)
+      - Public OpenAI: `api-key`, `deployment`
 
-   - What to store for registrations?
-     - Data stored may be different for logged-in vs. not-logged-in cases (**how different?**)
-       - For registration done by auto-registration in logged-in case,
-         would it be possible for user to use the registration without logging in later on?
-     - Location `HOME\.azcopilot`, api-key stored in file in plain-text.
+    - What to store for registrations?
+      - Data stored may be different for logged-in vs. not-logged-in cases (**how different?**)
+        - For registration done by auto-registration in logged-in case,
+        would it be possible for user to use the registration without logging in later on?
+      - Location `HOME\.azcopilot`, api-key stored in file in plain-text.
 
-   - registration management
-     - `new` create a new endpoint (Azure OpenAI deployment), login required.
-     - `add` an existing endpoint
-     - `list` registered endpoints
-     - `set` a property of an endpoint, such as URL, api-key, or models
+    - registration management
+      - `new` create a new endpoint (Azure OpenAI deployment), login required.
+      - `add` an existing endpoint
+      - `list` registered endpoints
+      - `set` a property of an endpoint, such as URL, api-key, or models
 
 1. Create cognitive service account and deploy Azure.OpenAI
 
@@ -115,6 +119,7 @@ Target scenarios for the intern project:
    - I found the NuGet package [Azure.ResourceManager.CognitiveServices](https://www.nuget.org/packages/Azure.ResourceManager.CognitiveServices/#versions-body-tab), which looks to me is the SDK for managing Azure Cognitive Services resources.
      - [API references URL](https://learn.microsoft.com/en-us/dotnet/api/azure.resourcemanager.cognitiveservices?view=azure-dotnet)
      - [Cognitive Services management client library ReadMe](https://github.com/Azure/azure-sdk-for-net/tree/Azure.ResourceManager.CognitiveServices_1.2.1/sdk/cognitiveservices/Azure.ResourceManager.CognitiveServices)
+     - Tag the Azure OpenAI instance with our project name when creating it.
 
 1. Communication with OpenAI endpoints
    - If we talk to Azure OpenAI service directly, then use the NuGet package [Azure.AI.OpenAI](https://www.nuget.org/packages/Azure.AI.OpenAI/1.0.0-beta.5#readme-body-tab) -- `OpenAIClient` for both the Azure OpenAI service and the public OpenAI service.
