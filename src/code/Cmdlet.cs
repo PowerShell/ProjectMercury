@@ -28,7 +28,7 @@ namespace Microsoft.PowerShell.Copilot
         private static CancellationTokenSource _cancellationTokenSource = new();
         private static CancellationToken _cancelToken = _cancellationTokenSource.Token;
         internal static readonly ConsoleKeyInfo _exitKeyInfo = Pwsh.GetPSReadLineKeyHandler();
-        internal static Model _model = Model.GPT35_Turbo;
+        internal static Model _model = Model.GPT4;
         private static OpenAI _openai;
 
         [Parameter(Mandatory = false)]
