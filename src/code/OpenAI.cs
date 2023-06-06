@@ -157,6 +157,9 @@ namespace Microsoft.PowerShell.Copilot
                 {
                     switch (EnterCopilot._model)
                     {
+                        case Model.GPT35_Turbo:
+                            openai_url = OPENAI_GPT35_TURBO_URL;
+                            break;
                         case Model.GPT4:
                             openai_url = OPENAI_GPT4_URL;
                             break;
@@ -164,7 +167,7 @@ namespace Microsoft.PowerShell.Copilot
                             openai_url = OPENAI_GPT4_32K_URL;
                             break;
                         default:
-                            openai_url = OPENAI_GPT35_TURBO_URL;
+                            openai_url = OPENAI_GPT4_URL;
                             break;
                     }
                 }
