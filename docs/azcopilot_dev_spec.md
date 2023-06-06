@@ -11,14 +11,15 @@ Target scenarios for the intern project:
 
 ### Feature list based on scenarios
 
-1. Use API Management Service as the gateway for the PS-team Azure OpenAI endpoints
+1. Use API Management Service (APIM) as the gateway for the PS-team Azure OpenAI endpoints
    - API management service has rate limit, based on IP for example.
    - It can use named values that references Azure KeyVault secret. So we can store our api key in key vault.
    - It can set header using secret fro in-bound request. So we can add the api key when forwarding the request to our OpenAI instance.
 
-1. When using API management service, we **may not** be able to use the NuGet package `Azure.AI.OpenAI` (`OpenAIClient`) to access our OpenAI instances, but **may** have to do HTTP calls directly.
-   - See if can make the gateway URL mimic the true Azure OpenAI service URLs, so as to allow us continue to use `Azure.AI.OpenAI` to make the calls. `Azure.AI.OpenAI` already creates the data structure representing the response, and it's benificial to use it instead of parsing the returned HTTP response ourselves.
-   - If using `Azure.AI.OpenAI` SDK is impossible, then look into the `OpenAIClient` implementation and learn how it uses the HTTP client for the call to learn the good practices they use.
+1. Use the [OpenAPI Swagger spec](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2023-03-15-preview/inference.json) to create APIs in APIM.
+   - It's confirmed doable to use the [Azure.AI.OpenAI][aoai-nuget] NuGet package to talk to the APIM gateway endpoint.
+   - When using the `OpenAIClient` talking to APIM endpoint, we use a placeholder for the API key.
+   - Set policy in APIM to override the `api-key` header for the in-coming request, with the real Azure OpenAI api key stored in key vault.
 
 1. Terminal side: readline experience
    - For intern project, we can use a simple read-line implementation just like what `PSCopilot` already has.
@@ -122,7 +123,9 @@ Target scenarios for the intern project:
      - Tag the Azure OpenAI instance with our project name when creating it.
 
 1. Communication with OpenAI endpoints
-   - If we talk to Azure OpenAI service directly, then use the NuGet package [Azure.AI.OpenAI](https://www.nuget.org/packages/Azure.AI.OpenAI/1.0.0-beta.5#readme-body-tab) -- `OpenAIClient` for both the Azure OpenAI service and the public OpenAI service.
+   - We are going to use the NuGet package [Azure.AI.OpenAI][aoai-nuget] -- `OpenAIClient` for both real Azure OpenAI service endpoint and the free APIM endpoint.
      - [Azure.AI.OpenAI ReadMe](https://github.com/Azure/azure-sdk-for-net/tree/main/sdk/openai/Azure.AI.OpenAI)
      - [Samples using this SDK](https://github.com/Azure/azure-sdk-for-net/tree/main/sdk/openai/Azure.AI.OpenAI/tests/Samples)
      - [Lifetime management for Azure SDK .NET clients](https://devblogs.microsoft.com/azure-sdk/lifetime-management-and-thread-safety-guarantees-of-azure-sdk-net-clients/)
+
+[aoai-nuget]: https://www.nuget.org/packages/Azure.AI.OpenAI/1.0.0-beta.5#readme-body-tab
