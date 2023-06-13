@@ -4,48 +4,80 @@
 
 Target scenarios for the intern project:
 
-- Provide a public facing endpoint that is backed by a PowerShell-team owned Azure OpenAI service deployment
-  - Allow a user to try out the command-line experience for free
+- Provide a public facing endpoint that is backed by a PowerShell-team owned Azure OpenAI service deployment,
+to allow a user to try out the command-line experience for free
 - Enable interactive chat session in terminal with appealing UX in terminal
+- Endpoint and AI-model management
+  - Allow users to use existing Azure OpenAI service deployment
+  - Allow users to create AI-models targeting specific knowledge domains for AI usage
 - Deploy in CloudShell bash and PowerShell
 
 ### Feature list based on scenarios
 
 1. Use API Management Service (APIM) as the gateway for the PS-team Azure OpenAI endpoints
+
    - API management service has rate limit, based on IP for example.
-   - It can use named values that references Azure KeyVault secret. So we can store our api key in key vault.
-   - It can set header using secret fro in-bound request. So we can add the api key when forwarding the request to our OpenAI instance.
+   - It can use named values that references Azure KeyVault secret, where we can store the Azure OpenAI api key (service key).
+   - It offer subscription key (user key) for client to sent request to the gateway, so we know who is using our tool.
+   - It can set header using secret from KeyVault for in-bound request.
+   So the service key can be added before forwarding the request to our Azure OpenAI instance.
 
 1. Use the [OpenAPI Swagger spec](https://github.com/Azure/azure-rest-api-specs/blob/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2023-03-15-preview/inference.json) to create APIs in APIM.
+
    - It's confirmed doable to use the [Azure.AI.OpenAI][aoai-nuget] NuGet package to talk to the APIM gateway endpoint.
-   - When using the `OpenAIClient` talking to APIM endpoint, we use a placeholder for the API key.
-   - Set policy in APIM to override the `api-key` header for the in-coming request, with the real Azure OpenAI api key stored in key vault.
+     - Azure SDK offers easy extensions that allow a developer to add arbitrary header to a request before sending,
+     so we can add the APIM subscription header when creating the `OpenAIClient` instance.
+     - When using the `OpenAIClient` talking to APIM endpoint, we simply use a placeholder string for the service key.
+     - Set policy in APIM to override the `api-key` header for the in-coming request,
+     so the placeholder string will be overridden by the real service key stored in KeyVault.
 
 1. Terminal side: readline experience
+
    - For intern project, we can use a simple read-line implementation just like what `PSCopilot` already has.
    - Eventually, we want to use the PSReadLine key processing component, but need to strip off the PowerShell specific logic.
-     This will allow us to provide the same read-line experience as in PowerShell with the Windows, Emacs, and VI modes.
+     - It allows us to provide the same read-line experience as in PowerShell with the Windows, Emacs, and VI modes.
+     - It allows us to enable tab completion, command/argument prediction, and key bindings for the tool.
 
 1. Terminal side: interactive chat
+
    - Support using both the main screen buffer and alternate screen buffer
    - Need to design the UX for the interactive chat in terminal
      - When using the alternate buffer, change the default background color to differentiate from main screen buffer
      - Need to make it easy to indicate which message is from AI and which is from user.
      - Need to parse the response text with markdown parser and render accordingly (e.g. bold effect)
-       - think about an AI-model for generating "specification"
-       - the Bing system prompt asks AI to encapsulate relevant text in bold in markdown
-       - this is where we **may** use `Spectre.Console`, like for table rendering
-     - syntax highlighting for the code snippet in response.
-       - Use the NuGet package [ColorCode.Core](https://www.nuget.org/packages/ColorCode.Core).
-       [GitHub Repo](https://github.com/CommunityToolkit/ColorCode-Universal)
-       - We need to implement the formatter targeting terminal. I have done prototype, which proves the `ColorCode` package is easy to extend both the formatter and a new language regex parser.
-     - ... (**more??**)
+       - The markdown VT rendering prototype is mostly done,
+       including table formatting and code block syntax highlighting,
+       by leveraging [ColorCode.Core](https://www.nuget.org/packages/ColorCode.Core),
+       [Markdig](https://www.nuget.org/packages/Markdig),
+       and [Spectre.Console](https://www.nuget.org/packages/Spectre.Console).
    - Need to design the interaction between `AzCopilot` and user's main shell
      - how to pass data to `AzCopilot`
-     - how to select the data from AI response and use in user's shell
+     - how to select the data from AI response and use it in user's shell
      - ...
 
+1. Terminal side: model and endpoint management
+
+   - Goals:
+     - Commands for managing AI-model
+     - Commands for managing endpoints
+     - On-disk configuration storage
+   - No-goals:
+     - Create Azure OpenAI service instance within the tool
+
+### Architecture
+
+![architecture][]
+
+The core components should be implemented as a library,
+and the executable should be a thin wrapper using the library.
+
+Later on, the library can be directly used for implementing the corresponding PowerShell module.
+
+[architecture]: ./images/az-mod-2.png
+
 ## Private preview 2 and beyond
+
+**[NOTE] Update is needed as we have changed the scope of private preview 1 above.**
 
 ### scenarios
 
