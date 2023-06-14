@@ -47,7 +47,7 @@ namespace Microsoft.PowerShell.Copilot
             else
             {
                 WriteLineConsole($"{RESET}{LOGO}");
-                string openai_url = Environment.GetEnvironmentVariable(OpenAI.ENDPOINT_ENV_VAR);
+                string openai_url = "GPT-4";
                 if (openai_url is null)
                 {
                     WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {EnterCopilot._model}");

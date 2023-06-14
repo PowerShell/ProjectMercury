@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
-using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Net.Http;
 using System.Security;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.Identity;
+using Azure.AI.OpenAI;
+using Azure.Core.Pipeline;
+using Azure;
 
 namespace Microsoft.PowerShell.Copilot
 {
@@ -17,27 +20,38 @@ namespace Microsoft.PowerShell.Copilot
         private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
         internal const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
         internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
-        private const string OPENAI_GPT35_TURBO_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
-        private const string OPENAI_GPT4_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4/chat/completions?api-version=2023-03-15-preview";
-        private const string OPENAI_GPT4_32K_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4-32k/chat/completions?api-version=2023-03-15-preview";
-        private static SecureString _openaiKey;
 
+        private const string API_SUB_VAR = "API_SUB_KEY";
+
+        private static SecureString _subKey;
         private static readonly string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private static List<string> _promptHistory = new();
         private static List<string> _assistHistory = new();
         private static int _maxHistory = 256;
         internal static string _lastCodeSnippet = string.Empty;
-        private static HttpClient _httpClient = new();
+        OpenAIClient client;
+
+        string endpoint;
         private static string _os = GetOS();
 
         public OpenAI()
         {
-            _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-            if (_openaiKey is null)
+            if (_subKey is null)
             {
-                _openaiKey = GetApiKey();
-                _httpClient.DefaultRequestHeaders.Add("api-key", ConvertSecureString(_openaiKey));
+                _subKey = GetSubscriptionKey();
+                //endpoint - curently API management service gateway url
             }
+            endpoint = "https://myapian.azure-api.net/";
+            string key = "placeholder";
+            OpenAIClientOptions options = new OpenAIClientOptions();
+            string subscriptionKey = Environment.GetEnvironmentVariable(API_SUB_VAR);
+
+            //adds policy
+            AzureKeyCredentialPolicy policy = new AzureKeyCredentialPolicy(new AzureKeyCredential(subscriptionKey), "Ocp-Apim-Subscription-Key");
+            options.AddPolicy(policy, Azure.Core.HttpPipelinePosition.PerRetry);
+
+            //creates client
+            client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(key), options);
         }
 
         internal string LastCodeSnippet()
@@ -145,52 +159,29 @@ namespace Microsoft.PowerShell.Copilot
         {
             try
             {
-                var requestBody = GetRequestBody(prompt);
+                ChatCompletionsOptions requestBody = GetRequestBody(prompt);
                 if (debug)
                 {
-                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: RequestBody:\n{Formatting.GetPrettyJson(requestBody)}");
-                }
-
-                var bodyContent = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
-                string openai_url = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR);
-                if (openai_url is null)
-                {
-                    switch (EnterCopilot._model)
-                    {
-                        case Model.GPT35_Turbo:
-                            openai_url = OPENAI_GPT35_TURBO_URL;
-                            break;
-                        case Model.GPT4:
-                            openai_url = OPENAI_GPT4_URL;
-                            break;
-                        case Model.GPT4_32K:
-                            openai_url = OPENAI_GPT4_32K_URL;
-                            break;
-                        default:
-                            openai_url = OPENAI_GPT4_URL;
-                            break;
-                    }
+                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: RequestBody:\n{Formatting.GetPrettyJson(requestBody.ToString())}");
                 }
 
                 if (debug)
                 {
-                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: OpenAI URL: {openai_url}");
+                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: OpenAI URL: {endpoint}");
                 }
 
-                var response = _httpClient.PostAsync(openai_url , bodyContent, cancelToken).GetAwaiter().GetResult();
-                var responseContent = response.Content.ReadAsStringAsync(cancelToken).GetAwaiter().GetResult();
-                if (response.StatusCode != System.Net.HttpStatusCode.OK)
+
+                Response<ChatCompletions> response = client.GetChatCompletions(
+                deploymentOrModelName: "gpt4",
+                requestBody);
+                ChatCompletions chatCompletions = response.Value;
+                var output = "\n";
+
+                foreach (ChatChoice choice in chatCompletions.Choices)
                 {
-                    return $"{PSStyle.Instance.Foreground.BrightRed}ERROR: {responseContent}";
+                    output += choice.Message.Content;
                 }
 
-                if (debug)
-                {
-                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: ResponseContent:\n{Formatting.GetPrettyJson(responseContent)}");
-                }
-
-                var responseJson = JsonNode.Parse(responseContent);
-                var output = "\n" + responseJson!["choices"][0]["message"]["content"].ToString();
                 return output;
             }
             catch (OperationCanceledException)
@@ -223,69 +214,61 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        private static string GetRequestBody(string prompt)
+        private static ChatCompletionsOptions GetRequestBody(string prompt)
         {
-            var messages = new List<object>();
+            ChatCompletionsOptions requestBody = new ChatCompletionsOptions();
+            var messages = requestBody.Messages;
             string system_prompt = Environment.GetEnvironmentVariable(SYSTEM_PROMPT_ENV_VAR);
             if (system_prompt is null)
             {
                 messages.Add(
-                    new
-                    {
-                        role = "system",
-                        content = $"You are an AI assistant with experise in PowerShell, Azure, and the command line.  Assume user is using {_os} operating system unless specified. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks."
-                    }
+                    new ChatMessage
+                    (
+                        role: "system",
+                        content: $"You are an AI assistant with experise in PowerShell, Azure, and the command line.  Assume user is using {_os} operating system unless specified. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks."
+                    )
                 );
             }
             else
             {
                 messages.Add(
-                    new
-                    {
-                        role = "system",
-                        content = system_prompt
-                    }
+                    new ChatMessage
+                    (
+                        role: "system",
+                        content: system_prompt
+                    )
                 );
             }
 
             for (int i = 0; i < _assistHistory.Count; i++)
             {
                 messages.Add(
-                    new
-                    {
-                        role = "user",
-                        content = _promptHistory[i]
-                    }
+                    new ChatMessage
+                    (
+                        role: "user",
+                        content: _promptHistory[i]
+                    )
                 );
                 messages.Add(
-                    new
-                    {
-                        role = "assistant",
-                        content = _assistHistory[i]
-                    }
+                    new ChatMessage
+                    (
+                        role: "assistant",
+                        content: _assistHistory[i]
+                    )
                 );
             }
 
             messages.Add(
-                new
-                {
-                    role = "user",
-                    content = prompt
-                }
+                new ChatMessage
+                (
+                    role: "user",
+                    content: prompt
+                )
             );
 
-            var requestBody = new
-            {
-                messages = messages,
-                max_tokens = 4096,
-                frequency_penalty = 0,
-                presence_penalty = 0,
-                top_p = 0.95,
-                temperature = 0.7,
-                stop = (string)null
-            };
-
-            return JsonSerializer.Serialize(requestBody);
+            requestBody.MaxTokens = 4096;
+            requestBody.Temperature = (float?) 0.7;
+            return requestBody;
         }
 
         private static void GetCodeSnippet(string input)
@@ -316,12 +299,26 @@ namespace Microsoft.PowerShell.Copilot
             _lastCodeSnippet = codeSnippet.ToString();
         }
 
-        private SecureString GetApiKey()
+        private static string ConvertSecureString(SecureString ss)
         {
-            string key = Environment.GetEnvironmentVariable(API_ENV_VAR);
+            IntPtr unmanagedString = IntPtr.Zero;
+            try
+            {
+                unmanagedString = Marshal.SecureStringToGlobalAllocUnicode(ss);
+                return Marshal.PtrToStringUni(unmanagedString);
+            }
+            finally
+            {
+                Marshal.ZeroFreeGlobalAllocUnicode(unmanagedString);
+            }
+        }
+
+        private SecureString GetSubscriptionKey()
+        {
+            string key = Environment.GetEnvironmentVariable(API_SUB_VAR);
             if (key is null)
             {
-                throw(new Exception($"{API_ENV_VAR} environment variable not set"));
+                throw(new Exception($"{API_SUB_VAR} environment variable not set"));
             }
             else
             {
@@ -335,17 +332,35 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        private static string ConvertSecureString(SecureString ss)
+        internal class AzureKeyCredentialPolicy : HttpPipelineSynchronousPolicy
         {
-            IntPtr unmanagedString = IntPtr.Zero;
-            try
+            
+            private readonly string _name;
+            private readonly AzureKeyCredential _credential;
+            private readonly string  _prefix;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="AzureKeyCredentialPolicy"/> class.
+            /// </summary>
+            /// <param name="credential">The <see cref="AzureKeyCredential"/> used to authenticate requests.</param>
+            /// <param name="name">The name of the key header used for the credential.</param>
+            /// <param name="prefix">The prefix to apply before the credential key. For example, a prefix of "SharedAccessKey" would result in
+            /// a value of "SharedAccessKey {credential.Key}" being stamped on the request header with header key of <paramref name="name"/>.</param>
+            public AzureKeyCredentialPolicy(AzureKeyCredential credential, string name, object prefix = null)
             {
-                unmanagedString = Marshal.SecureStringToGlobalAllocUnicode(ss);
-                return Marshal.PtrToStringUni(unmanagedString);
+                _credential = credential;
+                _name = name;
+                if(_prefix != null)
+                {
+                    _prefix = (string) prefix;
+                }
             }
-            finally
+
+            /// <inheritdoc/>
+            public override void OnSendingRequest(Azure.Core.HttpMessage message)
             {
-                Marshal.ZeroFreeGlobalAllocUnicode(unmanagedString);
+                base.OnSendingRequest(message);
+                message.Request.Headers.SetValue(_name, _prefix != null ? $"{_prefix} {_credential.Key}" :  _credential.Key);
             }
         }
     }
