@@ -17,7 +17,6 @@ namespace Microsoft.PowerShell.Copilot
 {
     internal class OpenAI
     {
-        private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
         internal const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
         internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
 
@@ -41,7 +40,7 @@ namespace Microsoft.PowerShell.Copilot
                 _subKey = GetSubscriptionKey();
             }
             //endpoint - curently API management service gateway url
-            endpoint = "https://myapian.azure-api.net/";
+            endpoint = "https://pscopilot.azure-api.net";
             string key = "placeholder";
             OpenAIClientOptions options = new OpenAIClientOptions();
             string subscriptionKey = Environment.GetEnvironmentVariable(API_SUB_VAR);
