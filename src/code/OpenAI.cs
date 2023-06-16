@@ -20,7 +20,7 @@ namespace Microsoft.PowerShell.Copilot
         internal const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
         internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
 
-        private const string API_SUB_VAR = "API_SUB_KEY";
+        private const string API_SUB_VAR = "AZURE_OPENAI_API_KEY";
 
         private static SecureString _subKey;
         private static readonly string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
