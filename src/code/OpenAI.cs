@@ -39,8 +39,8 @@ namespace Microsoft.PowerShell.Copilot
             if (_subKey is null)
             {
                 _subKey = GetSubscriptionKey();
-                //endpoint - curently API management service gateway url
             }
+            //endpoint - curently API management service gateway url
             endpoint = "https://myapian.azure-api.net/";
             string key = "placeholder";
             OpenAIClientOptions options = new OpenAIClientOptions();
@@ -170,10 +170,12 @@ namespace Microsoft.PowerShell.Copilot
                     Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: OpenAI URL: {endpoint}");
                 }
 
-
+                
                 Response<ChatCompletions> response = client.GetChatCompletions(
                 deploymentOrModelName: "gpt4",
                 requestBody);
+
+                
                 ChatCompletions chatCompletions = response.Value;
                 var output = "\n";
 
@@ -360,7 +362,31 @@ namespace Microsoft.PowerShell.Copilot
             public override void OnSendingRequest(Azure.Core.HttpMessage message)
             {
                 base.OnSendingRequest(message);
-                message.Request.Headers.SetValue(_name, _prefix != null ? $"{_prefix} {_credential.Key}" :  _credential.Key);
+                message.Request.Headers.SetValue(_name, _prefix != null ? $"{_prefix} {_credential.Key}" :  _credential.Key); 
+            }
+            public override void OnReceivedResponse(Azure.Core.HttpMessage message)
+            {
+                base.OnReceivedResponse(message);
+                if (message.HasResponse == true && message.Response.Status == 429)
+                {
+                    throw(new RateLimitException(message.Response.Content.ToString())); 
+                }
+
+            }
+        }
+
+        public class RateLimitException : Exception
+        {
+            public RateLimitException(string message) : base(message) { }
+
+            public override string ToString()
+            {
+                return Message;
+            }
+
+            public override string StackTrace
+            {
+                get{return "";}
             }
         }
     }
