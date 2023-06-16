@@ -40,7 +40,11 @@ namespace Microsoft.PowerShell.Copilot
                 _subKey = GetSubscriptionKey();
             }
             //endpoint - curently API management service gateway url
-            endpoint = "https://pscopilot.azure-api.net";
+            endpoint = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR);
+            if(endpoint is null)
+            {
+                endpoint = "https://pscopilot.azure-api.net";
+            }
             string key = "placeholder";
             OpenAIClientOptions options = new OpenAIClientOptions();
             string subscriptionKey = Environment.GetEnvironmentVariable(API_SUB_VAR);
