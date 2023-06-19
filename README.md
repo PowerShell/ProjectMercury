@@ -36,11 +36,9 @@ Guide for Signing Up For API Key
 7.  Click “Products” located on the top right corner of the page
 8.  In the field stating “Your new product subscription name”, Enter
     “Azure OpenAI Service API”.
-9.  Click “Subscribe”
+9.  Click “Subscribe” to be subscribed to the product.
 
---You should now be subscribed to the product.
-
-In order to view your subscription key,
+In order to view your subscription/API key,
 1.  Click “Profile” located on the top right corner of the page.
 2.  Your  Key should be located under the “Subscriptions”
     section. Click on “Show” to view the primary or secondary key.
