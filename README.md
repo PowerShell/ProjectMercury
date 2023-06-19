@@ -22,11 +22,10 @@ Additional opportunities:
 - generation of Pester tests
 - malware, unsafe security issues detection
 
-Using the Tool:
+**Using the Tool:**
 
-Guide for Signing Up For Subscription Key
-
-1.  Navigate to <https://pscopilot.developer.azure-api.net/>
+Guide for Signing Up For API Key
+1.  Navigate to <https://pscopilot.developer.azure-api.net>
 2.  Click “Sign Up” located on the top right corner of the page.
 3.  Sign up for a subscription by filling in the fields(email, password,
     first name, last name).
@@ -43,5 +42,5 @@ Guide for Signing Up For Subscription Key
 
 In order to view your subscription key,
 1.  Click “Profile” located on the top right corner of the page.
-2.  Your Subscription Key should be located under the “Subscriptions”
+2.  Your  Key should be located under the “Subscriptions”
     section. Click on “Show” to view the primary or secondary key.
