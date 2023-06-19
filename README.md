@@ -33,9 +33,6 @@ Guide for Signing Up For Subscription Key
 3.  Sign up for a subscription by filling in the fields(email, password,
     first name, last name).
 
-> <img src="media/image1.png" style="width:6.5in;height:4.29861in"
-> alt="A screenshot of a computer Description automatically generated with medium confidence" />
-
 4.  Verify the account (An email should have been sent from
     <apimgmt-noreply@mail.windowsazure.com> to your email)
 
@@ -58,6 +55,3 @@ In order to view your subscription key,
 
 2.  Your Subscription Key should be located under the “Subscriptions”
     section. Click on “Show” to view the primary or secondary key.
-
-> <img src="media/image2.png" style="width:4.88837in;height:2.99831in"
-> alt="A screenshot of a computer Description automatically generated" />
