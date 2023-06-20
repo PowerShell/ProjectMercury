@@ -2,15 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Management.Automation;
 using System.Runtime.InteropServices;
-using System.Net.Http;
-using System.Security;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.Identity;
 using Azure.AI.OpenAI;
-using Azure.Core.Pipeline;
 using Azure;
 
 namespace Microsoft.PowerShell.Copilot
@@ -20,9 +15,8 @@ namespace Microsoft.PowerShell.Copilot
         internal const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
         internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
 
-        private const string API_SUB_VAR = "API_SUB_KEY";
+        private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
 
-        private static SecureString _subKey;
         private static readonly string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private static List<string> _promptHistory = new();
         private static List<string> _assistHistory = new();
@@ -35,26 +29,25 @@ namespace Microsoft.PowerShell.Copilot
 
         public OpenAI()
         {
-            if (_subKey is null)
-            {
-                _subKey = GetSubscriptionKey();
-            }
-            //endpoint - curently API management service gateway url
             endpoint = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR);
             if(endpoint is null)
             {
                 endpoint = "https://pscopilot.azure-api.net";
             }
-            string key = "placeholder";
+
             OpenAIClientOptions options = new OpenAIClientOptions();
-            string subscriptionKey = Environment.GetEnvironmentVariable(API_SUB_VAR);
+            string apiKey = Environment.GetEnvironmentVariable(API_ENV_VAR);
+            if (apiKey is null)
+            {
+                throw(new Exception($"{API_ENV_VAR} environment variable not set"));
+            }
 
             //adds policy
-            AzureKeyCredentialPolicy policy = new AzureKeyCredentialPolicy(new AzureKeyCredential(subscriptionKey), "Ocp-Apim-Subscription-Key");
+            AzureKeyCredentialPolicy policy = new AzureKeyCredentialPolicy(new AzureKeyCredential(apiKey), "Ocp-Apim-Subscription-Key");
             options.AddPolicy(policy, Azure.Core.HttpPipelinePosition.PerRetry);
 
             //creates client
-            client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(key), options);
+            client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey), options);
         }
 
         internal string LastCodeSnippet()
@@ -173,9 +166,23 @@ namespace Microsoft.PowerShell.Copilot
                     Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: OpenAI URL: {endpoint}");
                 }
 
+                string modelName = "";
+                switch (EnterCopilot._model)
+                    {
+                        case Model.GPT4:
+                            modelName = "gpt4";
+                            break;
+                        case Model.GPT4_32K:
+                            modelName = "gpt4-32k";
+                            break;
+                        default:
+                            modelName ="gpt-35-turbo";
+                            break;
+                    }
+
                 
                 Response<ChatCompletions> response = client.GetChatCompletions(
-                deploymentOrModelName: "gpt4",
+                deploymentOrModelName: modelName,
                 requestBody);
 
                 
@@ -271,7 +278,7 @@ namespace Microsoft.PowerShell.Copilot
                 )
             );
 
-            requestBody.MaxTokens = 4096;
+            requestBody.MaxTokens = 300;
             requestBody.Temperature = (float?) 0.7;
             return requestBody;
         }
@@ -303,94 +310,6 @@ namespace Microsoft.PowerShell.Copilot
 
             _lastCodeSnippet = codeSnippet.ToString();
         }
-
-        private static string ConvertSecureString(SecureString ss)
-        {
-            IntPtr unmanagedString = IntPtr.Zero;
-            try
-            {
-                unmanagedString = Marshal.SecureStringToGlobalAllocUnicode(ss);
-                return Marshal.PtrToStringUni(unmanagedString);
-            }
-            finally
-            {
-                Marshal.ZeroFreeGlobalAllocUnicode(unmanagedString);
-            }
-        }
-
-        private SecureString GetSubscriptionKey()
-        {
-            string key = Environment.GetEnvironmentVariable(API_SUB_VAR);
-            if (key is null)
-            {
-                throw(new Exception($"{API_SUB_VAR} environment variable not set"));
-            }
-            else
-            {
-                var ss = new SecureString();
-                foreach (char c in key)
-                {
-                    ss.AppendChar(c);
-                }
-
-                return ss;
-            }
-        }
-
-        internal class AzureKeyCredentialPolicy : HttpPipelineSynchronousPolicy
-        {
-            
-            private readonly string _name;
-            private readonly AzureKeyCredential _credential;
-            private readonly string  _prefix;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="AzureKeyCredentialPolicy"/> class.
-            /// </summary>
-            /// <param name="credential">The <see cref="AzureKeyCredential"/> used to authenticate requests.</param>
-            /// <param name="name">The name of the key header used for the credential.</param>
-            /// <param name="prefix">The prefix to apply before the credential key. For example, a prefix of "SharedAccessKey" would result in
-            /// a value of "SharedAccessKey {credential.Key}" being stamped on the request header with header key of <paramref name="name"/>.</param>
-            public AzureKeyCredentialPolicy(AzureKeyCredential credential, string name, object prefix = null)
-            {
-                _credential = credential;
-                _name = name;
-                if(_prefix != null)
-                {
-                    _prefix = (string) prefix;
-                }
-            }
-
-            /// <inheritdoc/>
-            public override void OnSendingRequest(Azure.Core.HttpMessage message)
-            {
-                base.OnSendingRequest(message);
-                message.Request.Headers.SetValue(_name, _prefix != null ? $"{_prefix} {_credential.Key}" :  _credential.Key); 
-            }
-            public override void OnReceivedResponse(Azure.Core.HttpMessage message)
-            {
-                base.OnReceivedResponse(message);
-                if (message.HasResponse == true && message.Response.Status == 429)
-                {
-                    throw(new RateLimitException(message.Response.Content.ToString())); 
-                }
-
-            }
-        }
-
-        public class RateLimitException : Exception
-        {
-            public RateLimitException(string message) : base(message) { }
-
-            public override string ToString()
-            {
-                return Message;
-            }
-
-            public override string StackTrace
-            {
-                get{return "";}
-            }
-        }
+        
     }
 }
