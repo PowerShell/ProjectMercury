@@ -26,19 +26,20 @@ Additional opportunities:
 
 Guide for Signing Up For API Key
 1.  Navigate to <https://pscopilot.developer.azure-api.net>
-2.  Click “Sign Up” located on the top right corner of the page.
-3.  Sign up for a subscription by filling in the fields(email, password,
+2.  Click `Sign Up` located on the top right corner of the page.
+3.  Sign up for a subscription by filling in the fields (email, password,
     first name, last name).
 4.  Verify the account (An email should have been sent from
     <apimgmt-noreply@mail.windowsazure.com> to your email)
-5.  Click “Sign In” located on the top right corner of the page.
+5.  Click `Sign In` located on the top right corner of the page.
 6.  Enter the email and password used when signing up.
-7.  Click “Products” located on the top right corner of the page
-8.  In the field stating “Your new product subscription name”, Enter
-    “Azure OpenAI Service API”.
-9.  Click “Subscribe” to be subscribed to the product.
+7.  Click `Products` located on the top right corner of the page
+8.  In the field stating `Your new product subscription name`, Enter
+    `Azure OpenAI Service API`.
+9.  Click `Subscribe` to be subscribed to the product.
 
 In order to view your subscription/API key,
-1.  Click “Profile” located on the top right corner of the page.
-2.  Your  Key should be located under the “Subscriptions”
-    section. Click on “Show” to view the primary or secondary key.
+1.  Click `Profile` located on the top right corner of the page.
+2.  Your Key should be located under the `Subscriptions`
+    section. 
+    Click on `Show` to view the primary or secondary key.
