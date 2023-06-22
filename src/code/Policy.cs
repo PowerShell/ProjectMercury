@@ -4,7 +4,7 @@ using Azure.Core.Pipeline;
 
 internal class ApimSubscriptionKeyPolicy : HttpPipelineSynchronousPolicy
 {
-    private const string _header = "Ocp-Apim-Subscription-Key";
+    private const string Header = "Ocp-Apim-Subscription-Key";
     private readonly AzureKeyCredential _credential;
 
     /// <summary>
@@ -21,7 +21,7 @@ internal class ApimSubscriptionKeyPolicy : HttpPipelineSynchronousPolicy
     public override void OnSendingRequest(Azure.Core.HttpMessage message)
     {
         base.OnSendingRequest(message);
-        message.Request.Headers.SetValue(_header, _credential.Key); 
+        message.Request.Headers.SetValue(Header, _credential.Key); 
     }
 }
 
