@@ -24,5 +24,3 @@ internal class ApimSubscriptionKeyPolicy : HttpPipelineSynchronousPolicy
         message.Request.Headers.SetValue(Header, _credential.Key); 
     }
 }
-
-
