@@ -46,14 +46,14 @@ namespace Microsoft.PowerShell.Copilot
             }
 
 
-            if (endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal))
+            if (endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal) || endpoint.EndsWith(".azure-api.net/", StringComparison.Ordinal))
             {
                 AzureKeyCredentialPolicy policy = new AzureKeyCredentialPolicy(new AzureKeyCredential(apiKey), "Ocp-Apim-Subscription-Key");
                 options.AddPolicy(policy, Azure.Core.HttpPipelinePosition.PerRetry);
 
                 client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential("placeholder"), options);
             }
-            else if (endpoint.EndsWith(".openai.azure.com", StringComparison.Ordinal))
+            else if (endpoint.EndsWith(".openai.azure.com", StringComparison.Ordinal) || endpoint.EndsWith(".openai.azure.com/", StringComparison.Ordinal))
             {
                 client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
             }
@@ -205,7 +205,7 @@ namespace Microsoft.PowerShell.Copilot
                 return output;
                 
             }
-            catch (Azure.RequestFailedException e)
+            catch (RequestFailedException e)
             {
                 return $"{PSStyle.Instance.Foreground.BrightRed}HTTP EXCEPTION: {e.Message}";
             }
