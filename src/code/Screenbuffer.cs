@@ -47,16 +47,13 @@ namespace Microsoft.PowerShell.Copilot
             else
             {
                 WriteLineConsole($"{RESET}{LOGO}");
+                WriteConsole($"{PSStyle.Instance.Foreground.Yellow}Using {EnterCopilot._model}");
                 string openai_url = Environment.GetEnvironmentVariable(OpenAI.ENDPOINT_ENV_VAR);
                 if (openai_url is null)
                 {
-                    WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {EnterCopilot._model}");
+                    openai_url = OpenAI.APIM_endpoint;
                 }
-                else
-                {
-                    WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using {openai_url}");
-                }
-
+                WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow} - {openai_url}");
                 WriteLineConsole($"{INSTRUCTIONS}");
             }
         }

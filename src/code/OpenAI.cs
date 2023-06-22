@@ -16,16 +16,15 @@ namespace Microsoft.PowerShell.Copilot
         private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
         internal const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
         internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
-
+        internal const string APIM_endpoint = "https://pscopilot.azure-api.net";
 
         private static readonly string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private static List<string> _promptHistory = new();
         private static List<string> _assistHistory = new();
         private static int _maxHistory = 256;
         internal static string _lastCodeSnippet = string.Empty;
-        OpenAIClient client;
-
-        string endpoint;
+        private OpenAIClient client;
+        private string endpoint;
         private static string _os = GetOS();
 
         public OpenAI()
@@ -33,7 +32,7 @@ namespace Microsoft.PowerShell.Copilot
             endpoint = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR);
             if(endpoint is null)
             {
-                endpoint = "https://pscopilot.azure-api.net";
+                endpoint = APIM_endpoint;
             }
 
             OpenAIClientOptions options = new OpenAIClientOptions();
@@ -44,16 +43,15 @@ namespace Microsoft.PowerShell.Copilot
             {
                 throw(new Exception($"{API_ENV_VAR} environment variable not set"));
             }
-
-
-            if (endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal) || endpoint.EndsWith(".azure-api.net/", StringComparison.Ordinal))
+            endpoint = endpoint.TrimEnd('/').ToLower();
+            if (endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal))
             {
-                AzureKeyCredentialPolicy policy = new AzureKeyCredentialPolicy(new AzureKeyCredential(apiKey), "Ocp-Apim-Subscription-Key");
+                ApimSubscriptionKeyPolicy policy = new ApimSubscriptionKeyPolicy(new AzureKeyCredential(apiKey));
                 options.AddPolicy(policy, Azure.Core.HttpPipelinePosition.PerRetry);
 
                 client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential("placeholder"), options);
             }
-            else if (endpoint.EndsWith(".openai.azure.com", StringComparison.Ordinal) || endpoint.EndsWith(".openai.azure.com/", StringComparison.Ordinal))
+            else if (endpoint.EndsWith(".openai.azure.com", StringComparison.Ordinal))
             {
                 client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
             }
