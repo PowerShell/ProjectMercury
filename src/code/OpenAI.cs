@@ -192,8 +192,8 @@ namespace Microsoft.PowerShell.Copilot
                 }
 
                 Response<ChatCompletions> response = client.GetChatCompletions(
-                deploymentOrModelName: openai_model,
-                requestBody);
+                    deploymentOrModelName: openai_model,
+                    requestBody);
 
                 ChatCompletions chatCompletions = response.Value;
                 var output = "\n";
