@@ -7,15 +7,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using Azure.AI.OpenAI;
 using Azure;
+using Azure.Core;
 
 namespace Microsoft.PowerShell.Copilot
 {
     internal class OpenAI
     {
+        private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
         internal const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
         internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
 
-        private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
 
         private static readonly string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private static List<string> _promptHistory = new();
@@ -36,18 +37,30 @@ namespace Microsoft.PowerShell.Copilot
             }
 
             OpenAIClientOptions options = new OpenAIClientOptions();
+            options.Retry.MaxRetries = 0;
+
             string apiKey = Environment.GetEnvironmentVariable(API_ENV_VAR);
             if (apiKey is null)
             {
                 throw(new Exception($"{API_ENV_VAR} environment variable not set"));
             }
 
-            //adds policy
-            AzureKeyCredentialPolicy policy = new AzureKeyCredentialPolicy(new AzureKeyCredential(apiKey), "Ocp-Apim-Subscription-Key");
-            options.AddPolicy(policy, Azure.Core.HttpPipelinePosition.PerRetry);
 
-            //creates client
-            client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey), options);
+            if (endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal))
+            {
+                AzureKeyCredentialPolicy policy = new AzureKeyCredentialPolicy(new AzureKeyCredential(apiKey), "Ocp-Apim-Subscription-Key");
+                options.AddPolicy(policy, Azure.Core.HttpPipelinePosition.PerRetry);
+
+                client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential("placeholder"), options);
+            }
+            else if (endpoint.EndsWith(".openai.azure.com", StringComparison.Ordinal))
+            {
+                client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
+            }
+            else
+            {
+                throw new Exception($"The specified endpoint '{endpoint}' is not a valid Azure OpenAI service endpoint.");
+            }
         }
 
         internal string LastCodeSnippet()
@@ -166,35 +179,35 @@ namespace Microsoft.PowerShell.Copilot
                     Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: OpenAI URL: {endpoint}");
                 }
 
-                string modelName = "";
+                string openai_model = "";
                 switch (EnterCopilot._model)
-                    {
-                        case Model.GPT4:
-                            modelName = "gpt4";
-                            break;
-                        case Model.GPT4_32K:
-                            modelName = "gpt4-32k";
-                            break;
-                        default:
-                            modelName ="gpt-35-turbo";
-                            break;
-                    }
+                {
+                    case Model.GPT35_Turbo:
+                        openai_model = "gpt-35-turbo";
+                        break;
+                    case Model.GPT4_32K:
+                        openai_model = "gpt4-32k";
+                        break;
+                    default:
+                        openai_model = "gpt4";
+                        break;
+                }
 
-                
                 Response<ChatCompletions> response = client.GetChatCompletions(
-                deploymentOrModelName: modelName,
+                deploymentOrModelName: openai_model,
                 requestBody);
 
-                
                 ChatCompletions chatCompletions = response.Value;
                 var output = "\n";
 
-                foreach (ChatChoice choice in chatCompletions.Choices)
-                {
-                    output += choice.Message.Content;
-                }
+                output += chatCompletions.Choices[0].Message.Content;
 
                 return output;
+                
+            }
+            catch (Azure.RequestFailedException e)
+            {
+                return $"{PSStyle.Instance.Foreground.BrightRed}HTTP EXCEPTION: {e.Message}";
             }
             catch (OperationCanceledException)
             {
