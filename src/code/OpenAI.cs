@@ -29,20 +29,12 @@ namespace Microsoft.PowerShell.Copilot
 
         public OpenAI()
         {
-            endpoint = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR);
-            if(endpoint is null)
-            {
-                endpoint = APIM_endpoint;
-            }
+            endpoint = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR) ?? APIM_endpoint;
 
             OpenAIClientOptions options = new OpenAIClientOptions();
             options.Retry.MaxRetries = 0;
 
-            string apiKey = Environment.GetEnvironmentVariable(API_ENV_VAR);
-            if (apiKey is null)
-            {
-                throw(new Exception($"{API_ENV_VAR} environment variable not set"));
-            }
+            string apiKey = Environment.GetEnvironmentVariable(API_ENV_VAR) ?? throw new Exception($"{API_ENV_VAR} environment variable not set");
 
             endpoint = endpoint.TrimEnd('/').ToLower();
             if (endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal))
