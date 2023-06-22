@@ -43,6 +43,7 @@ namespace Microsoft.PowerShell.Copilot
             {
                 throw(new Exception($"{API_ENV_VAR} environment variable not set"));
             }
+
             endpoint = endpoint.TrimEnd('/').ToLower();
             if (endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal))
             {
