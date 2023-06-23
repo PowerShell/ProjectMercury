@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Management.Automation;
-using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Security;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure.AI.OpenAI;
+using Azure;
+using Azure.Core;
 
 namespace Microsoft.PowerShell.Copilot
 {
@@ -17,26 +16,41 @@ namespace Microsoft.PowerShell.Copilot
         private const string API_ENV_VAR = "AZURE_OPENAI_API_KEY";
         internal const string ENDPOINT_ENV_VAR = "AZURE_OPENAI_ENDPOINT";
         internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
-        private const string OPENAI_GPT35_TURBO_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2023-03-15-preview";
-        private const string OPENAI_GPT4_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4/chat/completions?api-version=2023-03-15-preview";
-        private const string OPENAI_GPT4_32K_URL = "https://powershell-openai.openai.azure.com/openai/deployments/gpt4-32k/chat/completions?api-version=2023-03-15-preview";
-        private static SecureString _openaiKey;
+        internal const string APIM_endpoint = "https://pscopilot.azure-api.net";
 
         private static readonly string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private static List<string> _promptHistory = new();
         private static List<string> _assistHistory = new();
         private static int _maxHistory = 256;
         internal static string _lastCodeSnippet = string.Empty;
-        private static HttpClient _httpClient = new();
+        private OpenAIClient client;
+        private string endpoint;
         private static string _os = GetOS();
 
         public OpenAI()
         {
-            _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-            if (_openaiKey is null)
+            endpoint = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR) ?? APIM_endpoint;
+
+            OpenAIClientOptions options = new OpenAIClientOptions();
+            options.Retry.MaxRetries = 0;
+
+            string apiKey = Environment.GetEnvironmentVariable(API_ENV_VAR) ?? throw new Exception($"{API_ENV_VAR} environment variable not set");
+
+            endpoint = endpoint.TrimEnd('/').ToLower();
+            if (endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal))
             {
-                _openaiKey = GetApiKey();
-                _httpClient.DefaultRequestHeaders.Add("api-key", ConvertSecureString(_openaiKey));
+                ApimSubscriptionKeyPolicy policy = new ApimSubscriptionKeyPolicy(new AzureKeyCredential(apiKey));
+                options.AddPolicy(policy, Azure.Core.HttpPipelinePosition.PerRetry);
+
+                client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential("placeholder"), options);
+            }
+            else if (endpoint.EndsWith(".openai.azure.com", StringComparison.Ordinal))
+            {
+                client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
+            }
+            else
+            {
+                throw new Exception($"The specified endpoint '{endpoint}' is not a valid Azure OpenAI service endpoint.");
             }
         }
 
@@ -145,53 +159,46 @@ namespace Microsoft.PowerShell.Copilot
         {
             try
             {
-                var requestBody = GetRequestBody(prompt);
+                ChatCompletionsOptions requestBody = GetRequestBody(prompt);
                 if (debug)
                 {
-                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: RequestBody:\n{Formatting.GetPrettyJson(requestBody)}");
-                }
-
-                var bodyContent = new StringContent(requestBody, System.Text.Encoding.UTF8, "application/json");
-                string openai_url = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR);
-                if (openai_url is null)
-                {
-                    switch (EnterCopilot._model)
-                    {
-                        case Model.GPT35_Turbo:
-                            openai_url = OPENAI_GPT35_TURBO_URL;
-                            break;
-                        case Model.GPT4:
-                            openai_url = OPENAI_GPT4_URL;
-                            break;
-                        case Model.GPT4_32K:
-                            openai_url = OPENAI_GPT4_32K_URL;
-                            break;
-                        default:
-                            openai_url = OPENAI_GPT4_URL;
-                            break;
-                    }
+                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: RequestBody:\n{Formatting.GetPrettyJson(requestBody.ToString())}");
                 }
 
                 if (debug)
                 {
-                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: OpenAI URL: {openai_url}");
+                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: OpenAI URL: {endpoint}");
                 }
 
-                var response = _httpClient.PostAsync(openai_url , bodyContent, cancelToken).GetAwaiter().GetResult();
-                var responseContent = response.Content.ReadAsStringAsync(cancelToken).GetAwaiter().GetResult();
-                if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                string openai_model = "";
+                switch (EnterCopilot._model)
                 {
-                    return $"{PSStyle.Instance.Foreground.BrightRed}ERROR: {responseContent}";
+                    case Model.GPT35_Turbo:
+                        openai_model = "gpt-35-turbo";
+                        break;
+                    case Model.GPT4_32K:
+                        openai_model = "gpt4-32k";
+                        break;
+                    default:
+                        openai_model = "gpt4";
+                        break;
                 }
 
-                if (debug)
-                {
-                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: ResponseContent:\n{Formatting.GetPrettyJson(responseContent)}");
-                }
+                Response<ChatCompletions> response = client.GetChatCompletions(
+                    deploymentOrModelName: openai_model,
+                    requestBody);
 
-                var responseJson = JsonNode.Parse(responseContent);
-                var output = "\n" + responseJson!["choices"][0]["message"]["content"].ToString();
+                ChatCompletions chatCompletions = response.Value;
+                var output = "\n";
+
+                output += chatCompletions.Choices[0].Message.Content;
+
                 return output;
+                
+            }
+            catch (RequestFailedException e)
+            {
+                return $"{PSStyle.Instance.Foreground.BrightRed}HTTP EXCEPTION: {e.Message}";
             }
             catch (OperationCanceledException)
             {
@@ -223,69 +230,61 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        private static string GetRequestBody(string prompt)
+        private static ChatCompletionsOptions GetRequestBody(string prompt)
         {
-            var messages = new List<object>();
+            ChatCompletionsOptions requestBody = new ChatCompletionsOptions();
+            var messages = requestBody.Messages;
             string system_prompt = Environment.GetEnvironmentVariable(SYSTEM_PROMPT_ENV_VAR);
             if (system_prompt is null)
             {
                 messages.Add(
-                    new
-                    {
-                        role = "system",
-                        content = $"You are an AI assistant with experise in PowerShell, Azure, and the command line.  Assume user is using {_os} operating system unless specified. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks."
-                    }
+                    new ChatMessage
+                    (
+                        role: "system",
+                        content: $"You are an AI assistant with experise in PowerShell, Azure, and the command line.  Assume user is using {_os} operating system unless specified. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks."
+                    )
                 );
             }
             else
             {
                 messages.Add(
-                    new
-                    {
-                        role = "system",
-                        content = system_prompt
-                    }
+                    new ChatMessage
+                    (
+                        role: "system",
+                        content: system_prompt
+                    )
                 );
             }
 
             for (int i = 0; i < _assistHistory.Count; i++)
             {
                 messages.Add(
-                    new
-                    {
-                        role = "user",
-                        content = _promptHistory[i]
-                    }
+                    new ChatMessage
+                    (
+                        role: "user",
+                        content: _promptHistory[i]
+                    )
                 );
                 messages.Add(
-                    new
-                    {
-                        role = "assistant",
-                        content = _assistHistory[i]
-                    }
+                    new ChatMessage
+                    (
+                        role: "assistant",
+                        content: _assistHistory[i]
+                    )
                 );
             }
 
             messages.Add(
-                new
-                {
-                    role = "user",
-                    content = prompt
-                }
+                new ChatMessage
+                (
+                    role: "user",
+                    content: prompt
+                )
             );
 
-            var requestBody = new
-            {
-                messages = messages,
-                max_tokens = 4096,
-                frequency_penalty = 0,
-                presence_penalty = 0,
-                top_p = 0.95,
-                temperature = 0.7,
-                stop = (string)null
-            };
-
-            return JsonSerializer.Serialize(requestBody);
+            requestBody.MaxTokens = 300;
+            requestBody.Temperature = (float?) 0.7;
+            return requestBody;
         }
 
         private static void GetCodeSnippet(string input)
@@ -315,38 +314,6 @@ namespace Microsoft.PowerShell.Copilot
 
             _lastCodeSnippet = codeSnippet.ToString();
         }
-
-        private SecureString GetApiKey()
-        {
-            string key = Environment.GetEnvironmentVariable(API_ENV_VAR);
-            if (key is null)
-            {
-                throw(new Exception($"{API_ENV_VAR} environment variable not set"));
-            }
-            else
-            {
-                var ss = new SecureString();
-                foreach (char c in key)
-                {
-                    ss.AppendChar(c);
-                }
-
-                return ss;
-            }
-        }
-
-        private static string ConvertSecureString(SecureString ss)
-        {
-            IntPtr unmanagedString = IntPtr.Zero;
-            try
-            {
-                unmanagedString = Marshal.SecureStringToGlobalAllocUnicode(ss);
-                return Marshal.PtrToStringUni(unmanagedString);
-            }
-            finally
-            {
-                Marshal.ZeroFreeGlobalAllocUnicode(unmanagedString);
-            }
-        }
+        
     }
 }
