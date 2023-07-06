@@ -7,7 +7,9 @@ This includes:
 
 - Model Name
 - Model Description
+- Max Tokens
 - HTTPS endpoint
+- Deployment Name
 - User API Key
 - Trust level
 - System Prompt
@@ -34,20 +36,55 @@ They may be actively developing the properties of the model, or they may be done
 Developer creating a custom model:
 
 ```powershell
-ai register --name "My Model" --description "My Model Description" --endpoint "https://my-model.com" --key "my-model-key" --prompt "My Model Prompt"
+ai register --name "My Model" --description "My Model Description" --endpoint "https://my-model.com" --deployment "gpt-35-turbo" --key "my-model-key" --prompt "My Model Prompt"
 ```
 
 Here, the mandatory parameters are:
 
 - `--name` - The name of the model
+- `--deployment` - The name of the deployment
 - `--endpoint` - The HTTPS endpoint of the model
 
 Optional pareameters are:
 
 - `--description` - The description of the model
+- `--header <NAME>=<VALUE>` - Custom header to send to the model endpoint. Can be specified multiple times.
 - `--prompt` - The system prompt for the model. Default is no prompt is sent as the endpoint itself may provide a prompt.
 - `--key` - The API key for the model (some models may allow for anonymous access)
+- `--maxtokens` - The maximum number of tokens to generate. Default is 4096.
 - `--trust` - The trust level of the model: `public` or `private`. Default is `public`.
+
+>[NOTE] As models get more complicated and aspects of them are closed source,
+> it may make sense to eventually have an inproc library plugin model where
+> the model developer can provide a DLL that implements the model interface
+
+#### Model Owner Display Registration
+
+Developer displaying the registration information for a model:
+
+```powershell
+ai get --name "My Model"
+```
+
+Here, the mandatory parameters are:
+
+- `--name` - The name of the model
+
+This results in a YAML output of the model registration information.
+Key information is never displayed.
+
+```yaml
+name: My Model
+description: My Model Description
+deployment: gpt-35-turbo
+endpoint: https://my-model.com
+header:
+  - name: MyHeader
+    value: MyValue
+maxtokens: 4096
+prompt: My Model Prompt
+trust: public
+```
 
 #### Model Owner Registration Changes
 
@@ -64,6 +101,10 @@ Here, the mandatory parameters are:
 Optional pareameters are:
 
 - `--description` - The description of the model
+- `--deployment` - The name of the deployment
+- `--endpoint` - The HTTPS endpoint of the model
+- `--header <NAME>=<VALUE>` - Custom header to send to the model endpoint. Can be specified multiple times. If the header is already set, it will be replaced.
+- `--maxtokens` - The maximum number of tokens to generate
 - `--prompt` - The system prompt for the model
 - `--trust` - The trust level of the model: `public` or `private`. Default is `public`.
 - `--key` - The API key for the model
@@ -79,7 +120,10 @@ ai export --name "My Model" --file "my-model.json"
 Here, the mandatory parameters are:
 
 - `--name` - The name of the model
-- `--file` - The file to export the model registration information to
+
+Optional pareameters are:
+
+- `--file` - The file to export the model registration information to.  If this is not specified, the model registration information will be printed to STDOUT.
 
 #### Model JSON Format
 
@@ -109,6 +153,18 @@ with the name `Business Model`.
 
 Users can also use the `set` command to change the model registration information.
 
+### User Model Unregestration
+
+The user of the model may want to unregister a model.
+
+```powershell
+ai unregister --name "Business Model"
+```
+
+Here, the mandatory parameters are:
+
+- `--name` - The name of the model
+
 ### User Model Enumeration
 
 The user of the model may want to see the models that are available to them.
@@ -117,10 +173,20 @@ The user of the model may want to see the models that are available to them.
 ai list
 ```
 
+For users, the list will contain only relevant information for users of a model:
+
+```console
+name       trust   description
+----       -----   -----------
+PowerShell public  PowerShell expert
+Azure      public  Azure expert
+Contoso    private Contoso enterprise instance
+```
+
 ### User Model Selection
 
 The user of the model may want to select a model to use.
 
 ```powershell
-ai select --name "Business Model"
+ai use --name "Business Model"
 ```
