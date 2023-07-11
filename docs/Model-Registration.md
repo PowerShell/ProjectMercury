@@ -44,15 +44,19 @@ Here, the mandatory parameters are:
 - `--name` - The name of the model
 - `--deployment` - The name of the deployment
 - `--endpoint` - The HTTPS endpoint of the model
+- `--prompt` - The system prompt for the model
 
 Optional pareameters are:
 
 - `--description` - The description of the model
-- `--header <NAME>=<VALUE>` - Custom header to send to the model endpoint. Can be specified multiple times.
-- `--prompt` - The system prompt for the model. Default is no prompt is sent as the endpoint itself may provide a prompt.
 - `--key` - The API key for the model (some models may allow for anonymous access)
-- `--maxtokens` - The maximum number of tokens to generate. Default is 4096.
+- `--token-limit` - The maximum number of tokens to allow. Default is 4096.
 - `--trust` - The trust level of the model: `public` or `private`. Default is `public`.
+
+For `trust`, `public` means that the model is not trusted as it's shared with other users,
+so when sending large amounts of data (not typed, but sent via clipboard or a file via a
+command), then the user will be prompted to confirm the action.
+A `private` model is trusted, so the user will not be prompted to confirm the action.
 
 >[NOTE] As models get more complicated and aspects of them are closed source,
 > it may make sense to eventually have an inproc library plugin model where
@@ -96,7 +100,7 @@ ai set --name "My Model" --description "My Model Description"
 
 Here, the mandatory parameters are:
 
-- `--name` - The name of the model
+- `--name` - The name of the model, this is read-only and cannot be changed
 
 Optional pareameters are:
 
@@ -124,6 +128,7 @@ Here, the mandatory parameters are:
 Optional pareameters are:
 
 - `--file` - The file to export the model registration information to.  If this is not specified, the model registration information will be printed to STDOUT.
+- `--all` - Export all models as a single JSON array.
 
 #### Model JSON Format
 
@@ -153,6 +158,8 @@ with the name `Business Model`.
 
 Users can also use the `set` command to change the model registration information.
 
+Multiple models may be imported from a single file which contains a single JSON object which is an array of models.
+
 ### User Model Unregestration
 
 The user of the model may want to unregister a model.
@@ -176,11 +183,11 @@ ai list
 For users, the list will contain only relevant information for users of a model:
 
 ```console
-name       trust   description
-----       -----   -----------
-PowerShell public  PowerShell expert
-Azure      public  Azure expert
-Contoso    private Contoso enterprise instance
+name       active  trust   description
+----       ------  -----   -----------
+PowerShell yes     public  PowerShell expert
+Azure              public  Azure expert
+Contoso            private Contoso enterprise instance
 ```
 
 ### User Model Selection
@@ -190,3 +197,15 @@ The user of the model may want to select a model to use.
 ```powershell
 ai use --name "Business Model"
 ```
+
+### User Model Selection within AI Chat
+
+The user may want to change models within the AI chat session.
+
+The following commands will be available:
+
+- `get <name>` - Get the model registration information
+- `list` - List the models available to the user
+- `use <name>` - Select a model to use
+
+We would want tab-completion available for the model names.
