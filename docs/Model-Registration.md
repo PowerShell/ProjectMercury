@@ -7,13 +7,13 @@ This includes:
 
 - Model Name
 - Model Description
-- Max Tokens
-- HTTPS endpoint
+- Token Limit
+- HTTPS Endpoint
 - Deployment Name
+- OpenAI Model Name
 - User API Key
 - Trust level
 - System Prompt
-- Examples
 
 Users would register multiple models on the same system to be used dynamically based on the user's scenario.
 A separate model could be used to infer the user's intent based on the user prompt and choose the appropriate model to use,
@@ -42,15 +42,16 @@ ai register --name "My Model" --description "My Model Description" --endpoint "h
 Here, the mandatory parameters are:
 
 - `--name` - The name of the model
-- `--deployment` - The name of the deployment
 - `--endpoint` - The HTTPS endpoint of the model
+- `--deployment` - The name of the deployment
 - `--prompt` - The system prompt for the model
 
 Optional pareameters are:
 
 - `--description` - The description of the model
+- `--openai-model` - The name of the OpenAI model used by the deployment. Assume the same as `--deployment` when not specified.
 - `--key` - The API key for the model (some models may allow for anonymous access)
-- `--token-limit` - The maximum number of tokens to allow. Default is 4096.
+- `--token-limit` - The maximum number of total tokens allowed in a chat completion call. Default is 4096.
 - `--trust` - The trust level of the model: `public` or `private`. Default is `public`.
 
 For `trust`, `public` means that the model is not trusted as it's shared with other users,
@@ -80,12 +81,10 @@ Key information is never displayed.
 ```yaml
 name: My Model
 description: My Model Description
-deployment: gpt-35-turbo
 endpoint: https://my-model.com
-header:
-  - name: MyHeader
-    value: MyValue
-maxtokens: 4096
+deployment: gpt-35-turbo
+openai-model: gpt-35-turbo
+token-limit: 4096
 prompt: My Model Prompt
 trust: public
 ```
@@ -106,9 +105,9 @@ Optional pareameters are:
 
 - `--description` - The description of the model
 - `--deployment` - The name of the deployment
+- `--openai-model` - The name of the OpenAI model used by the deployment
 - `--endpoint` - The HTTPS endpoint of the model
-- `--header <NAME>=<VALUE>` - Custom header to send to the model endpoint. Can be specified multiple times. If the header is already set, it will be replaced.
-- `--maxtokens` - The maximum number of tokens to generate
+- `--token-limit` - The maximum number of total tokens allowed for a chat completion call
 - `--prompt` - The system prompt for the model
 - `--trust` - The trust level of the model: `public` or `private`. Default is `public`.
 - `--key` - The API key for the model
@@ -139,17 +138,22 @@ The model JSON format is as follows:
     "name": "My Model",
     "description": "My Model Description",
     "endpoint": "https://my-model.com",
+    "deployment": "My-Deployment",
+    "openai-model": "gpt-35-turbo",
+    "token-limit": 4096,
     "prompt": "My Model Prompt"
 }
 ```
 
-> [Note] It might make sense to have a flag indicating if a user key is required.
+> [Note] It might make sense to have a flag indicating if the key should be included,
+and also a flag indicating if the the trust level should be included.
 
 ### User Model Import
 
 The user of the model may want to import the model registration information from a file.
 
 ```powershell
+## 'my-model.json' contains only 1 model's registration information
 ai import --file "my-model.json" --name "Business Model" --trust private --key "my-user-key"
 ```
 
@@ -159,6 +163,12 @@ with the name `Business Model`.
 Users can also use the `set` command to change the model registration information.
 
 Multiple models may be imported from a single file which contains a single JSON object which is an array of models.
+
+```powershell
+## 'my-model.json' contains multiple models' registration information
+## Using flags like '--name', '--trust', and '--key' will result in error in this case.
+ai import --file "my-model.json"
+```
 
 ### User Model Unregestration
 
