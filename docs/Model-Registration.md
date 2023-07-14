@@ -7,7 +7,6 @@ This includes:
 
 - Model Name
 - Model Description
-- Token Limit
 - HTTPS Endpoint
 - Deployment Name
 - OpenAI Model Name
@@ -36,7 +35,7 @@ They may be actively developing the properties of the model, or they may be done
 Developer creating a custom model:
 
 ```powershell
-ai register --name "My Model" --description "My Model Description" --endpoint "https://my-model.com" --deployment "gpt-35-turbo" --key "my-model-key" --prompt "My Model Prompt"
+ai register --name "My Model" --description "My Model Description" --endpoint "https://my-model.com" --deployment "My-Deployment" --openai-model "gpt-35-turbo" --key "my-model-key" --prompt "My Model Prompt"
 ```
 
 Here, the mandatory parameters are:
@@ -51,7 +50,6 @@ Optional pareameters are:
 - `--description` - The description of the model
 - `--openai-model` - The name of the OpenAI model used by the deployment. Assume the same as `--deployment` when not specified.
 - `--key` - The API key for the model (some models may allow for anonymous access)
-- `--token-limit` - The maximum number of total tokens allowed in a chat completion call. Default is 4096.
 - `--trust` - The trust level of the model: `public` or `private`. Default is `public`.
 
 For `trust`, `public` means that the model is not trusted as it's shared with other users,
@@ -82,9 +80,8 @@ Key information is never displayed.
 name: My Model
 description: My Model Description
 endpoint: https://my-model.com
-deployment: gpt-35-turbo
+deployment: My-Deployment
 openai-model: gpt-35-turbo
-token-limit: 4096
 prompt: My Model Prompt
 trust: public
 ```
@@ -104,10 +101,9 @@ Here, the mandatory parameters are:
 Optional pareameters are:
 
 - `--description` - The description of the model
+- `--endpoint` - The HTTPS endpoint of the model
 - `--deployment` - The name of the deployment
 - `--openai-model` - The name of the OpenAI model used by the deployment
-- `--endpoint` - The HTTPS endpoint of the model
-- `--token-limit` - The maximum number of total tokens allowed for a chat completion call
 - `--prompt` - The system prompt for the model
 - `--trust` - The trust level of the model: `public` or `private`. Default is `public`.
 - `--key` - The API key for the model
@@ -140,7 +136,6 @@ The model JSON format is as follows:
     "endpoint": "https://my-model.com",
     "deployment": "My-Deployment",
     "openai-model": "gpt-35-turbo",
-    "token-limit": 4096,
     "prompt": "My Model Prompt"
 }
 ```
