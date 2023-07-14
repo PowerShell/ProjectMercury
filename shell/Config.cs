@@ -135,7 +135,7 @@ internal class BackendService
 
     private int CountTokenForMessages(IEnumerable<ChatMessage> messages)
     {
-        var openAIModel = _activeModel.NormalizedOpenAIModelName;
+        var openAIModel = _activeModel.SimpleOpenAIModelName;
         var encoding = GptEncoding.GetEncodingForModel(openAIModel);
 
         // For reference, see the 'num_tokens_from_messages' function from
@@ -495,12 +495,24 @@ public enum TrustLevel
 
 public class AIModel
 {
+    // For reference, see https://platform.openai.com/docs/models
+    private static readonly Dictionary<string, int> ModelToTokenLimitMapping = new Dictionary<string, int>
+    {
+        ["gpt-4"] = 8192,
+        ["gpt-4-32k"] = 32768,
+        ["gpt-3.5-turbo"] = 4096,
+        ["gpt-3.5-turbo-16k"] = 16384,
+        ["gpt-35-turbo"] = 4096,
+        ["gpt-35-turbo-16k"] = 16384,
+    };
+
     private string _name;
     private string _prompt;
     private string _endpoint;
     private string _deployment;
     private string _openAIModel;
-    private string _normalizedOpenAIModelName;
+    private string _simpleOpenAIModelName;
+    private int _tokenLimit;
 
     internal AIModel(
         string name,
@@ -510,7 +522,6 @@ public class AIModel
         string deployment,
         string openAIModel,
         SecureString key,
-        int tokenLimit = 4096,
         TrustLevel trustLevel = TrustLevel.Public)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -524,33 +535,30 @@ public class AIModel
         _endpoint = endpoint;
         _deployment = deployment;
         _openAIModel = openAIModel.ToLowerInvariant();
-        _normalizedOpenAIModelName = NormalizeOpenAIModelName(_openAIModel);
+        InferSettingsFromOpenAIModel();
 
         Description = description;        
         Key = key;
-        TokenLimit = tokenLimit;
         TrustLevel = trustLevel;
     }
 
-    private string NormalizeOpenAIModelName(string openAIModel)
+    private void InferSettingsFromOpenAIModel()
     {
-        // For reference: https://github.com/openai/tiktoken/blob/5d970c1100d3210b42497203d6b5c1e30cfda6cb/tiktoken/model.py#L7
-        string name = openAIModel.StartsWith("gpt-4-", StringComparison.Ordinal)
-            ? "gpt-4"
-            : openAIModel.StartsWith("gpt-3.5-turbo-", StringComparison.Ordinal)
-                ? "gpt-35-turbo"
-                : openAIModel;
+        if (!ModelToTokenLimitMapping.TryGetValue(_openAIModel, out _tokenLimit))
+        {
+            var message = $"The specified '{_openAIModel}' is not a supported Azure OpenAI chat completion model.";
+            throw new ArgumentException(message, nameof(_openAIModel));
+        }
 
-        try
-        {
-            GptEncoding.GetEncodingForModel(name);
-            return name;
-        }
-        catch
-        {
-            var message = $"The specified '{openAIModel}' is not a valid OpenAI model name.";
-            throw new ArgumentException(message, nameof(openAIModel));
-        }
+        // For reference: https://github.com/openai/tiktoken/blob/5d970c1100d3210b42497203d6b5c1e30cfda6cb/tiktoken/model.py#L7
+        // The fixed consumption of tokens per message is different between gpt-3.5 and gpt-4, so we need to simplify the name
+        // to indicate which one it is.
+        _simpleOpenAIModelName = _openAIModel.StartsWith("gpt-4-", StringComparison.Ordinal)
+            ? "gpt-4"
+            : _openAIModel.StartsWith("gpt-3.5-turbo-", StringComparison.Ordinal)
+              || _openAIModel.StartsWith("gpt-35-turbo-", StringComparison.Ordinal)
+                ? "gpt-35-turbo"
+                : _openAIModel;
     }
 
     public string Name => _name;
@@ -596,14 +604,14 @@ public class AIModel
         {
             ArgumentException.ThrowIfNullOrEmpty(value);
             _openAIModel = value.ToLowerInvariant();
-            _normalizedOpenAIModelName = NormalizeOpenAIModelName(_openAIModel);
+            InferSettingsFromOpenAIModel();
         }
     }
 
-    internal string NormalizedOpenAIModelName => _normalizedOpenAIModelName;
+    internal string SimpleOpenAIModelName => _simpleOpenAIModelName;
+    internal int TokenLimit => _tokenLimit;
 
     public string Description { get; internal set; }    
     public SecureString Key { get; internal set; }
-    public int TokenLimit { get; internal set; }
     public TrustLevel TrustLevel { get; internal set; }
 }
