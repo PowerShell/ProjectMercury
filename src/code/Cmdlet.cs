@@ -12,15 +12,6 @@ using System.Threading.Tasks;
 
 namespace Microsoft.PowerShell.Copilot
 {
-    public enum Model
-    {
-        GPT35_Turbo,
-        GPT4,
-        GPT4_32K,
-    }
-
-    [Alias("Copilot")]
-    [Cmdlet(VerbsCommon.Enter, "Copilot")]
     public sealed partial class EnterCopilot : PSCmdlet
     {
         private const string MODEL = "gpt-35-turbo";
@@ -28,24 +19,26 @@ namespace Microsoft.PowerShell.Copilot
         private static CancellationTokenSource _cancellationTokenSource = new();
         private static CancellationToken _cancelToken = _cancellationTokenSource.Token;
         internal static readonly ConsoleKeyInfo _exitKeyInfo = Pwsh.GetPSReadLineKeyHandler();
-        internal static Model _model = Model.GPT4;
-        private static OpenAI _openai;
+        //internal static Model? _model = Program.getCurrentModel();
+        private static OpenAI? _openai;
 
         [Parameter(Mandatory = false)]
         public SwitchParameter LastError { get; set; }
 
-        [Parameter(Mandatory = false)]
+        //currently commented out since not being used, will update after
+        /*[Parameter(Mandatory = false)]
         public Model Model
         {
             get { return _model; }
             set { _model = value; }
-        }
+        }*/
 
-        public EnterCopilot()
+        public EnterCopilot(bool restore)
         {
             try
             {
                 _openai = new OpenAI();
+                Process(restore);
             }
             catch (Exception e)
             {
@@ -54,6 +47,17 @@ namespace Microsoft.PowerShell.Copilot
         }
 
         protected override void BeginProcessing()
+        {
+            base.BeginProcessing();
+            Process(true);
+        }
+
+        internal static void Cancel()
+        {
+            _cancellationTokenSource.Cancel();
+        }
+
+        public void Process(bool restore)
         {
             try
             {
@@ -65,21 +69,16 @@ namespace Microsoft.PowerShell.Copilot
                     if (input.Length > 0)
                     {
                         Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{Screenbuffer.RESET}");
-                        _openai.SendPrompt(input, false, _cancelToken);
+                        _openai?.SendPrompt(input, restore, false, _cancelToken);
                     }
                 }
-
-                Readline.EnterInputLoop(this, _cancelToken);
+                Program.printHistory(restore);
+                Readline.EnterInputLoop(this, restore, _cancelToken);
             }
             finally
             {
                 Screenbuffer.SwitchToMainScreenBuffer();
             }
-        }
-
-        internal static void Cancel()
-        {
-            _cancellationTokenSource.Cancel();
         }
     }
 }

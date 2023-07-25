@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using System.Text;
+using Spectre.Console;
 
 namespace Microsoft.PowerShell.Copilot
 {
@@ -13,15 +14,7 @@ namespace Microsoft.PowerShell.Copilot
         internal static readonly string RESET = $"{PSStyle.Instance.Reset}{PSStyle.Instance.Background.FromRgb(20, 0, 20)}";
         private static StringBuilder _buffer = new();
         private static int _maxBuffer = 4096;
-        private const string LOGO = @"
-
-██████╗ ███████╗ ██████╗ ██████╗ ██████╗ ██╗██╗      ██████╗ ████████╗
-██╔══██╗██╔════╝██╔════╝██╔═══██╗██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
-██████╔╝███████╗██║     ██║   ██║██████╔╝██║██║     ██║   ██║   ██║
-██╔═══╝ ╚════██║██║     ██║   ██║██╔═══╝ ██║██║     ██║   ██║   ██║
-██║     ███████║╚██████╗╚██████╔╝██║     ██║███████╗╚██████╔╝   ██║
-╚═╝     ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝   v0.1
-";
+        private static Spectre.Console.FigletText LOGO = new FigletText("Shell Copilot").LeftJustified().Color(Color.DarkGoldenrod);
 
         internal static void SwitchToAlternateScreenBuffer()
         {
@@ -37,20 +30,14 @@ namespace Microsoft.PowerShell.Copilot
         {
             Console.Write($"{RESET}");
             Console.Clear();
-            // WriteToolbar();
+            //WriteToolbar();
             Console.CursorTop = Console.WindowHeight - 1;
             Console.CursorLeft = 0;
-            if (_buffer.Length > 0)
-            {
-                Console.Write(_buffer.ToString());
-            }
-            else
-            {
-                WriteLineConsole($"{RESET}{LOGO}");
-                string openai_url = Environment.GetEnvironmentVariable(OpenAI.ENDPOINT_ENV_VAR) ?? OpenAI.APIM_endpoint;
-                WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using endpoint '{openai_url}', deployment '{EnterCopilot._model}'");
-                WriteLineConsole($"{INSTRUCTIONS}");
-            }
+            WriteLineConsole($"{RESET}");
+            AnsiConsole.Write(LOGO);
+            string? openai_url = ModelFunctions.getCurrentModel()?.Endpoint ?? Environment.GetEnvironmentVariable(OpenAI.ENDPOINT_ENV_VAR);
+            WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using model '{ModelFunctions.getCurrentModel()?.Name}', endpoint '{ModelFunctions.getCurrentModel()?.Endpoint}', deployment '{ModelFunctions.getCurrentModel()?.Deployment}'");
+            WriteLineConsole($"{INSTRUCTIONS}");
         }
 
         internal static void WriteLineBuffer(string text)

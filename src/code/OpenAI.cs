@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Azure.AI.OpenAI;
 using Azure;
 using Azure.Core;
+using System.Linq;
 
 namespace Microsoft.PowerShell.Copilot
 {
@@ -18,33 +19,32 @@ namespace Microsoft.PowerShell.Copilot
         internal const string SYSTEM_PROMPT_ENV_VAR = "AZURE_OPENAI_SYSTEM_PROMPT";
         internal const string APIM_endpoint = "https://pscopilot.azure-api.net";
 
-        private static readonly string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
+        internal static readonly string[] SPINNER = new string[8] {"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"};
         private static List<string> _promptHistory = new();
         private static List<string> _assistHistory = new();
         private static int _maxHistory = 256;
         internal static string _lastCodeSnippet = string.Empty;
         private OpenAIClient client;
-        private string endpoint;
+        private string? endpoint;
         private static string _os = GetOS();
 
         public OpenAI()
         {
-            endpoint = Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR) ?? APIM_endpoint;
+            endpoint = ModelFunctions.getCurrentModel()?.Endpoint ?? Environment.GetEnvironmentVariable(ENDPOINT_ENV_VAR);
 
             OpenAIClientOptions options = new OpenAIClientOptions();
             options.Retry.MaxRetries = 0;
-
-            string apiKey = Environment.GetEnvironmentVariable(API_ENV_VAR) ?? throw new Exception($"{API_ENV_VAR} environment variable not set");
-
-            endpoint = endpoint.TrimEnd('/').ToLower();
-            if (endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal))
+        
+            string apiKey = ModelFunctions.getCurrentModel()?.ApiKey ?? Environment.GetEnvironmentVariable(API_ENV_VAR) ?? throw new Exception($"{API_ENV_VAR} environment variable not set");
+            endpoint = endpoint?.TrimEnd('/').ToLower();
+            if (endpoint != null && endpoint.EndsWith(".azure-api.net", StringComparison.Ordinal))
             {
                 ApimSubscriptionKeyPolicy policy = new ApimSubscriptionKeyPolicy(new AzureKeyCredential(apiKey));
                 options.AddPolicy(policy, Azure.Core.HttpPipelinePosition.PerRetry);
 
                 client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential("placeholder"), options);
             }
-            else if (endpoint.EndsWith(".openai.azure.com", StringComparison.Ordinal))
+            else if (endpoint != null && endpoint.EndsWith(".openai.azure.com", StringComparison.Ordinal))
             {
                 client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
             }
@@ -59,7 +59,7 @@ namespace Microsoft.PowerShell.Copilot
             return _lastCodeSnippet;
         }
 
-        internal void SendPrompt(string input, bool debug, CancellationToken cancelToken)
+        internal void SendPrompt(string input, bool restore, bool debug, CancellationToken cancelToken)
         {
             try
             {
@@ -148,6 +148,12 @@ namespace Microsoft.PowerShell.Copilot
                     }
                 }
 
+                if(restore)
+                {
+                    Program.addToHistory(_promptHistory.Last());
+                    Program.addToHistory(_assistHistory.Last());
+                }
+
                 Screenbuffer.WriteConsole($"{colorOutput.ToString()}{Screenbuffer.RESET}");
             }
             catch (Exception e)
@@ -162,27 +168,16 @@ namespace Microsoft.PowerShell.Copilot
                 ChatCompletionsOptions requestBody = GetRequestBody(prompt);
                 if (debug)
                 {
-                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: RequestBody:\n{Formatting.GetPrettyJson(requestBody.ToString())}");
+                    if(requestBody != null)
+                    Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: RequestBody:\n{requestBody.ToString()}");
                 }
 
                 if (debug)
                 {
                     Console.WriteLine($"{PSStyle.Instance.Foreground.BrightMagenta}DEBUG: OpenAI URL: {endpoint}");
                 }
-
-                string openai_model = "";
-                switch (EnterCopilot._model)
-                {
-                    case Model.GPT35_Turbo:
-                        openai_model = "gpt-35-turbo";
-                        break;
-                    case Model.GPT4_32K:
-                        openai_model = "gpt4-32k";
-                        break;
-                    default:
-                        openai_model = "gpt4";
-                        break;
-                }
+                
+                string? openai_model = ModelFunctions.getCurrentModel()?.OpenAI_Model;
 
                 Response<ChatCompletions> response = client.GetChatCompletions(
                     deploymentOrModelName: openai_model,
@@ -210,7 +205,7 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        private static string GetOS()
+        internal static string GetOS()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -234,7 +229,7 @@ namespace Microsoft.PowerShell.Copilot
         {
             ChatCompletionsOptions requestBody = new ChatCompletionsOptions();
             var messages = requestBody.Messages;
-            string system_prompt = Environment.GetEnvironmentVariable(SYSTEM_PROMPT_ENV_VAR);
+            string? system_prompt = ModelFunctions.getCurrentModel()?.Prompt;
             if (system_prompt is null)
             {
                 messages.Add(
@@ -282,8 +277,6 @@ namespace Microsoft.PowerShell.Copilot
                 )
             );
 
-            requestBody.MaxTokens = 300;
-            requestBody.Temperature = (float?) 0.7;
             return requestBody;
         }
 

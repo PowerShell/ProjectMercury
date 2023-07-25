@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Internal;
 using System.Text;
@@ -9,13 +10,14 @@ namespace Microsoft.PowerShell.Copilot
 {
     internal class Readline
     {
-        private static readonly string PROMPT = $"{PSStyle.Instance.Foreground.BrightGreen}Copilot> {PSStyle.Instance.Foreground.White}";
+        internal static readonly string PROMPT = $"{PSStyle.Instance.Foreground.BrightGreen}Copilot> {PSStyle.Instance.Foreground.White}";
         private static List<string> _history = new();
         private static int _maxHistory = 256;
         private static OpenAI _openai = new();
 
-        internal static void EnterInputLoop(PSCmdlet cmdlet, CancellationToken cancelToken)
+        internal static void EnterInputLoop(PSCmdlet cmdlet, bool restore, CancellationToken cancelToken)
         {
+            string conversationHistory = "";
             bool debug = false;
             bool exit = false;
             Console.TreatControlCAsInput = true;
@@ -84,6 +86,7 @@ namespace Microsoft.PowerShell.Copilot
                             }
                             inputReceived = true;
                             Screenbuffer.WriteLineBuffer(inputBuilder.ToString());
+                            conversationHistory += inputBuilder.ToString();
                             Screenbuffer.WriteLineConsole("");
 
                             // see if terminal was resized
@@ -111,6 +114,7 @@ namespace Microsoft.PowerShell.Copilot
                             inputBuilder.Append("copy-code");
                             inputReceived = true;
                             Screenbuffer.WriteLineConsole(inputBuilder.ToString());
+                            conversationHistory += inputBuilder.ToString();
                             Screenbuffer.WriteLineConsole("");
                             break;
                         // left arrow
@@ -140,6 +144,7 @@ namespace Microsoft.PowerShell.Copilot
                             inputBuilder.Append("Get-Error");
                             inputReceived = true;
                             Screenbuffer.WriteLineConsole(inputBuilder.ToString());
+                            conversationHistory += inputBuilder.ToString();
                             Screenbuffer.WriteLineConsole("");
                             break;
                         default:
@@ -159,6 +164,9 @@ namespace Microsoft.PowerShell.Copilot
                 }
 
                 string input = inputBuilder.ToString();
+
+                //Testing for get and use commands
+
                 switch (input.ToLowerInvariant())
                 {
                     case "help":
@@ -206,13 +214,47 @@ namespace Microsoft.PowerShell.Copilot
                         if (input.Length > 0)
                         {
                             Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.BrightMagenta}Last error: {input}{Screenbuffer.RESET}");
-                            _openai.SendPrompt(input, debug, cancelToken);
+                            _openai.SendPrompt(input, restore, debug, cancelToken);
                         }
                         break;
+                    case "list":
+                        Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.BrightYellow}Here are all of the registered models in your system: ");
+                        Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.BrightYellow}{ModelFunctions.listAllModels}");
+                        break;
+                    case "get":
+                        string modelName = ModelFunctions.getCurrentModel()?.Name ?? "";
+                        Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.BrightYellow}Here is the registration information for {modelName}: ");
+                        Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.BrightYellow} {ModelFunctions.getSpecifiedModel(modelName)} ");
+                        break;
                     default:
-                        if (input.Length > 0)
+                        string[] fullCommand = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        if(fullCommand.Length == 2 || fullCommand.Length == 3)
                         {
-                            _openai.SendPrompt(input, debug, cancelToken);
+                            var allModels = ModelFunctions.getAllModels();
+                            if(allModels != null)
+                            {
+                                List<string>? modelNames = allModels?.models.Select(model => model.Name.ToLower()).ToList();
+                                string? foundModel = modelNames?.FirstOrDefault(name => input.ToLower().Contains(name));
+
+                                if(foundModel != null && (fullCommand[0].ToLower() == "get" || fullCommand[1].ToLower() == "get"))
+                                {
+                                    Screenbuffer.WriteLineConsole($"\n{PSStyle.Instance.Foreground.BrightYellow}{ModelFunctions.getSpecifiedModel(foundModel)}");
+                                }
+                                else if(foundModel != null && (fullCommand[0].ToLower() == "use" || fullCommand[1].ToLower() == "use"))
+                                {
+                                    ModelFunctions.setCurrentModel(foundModel);
+                                    Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using model '{ModelFunctions.getCurrentModel()?.Name}', endpoint '{ModelFunctions.getCurrentModel()?.Endpoint}', deployment '{ModelFunctions.getCurrentModel()?.Deployment}'");
+                                    _openai = new();
+                                }
+                                else
+                                {
+                                    _openai.SendPrompt(input, restore, debug, cancelToken);
+                                }
+                            }
+                        }
+                        else if(input.Length > 0)
+                        {
+                            _openai.SendPrompt(input, restore, debug, cancelToken);
                         }
                         break;
                 }
