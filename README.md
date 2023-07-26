@@ -20,7 +20,7 @@ This module includes AI model management with the ability to enable an interacti
 | list       | List the registration information of all registered models|
 | export     | Export the registration information of a model            |
 | import     | Import the registration information of a model            |
-
+After building, run 'ai' for help page.
 
 **Using the Default Microsoft Model:**
 
@@ -57,4 +57,3 @@ If you would like to register a model into the system, please enter the register
 | -o, --openai-model `(optional)` | The name of the OpenAI model used by the deployment       |
 | -p, --system-prompt             | The system prompt for the model                           |
 | --trust `(optional)`            | The trust level of the model (public/private)             |
-| -?, -h, --help                  | Show help and usage information                           |
