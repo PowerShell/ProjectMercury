@@ -74,6 +74,14 @@ namespace Microsoft.PowerShell.Copilot
             await rootCommand.InvokeAsync(args);
         }
 
+        private static ParseResult parse(string[] args, Command command)
+        {
+            var parser = new Parser(command);
+            var parsedArgs = parser.Parse(args);
+            parsedArgs.Invoke();
+            return parsedArgs;
+        }
+
         private static void addModelCommand(string[] args, Command mainCommand)
         {
             Command newModel = new Command("register", "Create a new model for use") { };
@@ -231,6 +239,67 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
+         public static string? EnableCopilotKeyHandler()
+        {
+            string? chord = "F6";
+            bool setHandler = false;
+
+            // If chord is not provided, find an available function key (F3 to F12)
+            if (string.IsNullOrEmpty(chord))
+            {
+                for (int i = 3; i <= 12; i++)
+                {
+                    chord = $"F{i}";
+                    if (!Console.KeyAvailable)
+                    {
+                        setHandler = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                setHandler = true;
+            }
+
+            if (setHandler)
+            {
+                Action restore = delegate() { Initialize(true); };
+
+                SetKeyHandler(chord, "Enter Chat Mode", restore);
+                Console.WriteLine($"Chord set to '{chord}'");
+            }
+
+            return chord;
+        }
+
+        public static void SetKeyHandler(string? chord, string description, Action action)
+        {
+            // Convert the chord string to ConsoleKey
+            if (Enum.TryParse(chord, out ConsoleKey consoleKey))
+            {
+                // Create a ConsoleKeyInfo object from the parsed ConsoleKey
+                ConsoleKeyInfo consoleKeyInfo = new ConsoleKeyInfo('\0', consoleKey, shift: false, alt: false, control: false);
+
+                // Set the key handler using the ConsoleKeyInfo
+                Console.TreatControlCAsInput = true;
+                Console.CancelKeyPress += (sender, e) =>
+                {
+                    // Compare the integer representations of ConsoleSpecialKey and ConsoleKey
+                    if ((int)e.SpecialKey == (int)consoleKeyInfo.Key && !e.Cancel)
+                    {
+                        e.Cancel = true;
+                        action(); // Execute the action associated with the Copilot action (Enter-Dog).
+                    }
+                };
+            }
+            else
+            {
+                // Handle invalid chord value
+                Console.WriteLine($"Invalid chord value: {chord}");
+            }
+        }
+
         internal static int GetParentProcessID()
         {
             var parent = ParentProcessUtilities.GetParentProcess();
@@ -240,6 +309,9 @@ namespace Microsoft.PowerShell.Copilot
             }
             return -1;
         }
+
+        
+
 
         internal static void addToHistory(string input)
         {
