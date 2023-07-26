@@ -308,7 +308,7 @@ namespace Microsoft.PowerShell.Copilot
                     {
                         var apiKey = AnsiConsole.Prompt(new TextPrompt<string>("Enter your API key: ").Secret());
                         current.ApiKey = apiKey;
-                        ModelFunctions.setAModel(current.Name, null, null, apiKey, null, null, null, null);
+                        ModelFunctions.setAModel("Default", null, null, apiKey, null, null, null, null);
                         ModelFunctions.setCurrentModel("Default");
                         new Microsoft.PowerShell.Copilot.EnterCopilot(restore);
                     }
@@ -390,51 +390,54 @@ namespace Microsoft.PowerShell.Copilot
             grid.Width = 100;
             AnsiConsole.Write(grid);
 
-            welcomeBreak();
+            var answer = AnsiConsole.Confirm("\nWould you to continue to the Default Model Access Information?...");
 
-            AnsiConsole.MarkupLine("\n[bold]Using the Default Microsoft Model: [/]\n");
-            string message = "The default Microsoft Model has already been registered in the system.\n" + "If you would like to gain access to the model, follow the instructions below to gain access to an API Key:\n";
-            AnsiConsole.MarkupLine(message);
-
-            grid = new Grid();
-
-            Dictionary<string,string> instructions = new Dictionary<string, string>{
-                {"1.", "Navigate to <https://pscopilot.developer.azure-api.net>"},
-                {"2.", "Click `Sign Up` located on the top right corner of the page."},
-                {"3.", "Sign up for a subscription by filling in the fields (email, password,first name, last name)."},
-                {"4.", "Verify the account (An email should have been sent from apimgmt-noreply@mail.windowsazure.com to your email)"},
-                {"5.", "Click `Sign In` located on the top right corner of the page."},
-                {"6.", "Enter the email and password used when signing up."},
-                {"7.", "Click `Products` located on the top right corner of the page"},
-                {"8.", "In the field stating `Your new product subscription name`, Enter `Azure OpenAI Service API`."},
-                {"9.", "Click `Subscribe` to be subscribed to the product.\n"},
-                {"", "In order to view your subscription/API key,"},
-                {"1. ", "Click `Profile` located on the top right corner of the page."},
-                {"2. ", "Your Key should be located under the `Subscriptions` section."},
-            };
-
-            grid.AddColumn();
-            grid.AddColumn();
-            foreach(KeyValuePair<string, string> kvp in instructions)
+            if(answer)
             {
-                if(kvp.Value.Contains("`"))
+                AnsiConsole.MarkupLine("\n[bold]Using the Default Microsoft Model: [/]\n");
+                string message = "The default Microsoft Model has already been registered in the system.\n" + "If you would like to gain access to the model, follow the instructions below to gain access to an API Key:\n";
+                AnsiConsole.MarkupLine(message);
+
+                grid = new Grid();
+
+                Dictionary<string,string> instructions = new Dictionary<string, string>{
+                    {"1.", "Navigate to <https://pscopilot.developer.azure-api.net>"},
+                    {"2.", "Click `Sign Up` located on the top right corner of the page."},
+                    {"3.", "Sign up for a subscription by filling in the fields (email, password,first name, last name)."},
+                    {"4.", "Verify the account (An email should have been sent from apimgmt-noreply@mail.windowsazure.com to your email)"},
+                    {"5.", "Click `Sign In` located on the top right corner of the page."},
+                    {"6.", "Enter the email and password used when signing up."},
+                    {"7.", "Click `Products` located on the top right corner of the page"},
+                    {"8.", "In the field stating `Your new product subscription name`, Enter `Azure OpenAI Service API`."},
+                    {"9.", "Click `Subscribe` to be subscribed to the product.\n"},
+                    {"", "In order to view your subscription/API key,"},
+                    {"1. ", "Click `Profile` located on the top right corner of the page."},
+                    {"2. ", "Your Key should be located under the `Subscriptions` section."},
+                };
+
+                grid.AddColumn();
+                grid.AddColumn();
+                foreach(KeyValuePair<string, string> kvp in instructions)
                 {
-                    string value = kvp.Value;
-                    char delimiter = '`';
-                    string[] words = value.Split(delimiter);
-                    words[1] = turnToGolden(words[1]);
-                    words[1] = words[1].Replace("] ", "]");
-                    words[1] = words[1].Replace(" [", "[");
-                    grid.AddRow(new string[]{kvp.Key, words[0] + words[1] + words[2]});
+                    if(kvp.Value.Contains("`"))
+                    {
+                        string value = kvp.Value;
+                        char delimiter = '`';
+                        string[] words = value.Split(delimiter);
+                        words[1] = turnToGolden(words[1]);
+                        words[1] = words[1].Replace("] ", "]");
+                        words[1] = words[1].Replace(" [", "[");
+                        grid.AddRow(new string[]{kvp.Key, words[0] + words[1] + words[2]});
+                    }
+                    else
+                    {
+                        grid.AddRow(new string[]{kvp.Key, kvp.Value});
+                    }
                 }
-                else
-                {
-                    grid.AddRow(new string[]{kvp.Key, kvp.Value});
-                }
+                grid.Width = 70;
+                AnsiConsole.Write(grid);
+                AnsiConsole.MarkupLine("Click on" + turnToGolden("Show") + "to view the primary or secondary key.\n");
             }
-            grid.Width = 70;
-            AnsiConsole.Write(grid);
-            AnsiConsole.MarkupLine("Click on" + turnToGolden("Show") + "to view the primary or secondary key.\n");
         }
 
         static private string turnToGolden (string words)

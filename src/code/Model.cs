@@ -41,7 +41,7 @@ namespace Microsoft.PowerShell.Copilot
     }
 
 
-    internal class ModelFunctions
+    public class ModelFunctions
     {
         public static void logModel(Configuration modelList, string storageFile)
         { 
@@ -523,12 +523,22 @@ namespace Microsoft.PowerShell.Copilot
             return allModels;
         }
 
-        internal static string getStorageFile()
+        internal static string getStorageFile(bool? alternateFile = false)
         {
-            string storage = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            string storageFolder = Path.Combine(storage, "ai");
-            string storageFile = Path.Combine(storageFolder, "models.json");
-            return storageFile;
+            if(alternateFile != null && alternateFile == true)
+            {
+                string storage = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string storageFolder = Path.Combine(storage, "ai");
+                string storageFile = Path.Combine(storageFolder, "modelsTest.json");
+                return storageFile;
+            }
+            else
+            {
+                string storage = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string storageFolder = Path.Combine(storage, "ai");
+                string storageFile = Path.Combine(storageFolder, "models.json");
+                return storageFile;
+            }
         }
 
         
