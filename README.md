@@ -20,6 +20,7 @@ This module includes AI model management with the ability to enable an interacti
 | list       | List the registration information of all registered models|
 | export     | Export the registration information of a model            |
 | import     | Import the registration information of a model            |
+
 After building, run 'ai' for help page.
 
 **Using the Default Microsoft Model:**
@@ -46,6 +47,7 @@ In order to view your subscription/API key,
     Click on `Show` to view the primary or secondary key.
 
 **Registering A New Model:**
+
 If you would like to register a model into the system, please enter the register command with the following fields:
 | Options:                        | Description:                                              |
 | ----------------                | --------------------------------------------------------  |
