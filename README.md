@@ -10,15 +10,17 @@
 
 This module includes AI model management with the ability to enable an interactive chat mode as well as getting the last error and sending to GPT. 
 
-Commands:
-  register           Create a new model for use
-  set                Set the registration information of a model
-  unregister <name>  Unregister the specified model
-  use <name>         Use the specified model
-  get <name>         Get the registration information of a model
-  list               List the registration information of all registered models
-  export             Export the registration information of a model
-  import             Import the registration information of a model
+| Commands:  |                                                           |
+| ---------- | --------------------------------------------------------  |
+| register   | Create a new model for use                                |
+| set        | Set the registration information of a model               |
+| unregister | Unregister the specified model                            |
+| use        | Use the specified model                                   |
+| get        | Get the registration information of a model               |
+| list       | List the registration information of all registered models|
+| export     | Export the registration information of a model            |
+| import     | Import the registration information of a model            |
+
 
 **Using the Default Microsoft Model:**
 
