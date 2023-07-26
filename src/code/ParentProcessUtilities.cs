@@ -8,11 +8,6 @@ using System.Runtime.InteropServices;
 [StructLayout(LayoutKind.Sequential)]
 public struct ParentProcessUtilities
 {
-    internal IntPtr Reserved1;
-    internal IntPtr PebBaseAddress;
-    internal IntPtr Reserved2_0;
-    internal IntPtr Reserved2_1;
-    internal IntPtr UniqueProcessId;
     internal IntPtr InheritedFromUniqueProcessId;
 
     [DllImport("ntdll.dll")]
@@ -25,17 +20,6 @@ public struct ParentProcessUtilities
     public static Process? GetParentProcess()
     {
         return GetParentProcess(Process.GetCurrentProcess().Handle);
-    }
-
-    /// <summary>
-    /// Gets the parent process of specified process.
-    /// </summary>
-    /// <param name="id">The process id.</param>
-    /// <returns>An instance of the Process class.</returns>
-    public static Process? GetParentProcess(int id)
-    {
-        Process process = Process.GetProcessById(id);
-        return GetParentProcess(process.Handle);
     }
 
     /// <summary>

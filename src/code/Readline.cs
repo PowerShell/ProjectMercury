@@ -17,7 +17,6 @@ namespace Microsoft.PowerShell.Copilot
 
         internal static void EnterInputLoop(PSCmdlet cmdlet, bool restore, CancellationToken cancelToken)
         {
-            string conversationHistory = "";
             bool debug = false;
             bool exit = false;
             Console.TreatControlCAsInput = true;
@@ -86,7 +85,6 @@ namespace Microsoft.PowerShell.Copilot
                             }
                             inputReceived = true;
                             Screenbuffer.WriteLineBuffer(inputBuilder.ToString());
-                            conversationHistory += inputBuilder.ToString();
                             Screenbuffer.WriteLineConsole("");
 
                             // see if terminal was resized
@@ -114,7 +112,6 @@ namespace Microsoft.PowerShell.Copilot
                             inputBuilder.Append("copy-code");
                             inputReceived = true;
                             Screenbuffer.WriteLineConsole(inputBuilder.ToString());
-                            conversationHistory += inputBuilder.ToString();
                             Screenbuffer.WriteLineConsole("");
                             break;
                         // left arrow
@@ -144,7 +141,6 @@ namespace Microsoft.PowerShell.Copilot
                             inputBuilder.Append("Get-Error");
                             inputReceived = true;
                             Screenbuffer.WriteLineConsole(inputBuilder.ToString());
-                            conversationHistory += inputBuilder.ToString();
                             Screenbuffer.WriteLineConsole("");
                             break;
                         default:
