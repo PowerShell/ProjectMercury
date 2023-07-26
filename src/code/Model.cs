@@ -370,29 +370,38 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        internal static void unregisterAModel(string? modelName = null)
+        internal static void unregisterAModel(string? modelName = null, bool? all = false)
         {
             var allModels = getAllModels();
             if(allModels != null)
             {
-                List<string> modelList = allModels.models.Select(model => model.Name).ToList();
-                var modelDelete = modelName?.ToString() ?? AnsiConsole.Prompt(new SelectionPrompt<string>().Title("Choose the model: ").AddChoices(modelList.ToArray<string>()));
-                Model? foundModel = allModels.models.Find(Model => Model.Name.ToLower() == modelDelete?.ToLower());
-
-                if(foundModel != null)
+                if(all != null && all == true)
                 {
-                    if(getCurrentModel() != null && foundModel.Name.Equals(getCurrentModel()?.Name))
-                    {
-                        setCurrentModel(null);
-                    }
-                    allModels.models.RemoveAll(model => model.Name.ToLower() == foundModel.Name.ToLower());
-                    Console.WriteLine($"Model '{foundModel.Name}' uregistered");
+                    allModels.models.Clear();
+                    allModels.activeModel = null;
+                    ModelFunctions.logModel(allModels, getStorageFile());
                 }
                 else
                 {
-                    Console.WriteLine("Model not Found. ");
+                    List<string> modelList = allModels.models.Select(model => model.Name).ToList();
+                    var modelDelete = modelName?.ToString() ?? AnsiConsole.Prompt(new SelectionPrompt<string>().Title("Choose the model: ").AddChoices(modelList.ToArray<string>()));
+                    Model? foundModel = allModels.models.Find(Model => Model.Name.ToLower() == modelDelete?.ToLower());
+
+                    if(foundModel != null)
+                    {
+                        if(getCurrentModel() != null && foundModel.Name.Equals(getCurrentModel()?.Name))
+                        {
+                            setCurrentModel(null);
+                        }
+                        allModels.models.RemoveAll(model => model.Name.ToLower() == foundModel.Name.ToLower());
+                        Console.WriteLine($"Model '{foundModel.Name}' uregistered");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Model not Found. ");
+                    }
+                    ModelFunctions.logModel(allModels, getStorageFile());
                 }
-                ModelFunctions.logModel(allModels, getStorageFile());
             }
             else
             {

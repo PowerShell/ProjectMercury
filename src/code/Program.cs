@@ -169,41 +169,27 @@ namespace Microsoft.PowerShell.Copilot
 
 
             //remove command
-            Argument nameArg = new Argument<string>("name", "Name of the model");
-            nameArg.SetDefaultValue(null);
-            unregisterModel.AddArgument(nameArg);
-            if(args.Contains("unregister"))
-            {
-
-                parsedArgs = unregisterModel.Parse(args);
-                string? unregisterName = parsedArgs.GetValueForArgument(nameArg)?.ToString() ?? null;
-                action = delegate() { ModelFunctions.unregisterAModel(unregisterName);} ;
-                unregisterModel.SetHandler(action);
-            }
+            addOptionAndAlias(unregisterModel, "--name", " Name of the model", "-n");
+            addOptionAndAlias(unregisterModel, "--all", "Export all registered models");
+            parsedArgs = unregisterModel.Parse(args);
+            string? unregisterName = parsedArgs.GetValueForOption(unregisterModel.Options[0])?.ToString() ?? null;
+            all = (bool)(parsedArgs.GetValueForOption(unregisterModel.Options[1]) ?? false);
+            action = delegate() { ModelFunctions.unregisterAModel(unregisterName, all);} ;
+            unregisterModel.SetHandler(action);
 
             //use command
-            nameArg = new Argument<string>("name", "Name of the model");
-
-            useModel.AddArgument(nameArg);
-            if( args.Contains("use"))
-            {
-                parsedArgs = useModel.Parse(args);
-                string? useName = parsedArgs.GetValueForArgument(nameArg)?.ToString() ?? null;
-                action = delegate() { ModelFunctions.setCurrentModel(useName);} ;
-                useModel.SetHandler(action);
-            }
+            addOptionAndAlias(useModel, "--name", " Name of the model", "-n");
+            parsedArgs = useModel.Parse(args);
+            string? useName = parsedArgs.GetValueForOption(useModel.Options[0])?.ToString() ?? null;
+            action = delegate() { ModelFunctions.setCurrentModel(useName);} ;
+            useModel.SetHandler(action);
 
             //get command
-            nameArg = new Argument<string>("name", "Name of the model");
-            nameArg.SetDefaultValue(null);
-            getModel.AddArgument(nameArg);
-            if(args.Contains("get"))
-            {
-                parsedArgs = getModel.Parse(args);
-                string? getName = parsedArgs.GetValueForArgument(nameArg)?.ToString() ?? null;
-                action = delegate() { Console.WriteLine(ModelFunctions.getSpecifiedModel(getName));} ;
-                getModel.SetHandler(action);
-            }
+            addOptionAndAlias(getModel, "--name", " Name of the model", "-n");
+            parsedArgs = getModel.Parse(args);
+            string? getName = parsedArgs.GetValueForOption(getModel.Options[0])?.ToString() ?? null;
+            action = delegate() { Console.WriteLine(ModelFunctions.getSpecifiedModel(getName));} ;
+            getModel.SetHandler(action);
 
 
             //adding new and remove to endpoint
@@ -285,6 +271,7 @@ namespace Microsoft.PowerShell.Copilot
                 string currentDirectory = Directory.GetCurrentDirectory();
                 string filepath = Path.Combine(currentDirectory, "history" + GetParentProcessID() + ".json");
                 //string contents = File.ReadAllText(filepath);
+                Screenbuffer.WriteConsole($"{Screenbuffer.RESET}");
                 if(File.Exists(filepath))
                 {
                     string jsonString = File.ReadAllText(filepath);

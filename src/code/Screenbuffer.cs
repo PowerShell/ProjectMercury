@@ -14,7 +14,14 @@ namespace Microsoft.PowerShell.Copilot
         internal static readonly string RESET = $"{PSStyle.Instance.Reset}{PSStyle.Instance.Background.FromRgb(20, 0, 20)}";
         private static StringBuilder _buffer = new();
         private static int _maxBuffer = 4096;
-        private static Spectre.Console.FigletText LOGO = new FigletText("Shell Copilot").LeftJustified().Color(Color.DarkGoldenrod);
+        private static string LOGO = @"
+  ____    _              _   _      ____                   _   _           _
+ / ___|  | |__     ___  | | | |    / ___|   ___    _ __   (_) | |   ___   | |_
+ \___ \  | '_ \   / _ \ | | | |   | |      / _ \  | '_ \  | | | |  / _ \  | __|
+  ___) | | | | | |  __/ | | | |   | |___  | (_) | | |_) | | | | | | (_) | | |_
+ |____/  |_| |_|  \___| |_| |_|    \____|  \___/  | .__/  |_| |_|  \___/   \__|
+                                                  |_|
+        ";
 
         internal static void SwitchToAlternateScreenBuffer()
         {
@@ -33,8 +40,7 @@ namespace Microsoft.PowerShell.Copilot
             //WriteToolbar();
             Console.CursorTop = Console.WindowHeight - 1;
             Console.CursorLeft = 0;
-            WriteLineConsole($"{RESET}");
-            AnsiConsole.Write(LOGO);
+            WriteLineConsole($"{RESET}{PSStyle.Instance.Foreground.Yellow}{LOGO}");
             string? openai_url = ModelFunctions.getCurrentModel()?.Endpoint ?? Environment.GetEnvironmentVariable(OpenAI.ENDPOINT_ENV_VAR);
             WriteLineConsole($"{PSStyle.Instance.Foreground.Yellow}Using model '{ModelFunctions.getCurrentModel()?.Name}', endpoint '{ModelFunctions.getCurrentModel()?.Endpoint}', deployment '{ModelFunctions.getCurrentModel()?.Deployment}'");
             WriteLineConsole($"{INSTRUCTIONS}");
