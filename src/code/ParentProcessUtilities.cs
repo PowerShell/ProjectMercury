@@ -28,17 +28,6 @@ public struct ParentProcessUtilities
     }
 
     /// <summary>
-    /// Gets the parent process of specified process.
-    /// </summary>
-    /// <param name="id">The process id.</param>
-    /// <returns>An instance of the Process class.</returns>
-    public static Process? GetParentProcess(int id)
-    {
-        Process process = Process.GetProcessById(id);
-        return GetParentProcess(process.Handle);
-    }
-
-    /// <summary>
     /// Gets the parent process of a specified process.
     /// </summary>
     /// <param name="handle">The process handle.</param>

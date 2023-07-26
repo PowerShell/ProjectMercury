@@ -14,8 +14,6 @@ namespace Microsoft.PowerShell.Copilot
 {
     public sealed partial class EnterCopilot : PSCmdlet
     {
-        private const string MODEL = "gpt-35-turbo";
-        private const int MAX_TOKENS = 64;
         private static CancellationTokenSource _cancellationTokenSource = new();
         private static CancellationToken _cancelToken = _cancellationTokenSource.Token;
         internal static readonly ConsoleKeyInfo _exitKeyInfo = Pwsh.GetPSReadLineKeyHandler();
