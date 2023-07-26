@@ -10,7 +10,7 @@
 
 This module includes AI model management with the ability to enable an interactive chat mode as well as getting the last error and sending to GPT. 
 
-| Commands:  |                                                           |
+| Commands:  | Description:                                              |
 | ---------- | --------------------------------------------------------  |
 | register   | Create a new model for use                                |
 | set        | Set the registration information of a model               |
@@ -47,13 +47,14 @@ In order to view your subscription/API key,
 
 **Registering A New Model:**
 If you would like to register a model into the system, please enter the register command with the following fields:
-Options:
-  -n, --name <name>                    Name of the model
-  -d, --description <description>      Description of the model (optional)
-  -e, --endpoint <endpoint>            Endpoint URL to use for this model
-  -k, --key <key>                      The API key for the model (optional)
-  -m, --deployment <deployment>        The deployment id
-  -t, --tokens <tokens>                The maximum tokens (optional)
-  -p, --system-prompt <system-prompt>  The system prompt for the model
-  --trust <trust>                      The trust level of the model (optional)
-  -?, -h, --help                       Show help and usage information
+| Options:                        | Description:                                              |
+| ----------------                | --------------------------------------------------------  |
+| -n, --name                      | Name of the model                                         |
+| -d, --description `(optional)`  | Description of the model                                  |
+| -e, --endpoint                  | Endpoint URL to use for this model                        |
+| -k, --key `(optional)`          | The API key for the model                                 |
+| -m, --deployment                | The deployment id (ex.)                                   |
+| -o, --openai-model `(optional)` | The name of the OpenAI model used by the deployment       |
+| -p, --system-prompt             | The system prompt for the model                           |
+| --trust `(optional)`            | The trust level of the model (public/private)             |
+| -?, -h, --help                  | Show help and usage information                           |
