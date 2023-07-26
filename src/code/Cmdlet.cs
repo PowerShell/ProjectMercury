@@ -25,14 +25,6 @@ namespace Microsoft.PowerShell.Copilot
         [Parameter(Mandatory = false)]
         public SwitchParameter LastError { get; set; }
 
-        //currently commented out since not being used, will update after
-        /*[Parameter(Mandatory = false)]
-        public Model Model
-        {
-            get { return _model; }
-            set { _model = value; }
-        }*/
-
         public EnterCopilot(bool restore)
         {
             try
