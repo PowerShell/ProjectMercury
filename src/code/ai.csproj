@@ -13,6 +13,7 @@
         <IsPackable>true</IsPackable>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <Nullable>enable</Nullable>
+        <PublishAot>true</PublishAot>
   </PropertyGroup>
 
     <ItemGroup>

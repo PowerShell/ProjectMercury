@@ -10,7 +10,6 @@ using Spectre.Console;
 
 namespace Microsoft.PowerShell.Copilot
 {
-    [Serializable]
     public class Configuration
     {
         public List<Model> models {get; set;}
@@ -24,9 +23,6 @@ namespace Microsoft.PowerShell.Copilot
         
     }
 
-    
-
-    [Serializable]
     public class Model
     {
         public required string Name {get; set;}
@@ -44,16 +40,14 @@ namespace Microsoft.PowerShell.Copilot
     public class ModelFunctions
     {
         public static void logModel(Configuration modelList, string storageFile)
-        { 
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string jsonString = JsonSerializer.Serialize(modelList, options);
+        {
+            string jsonString = JsonSerializer.Serialize(modelList, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(storageFile, jsonString);
         }
 
         public static void logModel(Model model, string storageFile)
         { 
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string jsonString = JsonSerializer.Serialize(model, options);
+            string jsonString = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(storageFile, jsonString);
         }
 
@@ -73,7 +67,6 @@ namespace Microsoft.PowerShell.Copilot
 
         public static void exportModel(Model model, string? storageFile = null, bool? showKey = false)
         { 
-            var options = new JsonSerializerOptions { WriteIndented = true };
             var modelProperties = new Object();
             if(showKey != null && showKey == false)
             {
@@ -95,7 +88,7 @@ namespace Microsoft.PowerShell.Copilot
 
             if(storageFile != null)
             {
-                string jsonString = JsonSerializer.Serialize(modelProperties, options);
+                string jsonString = JsonSerializer.Serialize(modelProperties, new JsonSerializerOptions { WriteIndented = true });
                 if (Path.IsPathRooted(storageFile))
                 {
                     File.WriteAllText(storageFile, jsonString);
@@ -109,21 +102,20 @@ namespace Microsoft.PowerShell.Copilot
             }
             else
             {
-                string jsonString = JsonSerializer.Serialize(modelProperties, options);
+                string jsonString = JsonSerializer.Serialize(modelProperties, new JsonSerializerOptions { WriteIndented = true });
                 Console.WriteLine(jsonString); 
             }
         }
 
         public static void exportModel(Configuration modelList, string? storageFile = null, bool? showKey = false)
         { 
-            var options = new JsonSerializerOptions { WriteIndented = true };
             Configuration allModels = new Configuration();
             var modelProperties = new Object();
             foreach(Model model in modelList.models)
             {
                 if(showKey != null && showKey == false)
                 {
-                    modelProperties = new
+                    modelProperties = new Model
                     {
                         Name = model.Name,
                         Description = model.Description,
@@ -145,7 +137,7 @@ namespace Microsoft.PowerShell.Copilot
             if(storageFile != null)
             {
 
-                string jsonString = JsonSerializer.Serialize(allModels, options);
+                string jsonString = JsonSerializer.Serialize(allModels, new JsonSerializerOptions { WriteIndented = true });
                 if (Path.IsPathRooted(storageFile))
                 {
                     File.WriteAllText(storageFile, jsonString);
@@ -159,7 +151,7 @@ namespace Microsoft.PowerShell.Copilot
             }
             else
             {
-                string jsonString = JsonSerializer.Serialize(allModels, options);
+                string jsonString = JsonSerializer.Serialize(allModels, new JsonSerializerOptions { WriteIndented = true });
                 Console.WriteLine(jsonString); 
             }
         }
