@@ -26,16 +26,18 @@ namespace Microsoft.PowerShell.Copilot
         static async Task Main(string[] args)
         {
             var rootCommand = new RootCommand("ai tool allowing use for model and endpoints");
+            rootCommand.AddAlias("ai");
             addModelCommand(args, rootCommand); 
             Option restore = new Option<bool>("--restore", "Restore History");
             rootCommand.Add(restore);
-            var parsedArgs = rootCommand.Parse(args);
-            
-            bool restoreValue = (bool)(parsedArgs.GetValueForOption(restore) ?? false);
 
             Argument query = new Argument<string>("query", "question to ask AI");
             rootCommand.AddArgument(query);
             query.SetDefaultValue("");
+
+            var parsedArgs = rootCommand.Parse(args);
+            
+            bool restoreValue = (bool)(parsedArgs.GetValueForOption(restore) ?? false);
 
             if(ModelFunctions.getCurrentModel() == null)
             {
@@ -52,16 +54,22 @@ namespace Microsoft.PowerShell.Copilot
                     }
                     else
                     {
-                        string message = "";
-                        foreach(string word in args)
+                        var inputData = string.Empty;
+                        if (!Console.IsInputRedirected)
                         {
-                            message += word + " ";
+                            string firstArgument = args[0];
+                            inputData += firstArgument;
+                        }
+                        else
+                        {
+                            inputData += Console.In.ReadToEnd();
                         }
 
                         OpenAI nonInteractive = new OpenAI();
                         AnsiConsole.Status().Spinner(Spinner.Known.Star).Start("Thinking...", ctx => {
-                        AnsiConsole.MarkupInterpolated($"{PSStyle.Instance.Foreground.BrightYellow}{nonInteractive.GetCompletion(message, false, new System.Threading.CancellationToken())}\n");
+                        AnsiConsole.MarkupInterpolated($"{PSStyle.Instance.Foreground.BrightYellow}{nonInteractive.GetCompletion(inputData, false, new System.Threading.CancellationToken())}\n");
                         });
+                        Console.WriteLine();
                     }
                 }
                 catch (Exception ex)

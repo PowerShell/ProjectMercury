@@ -164,7 +164,7 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        internal static void addModel(string? name, string? description, string? endpoint, string? apiKey, string? deployment, string? openaiModel, string? prompt, string? trust)
+        public static void addModel(string? name, string? description, string? endpoint, string? apiKey, string? deployment, string? openaiModel, string? prompt, string? trust)
         {
             var allModels = getAllModels();
             var trustLevel = "public";
