@@ -522,6 +522,11 @@ namespace Microsoft.PowerShell.Copilot
                 string storage = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 string storageFolder = Path.Combine(storage, "ai");
                 string storageFile = Path.Combine(storageFolder, "modelsTest.json");
+
+                if (!Directory.Exists(storageFolder))
+                {
+                    Directory.CreateDirectory(storageFolder);
+                }
                 return storageFile;
             }
             else
@@ -529,6 +534,11 @@ namespace Microsoft.PowerShell.Copilot
                 string storage = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 string storageFolder = Path.Combine(storage, "ai");
                 string storageFile = Path.Combine(storageFolder, "models.json");
+
+                if (!Directory.Exists(storageFolder))
+                {
+                    Directory.CreateDirectory(storageFolder);
+                }
                 return storageFile;
             }
         }
