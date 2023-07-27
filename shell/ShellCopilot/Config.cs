@@ -2,7 +2,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Shell;
+namespace ShellCopilot;
 
 internal class ServiceConfig
 {

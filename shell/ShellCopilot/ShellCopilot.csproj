@@ -13,4 +13,9 @@
     <PackageReference Include="Microsoft.PowerShell.Native" Version="7.3.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ReadLine\PSReadLine.csproj" />
+    <ProjectReference Include="..\Markdown.VT\Markdown.VT.csproj" />
+  </ItemGroup>
+
 </Project>

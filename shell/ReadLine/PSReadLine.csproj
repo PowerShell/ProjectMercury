@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>ReadLine</AssemblyName>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <AssemblyVersion>2.3.1.0</AssemblyVersion>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <TargetFramework>net6.0</TargetFramework>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+</Project>

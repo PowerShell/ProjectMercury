@@ -3,7 +3,7 @@ using Azure.Core;
 using Azure.AI.OpenAI;
 using SharpToken;
 
-namespace Shell;
+namespace ShellCopilot;
 
 internal class ChatResponse
 {
