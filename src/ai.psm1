@@ -1,3 +1,4 @@
+
 function Get-WhatsTheFix {
     Enter-Copilot -LastError
 }

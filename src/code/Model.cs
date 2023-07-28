@@ -236,11 +236,13 @@ namespace Microsoft.PowerShell.Copilot
                             foundModel.ApiKey = AnsiConsole.Prompt(new TextPrompt<string>("Enter the API key: ").Secret());
                         }
                         allModels.activeModel = foundModel;
+                        Program.clearHistory();
                         ModelFunctions.logModel(allModels, getStorageFile());
                     }
                     else if(foundModel != null)
                     {
                         allModels.activeModel = foundModel;
+                        Program.clearHistory();
                         ModelFunctions.logModel(allModels, getStorageFile());
                     }
                     else
@@ -254,6 +256,7 @@ namespace Microsoft.PowerShell.Copilot
                     if(foundModel != null)
                     {
                         allModels.activeModel = foundModel;
+                        Program.clearHistory();
                         ModelFunctions.logModel(allModels, getStorageFile());
                     }
                 }

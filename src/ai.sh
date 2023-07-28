@@ -1,6 +1,5 @@
-#!/bin/bash
 
-command_str='bind -x "\"\eOR\":\"./ai.exe --restore\""'
+command_str='bind -x "\"\eOR\":\"dotnet ai.dll --restore\""'
 
 echo "$command_str" >> "$HOME/.inputrc"
 

@@ -140,7 +140,7 @@ namespace Microsoft.PowerShell.Copilot
             endpointUrl = parsedArgs.GetValueForOption(setModel.Options[2])?.ToString() ?? null;
             key = parsedArgs.GetValueForOption(setModel.Options[3])?.ToString() ?? null;
             deployment = parsedArgs.GetValueForOption(setModel.Options[4])?.ToString() ?? null;
-            openaiModel = parsedArgs.GetValueForOption(newModel.Options[5])?.ToString() ?? null;
+            openaiModel = parsedArgs.GetValueForOption(setModel.Options[5])?.ToString() ?? null;
             systemPrompt = parsedArgs.GetValueForOption(setModel.Options[6])?.ToString() ?? null;
             trust = parsedArgs.GetValueForOption(setModel.Options[7])?.ToString() ?? null;
 
@@ -270,6 +270,19 @@ namespace Microsoft.PowerShell.Copilot
                 File.WriteAllText(filepath, jsonString);
             }
             
+        }
+
+        internal static void clearHistory()
+        {
+            string currentDirectory = Directory.GetCurrentDirectory();
+            string filepath = Path.Combine(currentDirectory, "history" + GetParentProcessID() + ".json");
+            History updatedhistory = new History()
+            {
+                history = new List<string>()
+            };
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            string updatedHistory = JsonSerializer.Serialize(updatedhistory, options);
+            File.WriteAllText(filepath, updatedHistory);
         }
 
         internal static void printHistory(bool print)
@@ -409,7 +422,7 @@ namespace Microsoft.PowerShell.Copilot
                 grid = new Grid();
 
                 Dictionary<string,string> instructions = new Dictionary<string, string>{
-                    {"1.", "Navigate to <https://pscopilot.developer.azure-api.net>"},
+                    {"1.", "Navigate to https://pscopilot.developer.azure-api.net"},
                     {"2.", "Click `Sign Up` located on the top right corner of the page."},
                     {"3.", "Sign up for a subscription by filling in the fields (email, password,first name, last name)."},
                     {"4.", "Verify the account (An email should have been sent from apimgmt-noreply@mail.windowsazure.com to your email)"},
@@ -461,7 +474,7 @@ namespace Microsoft.PowerShell.Copilot
 
         private static void addDefaultModel()
         {
-            ModelFunctions.addModel("Default", "The default model", "https://pscopilot.azure-api.net", null, "gpt4", "gpt4", "public", $"You are an AI assistant with experise in PowerShell, Azure, and the command line.  Assume user is using {OpenAI.GetOS()} operating system unless specified. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks.");
+            ModelFunctions.addModel("Default", "The default model", "https://pscopilot.azure-api.net", null, "gpt4", "gpt4", $"You are an AI assistant with experise in PowerShell, Azure, and the command line.  Assume user is using {OpenAI.GetOS()} operating system unless specified. You are helpful, creative, clever, and very friendly. Responses including PowerShell code are enclosed in ```powershell blocks." ,"public");
         }
 
     }

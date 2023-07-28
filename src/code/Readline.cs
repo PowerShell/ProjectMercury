@@ -230,6 +230,7 @@ namespace Microsoft.PowerShell.Copilot
                         string[] fullCommand = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                         if(fullCommand.Length == 2 || fullCommand.Length == 3)
                         {
+                            //get and use
                             var allModels = ModelFunctions.getAllModels();
                             if(allModels != null)
                             {
