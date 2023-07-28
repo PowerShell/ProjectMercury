@@ -161,10 +161,6 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
 
         if (config is null)
         {
-            var key = new SecureString();
-            key.AppendChar('a');
-            key.AppendChar('b');
-
             // First time use. Populate the in-box powershell model.
             var pwshModel = new AIModel(
                 name: "powershell-ai",
@@ -172,8 +168,8 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
                 systemPrompt: DefaultSystemPrompt,
                 endpoint: "https://apim-my-openai.azure-api.net/",
                 deployment: "gpt4",
-                openAIModel: "gpt-4",
-                key: key);
+                openAIModel: "gpt-4-0314",
+                key: null);
 
             config = new ServiceConfig(new() { pwshModel }, pwshModel.Name);
             WriteToConfigFile(config);

@@ -7,10 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.5" />
-    <PackageReference Include="Azure.Core" Version="1.33.0" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.6" />
+    <PackageReference Include="Azure.Core" Version="1.34.0" />
     <PackageReference Include="SharpToken" Version="1.2.2" />
     <PackageReference Include="Microsoft.PowerShell.Native" Version="7.3.2" />
+    <PackageReference Include="Spectre.Console" Version="0.47.0" />
   </ItemGroup>
 
   <ItemGroup>

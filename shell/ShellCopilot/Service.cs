@@ -14,15 +14,11 @@ internal class ChatResponse
     }
 
     internal string Content { get; }
-    internal string FinishReason { get; }
+    internal CompletionsFinishReason FinishReason { get; }
 }
 
 internal class BackendService
 {
-    private const string ApimAuthorizationHeader = "Ocp-Apim-Subscription-Key";
-    private const string ApimGatewayDomain = ".azure-api.net";
-    private const string AzureOpenAIDomain = ".openai.azure.com";
-
     // TODO: Maybe expose this to our model registration?
     // We can still use 250 as the default value.
     private const int MaxResponseToken = 250;
@@ -33,11 +29,12 @@ internal class BackendService
     private List<ChatMessage> _chatHistory;
     private readonly ServiceConfig _config;
 
-    internal BackendService(bool loadChatHistory)
+    internal BackendService(bool loadChatHistory, string chatHistoryFile)
     {
         _config = ServiceConfig.ReadFromConfigFile();
         _chatHistory = new List<ChatMessage>();
-        _chatHistoryFile = Path.Combine(Utils.AppConfigHome, $"{Utils.AppName}.history.{Utils.GetParentProcessId()}");
+        _chatHistoryFile = chatHistoryFile ??
+            Path.Combine(Utils.AppConfigHome, $"{Utils.AppName}.history.{Utils.GetParentProcessId()}");
 
         _activeModel = _config.GetModelInUse();
         _client = NewOpenAIClient(_activeModel);
@@ -45,6 +42,7 @@ internal class BackendService
 
     internal ServiceConfig Configuration => _config;
 
+    // TODO: chat history loading/saving
     private void LoadChatHistory()
     {
 
@@ -72,7 +70,7 @@ internal class BackendService
     private OpenAIClient NewOpenAIClient(AIModel activeModel)
     {
         var clientOptions = new OpenAIClientOptions() { RetryPolicy = new ApimRetryPolicy() };
-        bool isApimEndpoint = activeModel.Endpoint.TrimEnd('/').EndsWith(ApimGatewayDomain);
+        bool isApimEndpoint = activeModel.Endpoint.TrimEnd('/').EndsWith(Utils.ApimGatewayDomain);
 
         if (isApimEndpoint && activeModel.Key is not null)
         {
@@ -80,7 +78,7 @@ internal class BackendService
             clientOptions.AddPolicy(
                 new UserKeyPolicy(
                     new AzureKeyCredential(userkey),
-                    ApimAuthorizationHeader),
+                    Utils.ApimAuthorizationHeader),
                 HttpPipelinePosition.PerRetry
             );
         }
@@ -99,26 +97,23 @@ internal class BackendService
 
     private int CountTokenForMessages(IEnumerable<ChatMessage> messages)
     {
-        var openAIModel = _activeModel.SimpleOpenAIModelName;
-        var encoding = GptEncoding.GetEncodingForModel(openAIModel);
-
-        // For reference, see the 'num_tokens_from_messages' function from
-        // https://github.com/openai/openai-cookbook/blob/main/examples/How_to_format_inputs_to_ChatGPT_models.ipynb
-        (int tokenPerMessage, int tokenPerName) = openAIModel switch
-        {
-            "gpt-4" => (3, 1),
-            "gpt-3.5-turbo" or "gpt-35-turbo" => (4, -1),
-            _ => throw new NotSupportedException($"Token count is not implemented for the OpenAI model '{_activeModel.OpenAIModel}'."),
-        };
+        ModelDetail modelDetail = _activeModel.ModelDetail;
+        GptEncoding encoding = modelDetail.GptEncoding;
+        int tokensPerMessage = modelDetail.TokensPerMessage;
+        int tokensPerName = modelDetail.TokensPerName;
 
         int tokenNumber = 0;
         foreach (ChatMessage message in messages)
         {
-            // TODO: the 'name' field of the prompt message cannot be supported yet due to the limitation of Azure.AI.OpenAI package.
-            // But it should be supported eventually.
-            tokenNumber += tokenPerMessage;
-            tokenNumber += encoding.Encode(message.Role.Label).Count;
+            tokenNumber += tokensPerMessage;
+            tokenNumber += encoding.Encode(message.Role.ToString()).Count;
             tokenNumber += encoding.Encode(message.Content).Count;
+
+            if (message.Name is not null)
+            {
+                tokenNumber += tokensPerName;
+                tokenNumber += encoding.Encode(message.Name).Count;
+            }
         }
 
         // Every reply is primed with <|start|>assistant<|message|>, which takes 3 tokens.
@@ -129,7 +124,7 @@ internal class BackendService
     private void ReduceChatHistoryAsNeeded(List<ChatMessage> history, ChatMessage input)
     {
         int totalTokens = CountTokenForMessages(Enumerable.Repeat(input, 1));
-        int tokenLimit = _activeModel.TokenLimit;
+        int tokenLimit = _activeModel.ModelDetail.TokenLimit;
 
         if (totalTokens + MaxResponseToken >= tokenLimit)
         {
@@ -163,7 +158,7 @@ internal class BackendService
         // https://github.com/microsoft/semantic-kernel/blob/main/samples/skills/FunSkill/Joke/config.json
         ChatCompletionsOptions chatOptions = new()
         {
-            ChoicesPerPrompt = 1,
+            ChoiceCount = 1,
             Temperature = (float)0.7,
             MaxTokens = MaxResponseToken,
         };

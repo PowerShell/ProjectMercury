@@ -3,6 +3,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
+using SharpToken;
+
 namespace ShellCopilot;
 
 public enum TrustLevel
@@ -11,25 +13,66 @@ public enum TrustLevel
     Public,
 }
 
+internal class ModelDetail
+{
+    private ModelDetail(int tokenLimit, int tokensPerMessage, int tokensPerName)
+    {
+        TokenLimit = tokenLimit;
+        TokensPerMessage = tokensPerMessage;
+        TokensPerName = tokensPerName;
+    }
+
+    private GptEncoding _gptEncoding = null;
+
+    internal static ModelDetail GPT4 = new(tokenLimit: 8_192, tokensPerMessage: 3, tokensPerName: 1);
+    internal static ModelDetail GPT4_32K = new(tokenLimit: 32_768, tokensPerMessage: 3, tokensPerName: 1);
+    internal static ModelDetail GPT35_0301 = new(tokenLimit: 4_096, tokensPerMessage: 4, tokensPerName: -1);
+    internal static ModelDetail GPT35_0613 = new(tokenLimit: 4_096, tokensPerMessage: 3, tokensPerName: 1);
+    internal static ModelDetail GPT35_16K = new(tokenLimit: 16_384, tokensPerMessage: 3, tokensPerName: 1);
+
+    internal int TokenLimit { get; }
+    internal int TokensPerMessage { get; }
+    internal int TokensPerName { get; }
+
+    // Models gpt4, gpt3.5, and the variants of them are all using the 'cl100k_base' token encoding.
+    // For reference:
+    //   https://github.com/openai/tiktoken/blob/5d970c1100d3210b42497203d6b5c1e30cfda6cb/tiktoken/model.py#L7
+    //   https://github.com/dmitry-brazhenko/SharpToken/blob/main/SharpToken/Lib/Model.cs#L8
+    internal GptEncoding GptEncoding => _gptEncoding ??= GptEncoding.GetEncoding("cl100k_base");
+}
+
 public class AIModel
 {
-    // For reference, see https://platform.openai.com/docs/models
-    private static readonly Dictionary<string, int> ModelToTokenLimitMapping = new Dictionary<string, int>
+    // For reference, see https://platform.openai.com/docs/models and the "Counting tokens" section in
+    // https://github.com/openai/openai-cookbook/blob/main/examples/How_to_format_inputs_to_ChatGPT_models.ipynb
+    private static readonly Dictionary<string, ModelDetail> ModelToTokenLimitMapping = new()
     {
-        ["gpt-4"] = 8192,
-        ["gpt-4-32k"] = 32768,
-        ["gpt-3.5-turbo"] = 4096,
-        ["gpt-3.5-turbo-16k"] = 16384,
-        ["gpt-35-turbo"] = 4096,
-        ["gpt-35-turbo-16k"] = 16384,
+        ["gpt-4"]      = ModelDetail.GPT4,
+        ["gpt-4-0314"] = ModelDetail.GPT4,
+        ["gpt-4-0613"] = ModelDetail.GPT4,
+
+        ["gpt-4-32k"]      = ModelDetail.GPT4_32K,
+        ["gpt-4-32k-0314"] = ModelDetail.GPT4_32K,
+        ["gpt-4-32k-0613"] = ModelDetail.GPT4_32K,
+
+        ["gpt-3.5-turbo"]      = ModelDetail.GPT35_0613,
+        ["gpt-3.5-turbo-0301"] = ModelDetail.GPT35_0301,
+        ["gpt-3.5-turbo-0613"] = ModelDetail.GPT35_0613,
+
+        ["gpt-3.5-turbo-16k"]      = ModelDetail.GPT35_16K,
+        ["gpt-3.5-turbo-16k-0613"] = ModelDetail.GPT35_16K,
+
+        // Azure naming of the 'gpt-3.5-turbo' models
+        ["gpt-35-turbo-0301"]     = ModelDetail.GPT35_0301,
+        ["gpt-35-turbo-0613"]     = ModelDetail.GPT35_0613,
+        ["gpt-35-turbo-16k-0613"] = ModelDetail.GPT35_16K,
     };
 
     private string _prompt;
     private string _endpoint;
     private string _deployment;
     private string _openAIModel;
-    private string _simpleOpenAIModelName;
-    private int _tokenLimit;
+    private ModelDetail _modelDetail;
 
     public AIModel(
         string name,
@@ -51,36 +94,37 @@ public class AIModel
         _prompt = systemPrompt;
         _endpoint = endpoint;
         _deployment = deployment;
-        _openAIModel = openAIModel.ToLowerInvariant();
 
-        InferSettingsFromOpenAIModel();
+        SetOpenAIModel(openAIModel);
 
-        Description = description;        
+        Description = description;
         Key = key;
         TrustLevel = trustLevel;
     }
 
-    private void InferSettingsFromOpenAIModel()
+    private void SetOpenAIModel(string openAIModel)
     {
-        if (!ModelToTokenLimitMapping.TryGetValue(_openAIModel, out _tokenLimit))
+        _openAIModel = openAIModel.ToLowerInvariant();
+
+        if (!ModelToTokenLimitMapping.TryGetValue(_openAIModel, out _modelDetail))
         {
-            var message = $"The specified '{_openAIModel}' is not a supported Azure OpenAI chat completion model.";
+            var message = $"The specified '{_openAIModel}' is not a supported OpenAI chat completion model.";
             throw new ArgumentException(message, nameof(_openAIModel));
         }
 
-        // For reference: https://github.com/openai/tiktoken/blob/5d970c1100d3210b42497203d6b5c1e30cfda6cb/tiktoken/model.py#L7
-        // The fixed consumption of tokens per message is different between gpt-3.5 and gpt-4, so we need to simplify the name
-        // to indicate which one it is.
-        _simpleOpenAIModelName = _openAIModel.StartsWith("gpt-4-", StringComparison.Ordinal)
-            ? "gpt-4"
-            : _openAIModel.StartsWith("gpt-3.5-turbo-", StringComparison.Ordinal)
-              || _openAIModel.StartsWith("gpt-35-turbo-", StringComparison.Ordinal)
-                ? "gpt-35-turbo"
-                : _openAIModel;
+        // For Azure OpenAI, we require the version to be specified in the model name.
+        // TODO: When using OpenAI, it's OK for the model name to not include the version number.
+        //       So, the logic here needs to be updated when support OpenAI.
+        int lastDashIndex = _openAIModel.LastIndexOf('-');
+        ReadOnlySpan<char> span = _openAIModel.AsSpan(lastDashIndex + 1);
+        if (span.Length is not 4 || !int.TryParse(span, out _))
+        {
+            var message = $"For Azure OpenAI endpoint, please also specify the model version in the name. For example: 'gpt-4-0613'.";
+            throw new ArgumentException(message, nameof(openAIModel));
+        }
     }
 
-    internal string SimpleOpenAIModelName => _simpleOpenAIModelName;
-    internal int TokenLimit => _tokenLimit;
+    internal ModelDetail ModelDetail => _modelDetail;
 
     public string Name { get; private set; }
 
@@ -115,8 +159,7 @@ public class AIModel
         internal set
         {
             ArgumentException.ThrowIfNullOrEmpty(value);
-            _openAIModel = value.ToLowerInvariant();
-            InferSettingsFromOpenAIModel();
+            SetOpenAIModel(value);
         }
     }
 
