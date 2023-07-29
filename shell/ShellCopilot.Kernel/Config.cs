@@ -1,5 +1,4 @@
-﻿using System.Security;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ShellCopilot;
