@@ -3,7 +3,7 @@ using Azure.Core;
 using Azure.AI.OpenAI;
 using SharpToken;
 
-namespace ShellCopilot;
+namespace ShellCopilot.Kernel;
 
 internal class ChatResponse
 {
@@ -25,8 +25,9 @@ internal class BackendService
 
     private OpenAIClient _client;
     private AIModel _activeModel;
-    private string _chatHistoryFile;
-    private List<ChatMessage> _chatHistory;
+
+    private readonly string _chatHistoryFile;
+    private readonly List<ChatMessage> _chatHistory;
     private readonly ServiceConfig _config;
 
     internal BackendService(bool loadChatHistory, string chatHistoryFile)
@@ -36,8 +37,7 @@ internal class BackendService
         _chatHistoryFile = chatHistoryFile ??
             Path.Combine(Utils.AppConfigHome, $"{Utils.AppName}.history.{Utils.GetParentProcessId()}");
 
-        _activeModel = _config.GetModelInUse();
-        _client = NewOpenAIClient(_activeModel);
+        RefreshOpenAIClient();
     }
 
     internal ServiceConfig Configuration => _config;
@@ -56,25 +56,22 @@ internal class BackendService
         }
     }
 
-    private void RefreshOpenAIClientAsNeeded(AIModel modelInUse)
+    private void RefreshOpenAIClient()
     {
-        if (string.Equals(_activeModel.Name, modelInUse.Name))
+        AIModel modelInUse = _config.GetModelInUse();
+        if (_activeModel == modelInUse)
         {
+            // Active model was not changed.
             return;
         }
 
         _activeModel = modelInUse;
-        _client = NewOpenAIClient(modelInUse);
-    }
-
-    private OpenAIClient NewOpenAIClient(AIModel activeModel)
-    {
         var clientOptions = new OpenAIClientOptions() { RetryPolicy = new ApimRetryPolicy() };
-        bool isApimEndpoint = activeModel.Endpoint.TrimEnd('/').EndsWith(Utils.ApimGatewayDomain);
+        bool isApimEndpoint = _activeModel.Endpoint.TrimEnd('/').EndsWith(Utils.ApimGatewayDomain);
 
-        if (isApimEndpoint && activeModel.Key is not null)
+        if (isApimEndpoint)
         {
-            string userkey = Utils.GetDataFromSecureString(activeModel.Key);
+            string userkey = Utils.GetDataFromSecureString(_activeModel.Key);
             clientOptions.AddPolicy(
                 new UserKeyPolicy(
                     new AzureKeyCredential(userkey),
@@ -85,14 +82,12 @@ internal class BackendService
 
         string azOpenAIApiKey = isApimEndpoint
             ? "placeholder-api-key"
-            : Utils.GetDataFromSecureString(activeModel.Key);
+            : Utils.GetDataFromSecureString(_activeModel.Key);
 
-        OpenAIClient client = new(
-            new Uri(activeModel.Endpoint),
+        _client = new(
+            new Uri(_activeModel.Endpoint),
             new AzureKeyCredential(azOpenAIApiKey),
             clientOptions);
-
-        return client;
     }
 
     private int CountTokenForMessages(IEnumerable<ChatMessage> messages)
@@ -144,8 +139,8 @@ internal class BackendService
 
     private ChatCompletionsOptions PrepareForChatCompletion(string input, bool insertToHistory)
     {
-        var modelInUse = _config.GetModelInUse();
-        RefreshOpenAIClientAsNeeded(modelInUse);
+        // Refresh the client in case the active model was changed.
+        RefreshOpenAIClient();
 
         // TODO: Shall we expose some of the setting properties to our model registration?
         //  - max_tokens
@@ -166,7 +161,7 @@ internal class BackendService
         List<ChatMessage> history = insertToHistory ? _chatHistory : new List<ChatMessage>();
         if (history.Count is 0)
         {
-            history.Add(new ChatMessage(ChatRole.System, modelInUse.SystemPrompt));
+            history.Add(new ChatMessage(ChatRole.System, _activeModel.SystemPrompt));
         }
 
         ReduceChatHistoryAsNeeded(history, new ChatMessage(ChatRole.User, input));

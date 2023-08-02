@@ -1,15 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26730.12
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShellCopilot.App", "ShellCopilot.App\ShellCopilot.App.csproj", "{B0DAD6B9-06E4-4811-9367-60174BEDC475}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShellCopilot.App", "ShellCopilot.App\ShellCopilot.App.csproj", "{B0DAD6B9-06E4-4811-9367-60174BEDC475}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShellCopilot.Kernel", "ShellCopilot.Kernel\ShellCopilot.Kernel.csproj", "{615788CB-1B9A-4B34-97B3-4608686E59CA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShellCopilot.Kernel", "ShellCopilot.Kernel\ShellCopilot.Kernel.csproj", "{615788CB-1B9A-4B34-97B3-4608686E59CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReadLine", "ReadLine\PSReadLine.csproj", "{08218B1A-8B85-4722-9E3F-4D6C0BF58AD8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PSReadLine", "ReadLine\PSReadLine.csproj", "{08218B1A-8B85-4722-9E3F-4D6C0BF58AD8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Markdown.VT", "Markdown.VT\Markdown.VT.csproj", "{8ED51D01-158C-4B29-824A-35B9B861E45A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Markdown.VT", "Markdown.VT\Markdown.VT.csproj", "{8ED51D01-158C-4B29-824A-35B9B861E45A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,6 +19,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B0DAD6B9-06E4-4811-9367-60174BEDC475}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0DAD6B9-06E4-4811-9367-60174BEDC475}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{B0DAD6B9-06E4-4811-9367-60174BEDC475}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0DAD6B9-06E4-4811-9367-60174BEDC475}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0DAD6B9-06E4-4811-9367-60174BEDC475}.Linux|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0DAD6B9-06E4-4811-9367-60174BEDC475}.Linux|Any CPU.Build.0 = Debug|Any CPU
+		{B0DAD6B9-06E4-4811-9367-60174BEDC475}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0DAD6B9-06E4-4811-9367-60174BEDC475}.Release|Any CPU.Build.0 = Release|Any CPU
 		{615788CB-1B9A-4B34-97B3-4608686E59CA}.CodeCoverage|Any CPU.ActiveCfg = Release|Any CPU
 		{615788CB-1B9A-4B34-97B3-4608686E59CA}.CodeCoverage|Any CPU.Build.0 = Release|Any CPU
 		{615788CB-1B9A-4B34-97B3-4608686E59CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ShellCopilot.Kernel\ShellCopilot.Kernel.csproj" />
+	<PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22402.1" />
   </ItemGroup>
 
 </Project>

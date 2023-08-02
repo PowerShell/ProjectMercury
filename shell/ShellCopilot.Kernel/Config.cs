@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ShellCopilot;
+namespace ShellCopilot.Kernel;
 
 internal class ServiceConfig
 {
@@ -60,6 +60,20 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
 
     internal AIModel GetModelInUse()
     {
+        // When it's time to use the model for chat completion, we need to ensure the key is present.
+        if (_modelInUse.Key is null)
+        {
+            // Prompting user to enter the key.
+            if (!_modelInUse.RequestForMissingKey(mandatory: true))
+            {
+                string error = $"Key is missing for the chosen model '{_modelInUse.Name}'. Please set the key and try again.";
+                throw new ShellCopilotException(error, ExceptionHandlerAction.Stop);
+            }
+
+            // Save the change if key was entered.
+            WriteToConfigFile(this);
+        }
+
         return _modelInUse;
     }
 
@@ -76,19 +90,20 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         return null;
     }
 
-    internal void UseModel(string name)
+    internal void UseModel(string name, bool alwaysAskForMissingKey)
     {
         lock (_syncObj)
         {
-            if (string.Equals(_modelInUse.Name, name, StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
             if (!_modelDict.TryGetValue(name, out AIModel model))
             {
                 var message = $"A model with the name '{name}' doesn't exist.";
                 throw new ArgumentException(message, nameof(name));
+            }
+
+            bool modelUpdated = model.Key is null && model.RequestForMissingKey(alwaysAskForMissingKey);
+            if (!modelUpdated && _modelInUse.Name.Equals(model.Name, StringComparison.Ordinal))
+            {
+                return;
             }
 
             _modelInUse = model;
@@ -96,19 +111,22 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         }
     }
 
-    internal void AddModel(AIModel model)
+    internal void AddModels(params AIModel[] models)
     {
-        // TODO: need to validate to make sure all mandatory fields have expected values.
-        // Also, need to populate the missing optional values with default values.
         lock (_syncObj)
         {
-            if (!_modelDict.TryAdd(model.Name, model))
+            foreach (AIModel model in models)
             {
-                var message = $"A model with the name '{model.Name}' has already been registered.";
-                throw new InvalidOperationException(message);
+                // TODO: need to validate to make sure all mandatory fields have expected values.
+                // Also, need to populate the missing optional values with default values.
+                if (!_modelDict.TryAdd(model.Name, model))
+                {
+                    var message = $"A model with the name '{model.Name}' has already been registered.";
+                    throw new InvalidOperationException(message);
+                }
             }
 
-            _models.Add(model);
+            _models.AddRange(models);
             WriteToConfigFile(this);
         }
     }
@@ -177,7 +195,7 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         return config;
     }
 
-    internal static void WriteToConfigFile(ServiceConfig config, bool ignoreApiKey = false)
+    internal static void WriteToConfigFile(ServiceConfig config)
     {
         if (!OperatingSystem.IsWindows() && !File.Exists(ConfigFilePath))
         {
@@ -187,7 +205,62 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
             Utils.SetFilePermissions(ConfigFilePath, isDirectory: false);
         }
 
-        using FileStream stream = new FileStream(ConfigFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+        using var stream = new FileStream(ConfigFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        };
+
+        JsonSerializer.Serialize(stream, config, options);
+    }
+}
+
+internal static class ServiceConfigExtensions
+{
+    internal static void ListAllModels(this ServiceConfig config)
+    {
+        ConsoleRender.RenderTable(
+            config.Models,
+            new[] {
+                new RenderElement<AIModel>(nameof(AIModel.Name)),
+                new RenderElement<AIModel>(label: "Active", m => m.Name == config.ActiveModel ? true.ToString() : string.Empty),
+                new RenderElement<AIModel>(nameof(AIModel.TrustLevel)),
+                new RenderElement<AIModel>(nameof(AIModel.Description))
+            });
+    }
+
+    internal static void ShowOneModel(this ServiceConfig config, string name)
+    {
+        var model = config.GetModelByName(name);
+        ConsoleRender.RenderList(
+            model,
+            new[]
+            {
+                new RenderElement<AIModel>(nameof(AIModel.Name)),
+                new RenderElement<AIModel>(nameof(AIModel.Description)),
+                new RenderElement<AIModel>(nameof(AIModel.Endpoint)),
+                new RenderElement<AIModel>(nameof(AIModel.Deployment)),
+                new RenderElement<AIModel>(nameof(AIModel.OpenAIModel)),
+                new RenderElement<AIModel>(nameof(AIModel.TrustLevel)),
+                new RenderElement<AIModel>(nameof(AIModel.SystemPrompt)),
+            });
+    }
+
+    internal static string ExportModel(this ServiceConfig config, string name, FileInfo file, bool ignoreApiKey)
+    {
+        IList<AIModel> models;
+        if (name is null)
+        {
+            models = config.Models;
+        }
+        else
+        {
+            AIModel model = config.GetModelByName(name)
+                ?? throw new ArgumentException($"A model with the name <{name}> cannot be found.", nameof(name));
+            models = new[] { model };
+        }
+
         var options = new JsonSerializerOptions
         {
             WriteIndented = true,
@@ -195,6 +268,14 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
             TypeInfoResolver = new AIModelContractResolver(ignoreApiKey)
         };
 
-        JsonSerializer.Serialize(stream, config, options);
+        if (file is null)
+        {
+            return JsonSerializer.Serialize(models, options);
+        }
+
+        using var stream = file.Open(FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+        JsonSerializer.Serialize(stream, models, options);
+
+        return null;
     }
 }

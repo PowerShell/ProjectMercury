@@ -5,7 +5,7 @@ using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
-namespace ShellCopilot;
+namespace ShellCopilot.Kernel;
 
 internal static class Utils
 {

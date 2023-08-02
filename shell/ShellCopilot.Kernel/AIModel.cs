@@ -1,11 +1,13 @@
+using System.Diagnostics;
 using System.Security;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 using SharpToken;
+using Spectre.Console;
 
-namespace ShellCopilot;
+namespace ShellCopilot.Kernel;
 
 public enum TrustLevel
 {
@@ -176,6 +178,50 @@ public class AIModel
         {
             ArgumentException.ThrowIfNullOrEmpty(value);
             _prompt = value;
+        }
+    }
+
+    internal bool RequestForMissingKey(bool mandatory)
+    {
+        Debug.Assert(Key is null, "Expect the key to be missing.");
+
+        AnsiConsole.MarkupLineInterpolated($"The access key is missing for the model [green]'{Name}'[/]. Endpoint: [green]{Endpoint}[/].");
+        if (Console.IsInputRedirected || Console.IsOutputRedirected)
+        {
+            // The model not changed.
+            return false;
+        }
+
+        if (mandatory || AnsiConsole.Confirm("Enter the key now?"))
+        {
+            string key;
+            while (true)
+            {
+                string key1 = AskForSecret("Enter [green]key[/]:");
+                string key2 = AskForSecret("Enter again:");
+
+                if (string.Equals(key1, key2, StringComparison.Ordinal))
+                {
+                    key = key1;
+                    break;
+                }
+
+                AnsiConsole.MarkupLine("Input keys don't match. Please try again.");
+            }
+
+            Key = Utils.ConvertDataToSecureString(key);
+            return true;
+        }
+
+        // User declined, so model is not changed.
+        return false;
+
+        static string AskForSecret(string prompt)
+        {
+            return AnsiConsole.Prompt(
+                new TextPrompt<string>(prompt)
+                .PromptStyle(Color.Red)
+                .Secret());
         }
     }
 }

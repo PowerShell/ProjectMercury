@@ -4,7 +4,7 @@ using Azure.Core.Pipeline;
 
 #nullable enable
 
-namespace ShellCopilot;
+namespace ShellCopilot.Kernel;
 
 internal sealed class UserKeyPolicy : HttpPipelineSynchronousPolicy
 {
