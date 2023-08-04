@@ -44,7 +44,7 @@ internal class ModelDetail
     internal GptEncoding GptEncoding => _gptEncoding ??= GptEncoding.GetEncoding("cl100k_base");
 }
 
-public class AIModel
+public class AiModel
 {
     // For reference, see https://platform.openai.com/docs/models and the "Counting tokens" section in
     // https://github.com/openai/openai-cookbook/blob/main/examples/How_to_format_inputs_to_ChatGPT_models.ipynb
@@ -77,7 +77,7 @@ public class AIModel
     private string _openAIModel;
     private ModelDetail _modelDetail;
 
-    public AIModel(
+    public AiModel(
         string name,
         string description,
         string systemPrompt,
@@ -95,7 +95,7 @@ public class AIModel
 
         Name = name;
         _prompt = systemPrompt;
-        _endpoint = endpoint;
+        _endpoint = endpoint.Trim().TrimEnd('/');
         _deployment = deployment;
 
         SetOpenAIModel(openAIModel);
@@ -112,7 +112,7 @@ public class AIModel
         if (!ModelToTokenLimitMapping.TryGetValue(_openAIModel, out _modelDetail))
         {
             var message = $"The specified '{_openAIModel}' is not a supported OpenAI chat completion model.";
-            throw new ArgumentException(message, nameof(_openAIModel));
+            throw new ArgumentException(message, nameof(openAIModel));
         }
 
         // For Azure OpenAI, we require the version to be specified in the model name.
@@ -182,31 +182,30 @@ public class AIModel
         }
     }
 
-    internal bool RequestForMissingKey(bool mandatory, CancellationToken cancellationToken)
+    internal bool RequestForKey(bool mandatory, CancellationToken cancellationToken, bool showBackendInfo = true)
     {
-        return RequestForMissingKeyAsync(mandatory, cancellationToken).GetAwaiter().GetResult();
+        return RequestForKeyAsync(mandatory, cancellationToken, showBackendInfo).GetAwaiter().GetResult();
     }
 
-    internal async Task<bool> RequestForMissingKeyAsync(bool mandatory, CancellationToken cancellationToken)
+    internal async Task<bool> RequestForKeyAsync(bool mandatory, CancellationToken cancellationToken, bool showBackendInfo = true)
     {
         Debug.Assert(Key is null, "Expect the key to be missing.");
 
-        AnsiConsole.MarkupLineInterpolated($"The access key is missing for the active model [green]'{Name}'[/]:");
-        ConsoleRender.RenderList(
-            this,
-            new[]
-            {
-                new RenderElement<AIModel>(label: "  Endpoint", m => m.Endpoint),
-                new RenderElement<AIModel>(label: "  Deployment", m => m.Deployment),
-            });
+        bool askForKey;
+        string message = ConsoleRender.FormatNote($"The access key is missing for the model [green]'{Name}'[/]");
 
-        if (!AnsiConsole.Profile.Capabilities.Interactive)
+        if (showBackendInfo)
         {
-            // The model not changed.
-            return false;
+            AnsiConsole.MarkupLine($"{message}:");
+            DisplayBackendInfo();
+        }
+        else
+        {
+            AnsiConsole.MarkupLine($"{message}.");
+            AnsiConsole.WriteLine();
         }
 
-        if (Utils.ShellCopilotEndpoint.Equals(_endpoint.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
+        if (Utils.ShellCopilotEndpoint.Equals(_endpoint, StringComparison.OrdinalIgnoreCase))
         {
             string docLink = AnsiConsole.Profile.Capabilities.Links
                 ? $"[green][link={Utils.KeyApplicationHelpLink}]the instructions[/][/] in our doc"
@@ -219,11 +218,25 @@ public class AIModel
 
         if (mandatory)
         {
+            askForKey = true;
             AnsiConsole.MarkupLine("[bold]Please enter the access key to continue ...[/]");
         }
+        else
+        {
+            try
+            {
+                askForKey = await ConsoleRender
+                    .AskForConfirmation("[bold]  Enter the access key now?[/]", cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // User cancelled the prompt and we consider it as declining.
+                askForKey = false;
+            }
+        }
 
-        if (mandatory
-            || await ConsoleRender.AskForConfirmation("[bold]Enter the access key now?[/]", cancellationToken).ConfigureAwait(false))
+        if (askForKey)
         {
             try
             {
@@ -236,17 +249,24 @@ public class AIModel
             catch (OperationCanceledException)
             {
                 // User cancelled the prompt.
-                string setCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} set");
-                string helpCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} set -h");
                 AnsiConsole.MarkupLine("\n\n[bold]Operation cancelled.[/]");
-                AnsiConsole.MarkupLine($"You can still set the [bold]Key[/] by {setCommand}. Run {helpCommand} for details.");
-
                 return false;
             }
         }
 
         // User declined, so model is not changed.
         return false;
+    }
+
+    internal void DisplayBackendInfo()
+    {
+        ConsoleRender.RenderList(
+            this,
+            new[]
+            {
+                new RenderElement<AiModel>(label: "  Endpoint", m => m.Endpoint),
+                new RenderElement<AiModel>(label: "  Deployment", m => m.Deployment),
+            });
     }
 }
 
@@ -277,12 +297,12 @@ internal class AIModelContractResolver : DefaultJsonTypeInfoResolver
     {
         JsonTypeInfo typeInfo = base.GetTypeInfo(type, options);
 
-        if (_ignoreKey && typeInfo.Type == typeof(AIModel))
+        if (_ignoreKey && typeInfo.Type == typeof(AiModel))
         {
             int index = 0;
             for (; index < typeInfo.Properties.Count; index++)
             {
-                if (typeInfo.Properties[index].Name is nameof(AIModel.Key))
+                if (typeInfo.Properties[index].Name is nameof(AiModel.Key))
                 {
                     break;
                 }

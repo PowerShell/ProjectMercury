@@ -186,10 +186,21 @@ internal static class ConsoleRender
         return $"[indianred1 on grey19] {code} [/]";
     }
 
-    internal static string FormatErrorMessage(string code, bool usePrefix = true)
+    internal static string FormatError(string message, bool usePrefix = true)
     {
         string prefix = usePrefix ? "ERROR: " : string.Empty;
-        return $"[bold red]{prefix}{code}[/]";
+        return $"[bold red]{prefix}{message}[/]";
+    }
+
+    internal static string FormatWarning(string message, bool usePrefix = true)
+    {
+        string prefix = usePrefix ? "WARNING: " : string.Empty;
+        return $"[bold yellow]{prefix}{message}[/]";
+    }
+
+    internal static string FormatNote(string message)
+    {
+        return $"[orange3]NOTE:[/] {message}";
     }
 
     internal static async Task<string> AskForSecret(string prompt, CancellationToken cancellationToken)

@@ -1,3 +1,4 @@
+using Markdig.Helpers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -48,6 +49,25 @@ internal static class Utils
                 SetFilePermissions(AppConfigHome, isDirectory: true);
             }
         }
+    }
+
+    internal static bool LeadingWhiteSpaceHasNewLine(string text)
+    {
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (c == '\n')
+            {
+                return true;
+            }
+
+            if (!c.IsWhitespace())
+            {
+                break;
+            }
+        }
+
+        return false;
     }
 
     internal static string GetDataFromSecureString(SecureString secureString)

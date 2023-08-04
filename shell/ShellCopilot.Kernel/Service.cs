@@ -20,27 +20,24 @@ internal class ChatResponse
 internal class BackendService
 {
     // TODO: Maybe expose this to our model registration?
-    // We can still use 250 as the default value.
-    private const int MaxResponseToken = 250;
+    // We can still use 500 as the default value.
+    private const int MaxResponseToken = 500;
 
     private OpenAIClient _client;
-    private AIModel _activeModel;
+    private AiModel _activeModel;
 
     private readonly string _historyFileNamePrefix;
     private readonly List<ChatMessage> _chatHistory;
     private readonly Configuration _config;
-    private readonly CancellationToken _cancellationToken;
 
-    internal BackendService(Configuration config, string historyFileNamePrefix, CancellationToken cancellationToken)
+    internal BackendService(Configuration config, string historyFileNamePrefix)
     {
         _config = config;
         _chatHistory = new List<ChatMessage>();
         _historyFileNamePrefix = historyFileNamePrefix ?? $"history.{Utils.GetParentProcessId()}";
-        _cancellationToken = cancellationToken;
-
-        RefreshOpenAIClient();
-        // TODO: load chat history.
     }
+
+    internal List<ChatMessage> ChatHistory => _chatHistory;
 
     // TODO: chat history loading/saving
     private void LoadChatHistory()
@@ -58,16 +55,26 @@ internal class BackendService
 
     private void RefreshOpenAIClient()
     {
-        AIModel modelInUse = _config.GetModelInUse(promptForKeyIfMissing: true, _cancellationToken);
+        AiModel modelInUse = _config.GetModelInUse();
         if (_activeModel == modelInUse)
         {
             // Active model was not changed.
             return;
         }
 
+        AiModel old = _activeModel;
         _activeModel = modelInUse;
-        var clientOptions = new OpenAIClientOptions() { RetryPolicy = new ApimRetryPolicy() };
-        bool isApimEndpoint = _activeModel.Endpoint.TrimEnd('/').EndsWith(Utils.ApimGatewayDomain);
+
+        if (old is not null
+            && string.Equals(old.Endpoint, _activeModel.Endpoint)
+            && old.Key.Length == _activeModel.Key.Length)
+        {
+            // It's the same same endpoint, so we reuse the existing client.
+            return;
+        }
+
+        var clientOptions = new OpenAIClientOptions() { RetryPolicy = new ChatRetryPolicy() };
+        bool isApimEndpoint = _activeModel.Endpoint.EndsWith(Utils.ApimGatewayDomain);
 
         if (isApimEndpoint)
         {

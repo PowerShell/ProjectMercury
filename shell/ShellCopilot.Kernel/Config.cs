@@ -9,9 +9,9 @@ internal class Configuration
     private static readonly string DefaultSystemPrompt;
 
     private readonly object _syncObj;
-    private readonly List<AIModel> _models;
-    private readonly Dictionary<string, AIModel> _modelDict;
-    private AIModel _modelInUse;
+    private readonly List<AiModel> _models;
+    private readonly Dictionary<string, AiModel> _modelDict;
+    private AiModel _modelInUse;
 
     static Configuration()
     {
@@ -25,11 +25,11 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         ConfigFilePath = Path.Combine(Utils.AppConfigHome, $"{Utils.AppName}.config.json");
     }
 
-    public Configuration(List<AIModel> models, string activeModel)
+    public Configuration(List<AiModel> models, string activeModel)
     {
         _syncObj = new object();
-        _models = models ?? new List<AIModel>();
-        _modelDict = new Dictionary<string, AIModel>(capacity: _models.Count, StringComparer.OrdinalIgnoreCase);
+        _models = models ?? new List<AiModel>();
+        _modelDict = new Dictionary<string, AiModel>(capacity: _models.Count, StringComparer.OrdinalIgnoreCase);
 
         var dupModels = new List<string>();
         foreach (var model in _models)
@@ -55,33 +55,19 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         }
     }
 
-    public List<AIModel> Models => _models;
+    public List<AiModel> Models => _models;
     public string ActiveModel => _modelInUse.Name;
 
-    internal AIModel GetModelInUse(bool promptForKeyIfMissing, CancellationToken cancellationToken)
+    internal AiModel GetModelInUse()
     {
-        if (promptForKeyIfMissing && _modelInUse.Key is null)
-        {
-            // When it's time to use the model for chat completion, we need to ensure the key is present.
-            // Prompting user to enter the key.
-            if (!_modelInUse.RequestForMissingKey(mandatory: true, cancellationToken))
-            {
-                string error = $"Key is missing for the chosen model '{_modelInUse.Name}'. Please set the key and try again.";
-                throw new ShellCopilotException(error, ExceptionHandlerAction.Stop);
-            }
-
-            // Save the change if key was entered.
-            WriteToConfigFile(this);
-        }
-
         return _modelInUse;
     }
 
-    internal AIModel GetModelByName(string name)
+    internal AiModel GetModelByName(string name)
     {
         lock (_syncObj)
         {
-            if (_modelDict.TryGetValue(name, out AIModel model))
+            if (_modelDict.TryGetValue(name, out AiModel model))
             {
                 return model;
             }
@@ -90,19 +76,30 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         return null;
     }
 
-    internal void UseModel(string name, bool ensureKeyPresent, CancellationToken cancellationToken)
+    internal void UseModel(string name, bool keyRequired, CancellationToken cancellationToken)
     {
         lock (_syncObj)
         {
-            if (!_modelDict.TryGetValue(name, out AIModel model))
+            if (!_modelDict.TryGetValue(name, out AiModel model))
             {
                 var message = $"A model with the name '{name}' doesn't exist.";
                 throw new ArgumentException(message, nameof(name));
             }
 
-            bool modelUpdated = model.Key is null && model.RequestForMissingKey(ensureKeyPresent, cancellationToken);
+            bool modelUpdated = false;
+            if (model.Key is null)
+            {
+                modelUpdated = model.RequestForKey(keyRequired, cancellationToken);
+                if (keyRequired && !modelUpdated)
+                {
+                    var message = $"Model '{name}' cannot be made active because its access key is missing.";
+                    throw new InvalidOperationException(message);
+                }
+            }
+
             if (!modelUpdated && _modelInUse.Name.Equals(model.Name, StringComparison.Ordinal))
             {
+                // Target is the same model with no update.
                 return;
             }
 
@@ -111,11 +108,11 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         }
     }
 
-    internal void AddModels(params AIModel[] models)
+    internal void AddModels(params AiModel[] models)
     {
         lock (_syncObj)
         {
-            foreach (AIModel model in models)
+            foreach (AiModel model in models)
             {
                 // TODO: need to validate to make sure all mandatory fields have expected values.
                 // Also, need to populate the missing optional values with default values.
@@ -179,7 +176,7 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         if (config is null)
         {
             // First time use. Populate the in-box powershell model.
-            var pwshModel = new AIModel(
+            var pwshModel = new AiModel(
                 name: "powershell-ai",
                 description: "powershell ai model",
                 systemPrompt: DefaultSystemPrompt,
@@ -223,10 +220,11 @@ internal static class ServiceConfigExtensions
         ConsoleRender.RenderTable(
             config.Models,
             new[] {
-                new RenderElement<AIModel>(nameof(AIModel.Name)),
-                new RenderElement<AIModel>(label: "Active", m => m.Name == config.ActiveModel ? true.ToString() : string.Empty),
-                new RenderElement<AIModel>(nameof(AIModel.TrustLevel)),
-                new RenderElement<AIModel>(nameof(AIModel.Description))
+                new RenderElement<AiModel>(nameof(AiModel.Name)),
+                new RenderElement<AiModel>(label: "Active", m => m.Name == config.ActiveModel ? true.ToString() : string.Empty),
+                new RenderElement<AiModel>(nameof(AiModel.TrustLevel)),
+                new RenderElement<AiModel>(nameof(AiModel.Description)),
+                new RenderElement<AiModel>(label: "Key", m => m.Key is null ? "[red]missing[/]" : "[green]saved[/]"),
             });
     }
 
@@ -237,26 +235,26 @@ internal static class ServiceConfigExtensions
             model,
             new[]
             {
-                new RenderElement<AIModel>(nameof(AIModel.Name)),
-                new RenderElement<AIModel>(nameof(AIModel.Description)),
-                new RenderElement<AIModel>(nameof(AIModel.Endpoint)),
-                new RenderElement<AIModel>(nameof(AIModel.Deployment)),
-                new RenderElement<AIModel>(nameof(AIModel.OpenAIModel)),
-                new RenderElement<AIModel>(nameof(AIModel.TrustLevel)),
-                new RenderElement<AIModel>(nameof(AIModel.SystemPrompt)),
+                new RenderElement<AiModel>(nameof(AiModel.Name)),
+                new RenderElement<AiModel>(nameof(AiModel.Description)),
+                new RenderElement<AiModel>(nameof(AiModel.Endpoint)),
+                new RenderElement<AiModel>(nameof(AiModel.Deployment)),
+                new RenderElement<AiModel>(nameof(AiModel.OpenAIModel)),
+                new RenderElement<AiModel>(nameof(AiModel.TrustLevel)),
+                new RenderElement<AiModel>(nameof(AiModel.SystemPrompt)),
             });
     }
 
     internal static string ExportModel(this Configuration config, string name, FileInfo file, bool ignoreApiKey)
     {
-        IList<AIModel> models;
+        IList<AiModel> models;
         if (name is null)
         {
             models = config.Models;
         }
         else
         {
-            AIModel model = config.GetModelByName(name)
+            AiModel model = config.GetModelByName(name)
                 ?? throw new ArgumentException($"A model with the name <{name}> cannot be found.", nameof(name));
             models = new[] { model };
         }

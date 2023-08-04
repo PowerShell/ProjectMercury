@@ -33,18 +33,18 @@ internal sealed class UserKeyPolicy : HttpPipelineSynchronousPolicy
     }
 }
 
-internal sealed class ApimRetryPolicy : RetryPolicy
+internal sealed class ChatRetryPolicy : RetryPolicy
 {
     private const string RetryAfterHeaderName = "Retry-After";
     private const string RetryAfterMsHeaderName = "retry-after-ms";
     private const string XRetryAfterMsHeaderName = "x-ms-retry-after-ms";
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ApimRetryPolicy"/> class.
+    /// Initializes a new instance of the <see cref="ChatRetryPolicy"/> class.
     /// </summary>
     /// <param name="maxRetries">The maximum number of retries to attempt.</param>
     /// <param name="delayStrategy">The delay to use for computing the interval between retry attempts.</param>
-    public ApimRetryPolicy(int maxRetries = 2, DelayStrategy? delayStrategy = default) : base(
+    public ChatRetryPolicy(int maxRetries = 2, DelayStrategy? delayStrategy = default) : base(
         maxRetries,
         delayStrategy ?? DelayStrategy.CreateExponentialDelayStrategy(
             initialDelay: TimeSpan.FromSeconds(0.8),

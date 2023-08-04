@@ -46,60 +46,42 @@ internal class Program
             GetImportCommand(),
         };
 
-        rootCommand.SetHandler(async (context) =>
-        {
-            string queryValue = context.ParseResult.GetValueForArgument(query);
-            await StartShellAsync(queryValue, context.GetCancellationToken());
-        });
+        rootCommand.SetHandler(StartShellAsync, query);
         return rootCommand.Invoke(args);
     }
 
-    private async static Task StartShellAsync(string query, CancellationToken cancellationToken)
+    private async static Task StartShellAsync(string query)
     {
-        bool interactive = false;
-
-        try
+        Shell shell;
+        if (query is not null)
         {
-            Shell shell;
-            if (query is not null)
-            {
-                shell = new(isInteractive: false, cancellationToken);
+            shell = new(interactive: false);
 
-                if (Console.IsInputRedirected)
-                {
-                    string context = Console.In.ReadToEnd();
-                    if (context is not null && context.Length > 0)
-                    {
-                        query = string.Concat(query, "\n\n", context);
-                    }
-                }
-
-                await shell.RunOnceAsync(query);
-                return;
-            }
-
-            interactive = true;
             if (Console.IsInputRedirected)
             {
-                AnsiConsole.MarkupLineInterpolated($"[bold red]{Utils.AppName} cannot run interactively when the standard input is redirected.[/]");
-                return;
+                string context = Console.In.ReadToEnd();
+                if (context is not null && context.Length > 0)
+                {
+                    query = string.Concat(query, "\n\n", context);
+                }
             }
 
-            shell = new(isInteractive: true, cancellationToken);
-            await shell.RunAsync();
+            await shell.RunOnceAsync(query);
+            return;
         }
-        catch (ShellCopilotException ex)
+
+        if (Console.IsInputRedirected || Console.IsOutputRedirected || Console.IsErrorRedirected)
         {
             using var _ = ConsoleRender.UseErrorConsole();
 
             AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine(ConsoleRender.FormatErrorMessage(ex.Message));
-
-            if (interactive)
-            {
-                Shell.RestoreScreenBuffer(hadError: true);
-            }
+            AnsiConsole.MarkupLine(ConsoleRender.FormatError("Cannot run interactively when the stdin, stdout, or stderr is redirected."));
+            AnsiConsole.MarkupLine(ConsoleRender.FormatError("To run non-interactively, specify the <query> argument and try again."));
+            return;
         }
+
+        shell = new(interactive: true);
+        await shell.RunREPLAsync();
     }
 
     private static string GetSystemPromptForChat(string prompt)
@@ -119,7 +101,7 @@ internal class Program
         return prompt;
     }
 
-    private async static Task<string> PromptForModelName(List<AIModel> models, CancellationToken cancellationToken)
+    private async static Task<string> PromptForModelName(List<AiModel> models, CancellationToken cancellationToken)
     {
         return await new SelectionPrompt<string>()
             .Title("Select the model to be acted on:")
@@ -183,7 +165,7 @@ internal class Program
 
             Configuration
                 .ReadFromConfigFile()
-                .AddModels(new AIModel(
+                .AddModels(new AiModel(
                     name,
                     description,
                     system_prompt,
@@ -203,7 +185,7 @@ internal class Program
         unregisterCmd.SetHandler(async (context) =>
         {
             string nameValue = context.ParseResult.GetValueForArgument(name);
-            await Handler(nameValue, context.GetCancellationToken());
+            await Handler(nameValue, context.GetCancellationToken()).ConfigureAwait(false);
         });
 
         return unregisterCmd;
@@ -211,7 +193,7 @@ internal class Program
         static async Task Handler(string name, CancellationToken cancellationToken)
         {
             var config = Configuration.ReadFromConfigFile();
-            name ??= await PromptForModelName(config.Models, cancellationToken);
+            name ??= await PromptForModelName(config.Models, cancellationToken).ConfigureAwait(false);
             config.RemoveModel(name);
         }
     }
@@ -237,7 +219,7 @@ internal class Program
         getCmd.SetHandler(async (context) =>
         {
             string nameValue = context.ParseResult.GetValueForArgument(name);
-            await Handler(nameValue, context.GetCancellationToken());
+            await Handler(nameValue, context.GetCancellationToken()).ConfigureAwait(false);
         });
 
         return getCmd;
@@ -245,7 +227,7 @@ internal class Program
         static async Task Handler(string name, CancellationToken cancellationToken)
         {
             var config = Configuration.ReadFromConfigFile();
-            name ??= await PromptForModelName(config.Models, cancellationToken);
+            name ??= await PromptForModelName(config.Models, cancellationToken).ConfigureAwait(false);
             config.ShowOneModel(name);
         }
     }
@@ -300,7 +282,7 @@ internal class Program
             TrustLevel? trust_level)
         {
             Configuration config = Configuration.ReadFromConfigFile();
-            AIModel model = config.GetModelByName(name)
+            AiModel model = config.GetModelByName(name)
                 ?? throw new ArgumentException($"A model with the name <{name}> cannot be found.", nameof(name));
 
             bool updated = false;
@@ -395,7 +377,7 @@ internal class Program
                 AllowTrailingCommas = true
             };
 
-            var models = JsonSerializer.Deserialize<AIModel[]>(stream, options);
+            var models = JsonSerializer.Deserialize<AiModel[]>(stream, options);
             Configuration config = Configuration.ReadFromConfigFile();
             config.AddModels(models);
         }
@@ -410,7 +392,7 @@ internal class Program
         useCmd.SetHandler(async (context) =>
         {
             string nameValue = context.ParseResult.GetValueForArgument(name);
-            await Handler(nameValue, context.GetCancellationToken());
+            await Handler(nameValue, context.GetCancellationToken()).ConfigureAwait(false);
         });
 
         return useCmd;
@@ -418,8 +400,8 @@ internal class Program
         static async Task Handler(string name, CancellationToken cancellationToken)
         {
             var config = Configuration.ReadFromConfigFile();
-            name ??= await PromptForModelName(config.Models, cancellationToken);
-            config.UseModel(name, ensureKeyPresent: false, cancellationToken);
+            name ??= await PromptForModelName(config.Models, cancellationToken).ConfigureAwait(false);
+            config.UseModel(name, keyRequired: false, cancellationToken);
         }
     }
 }
