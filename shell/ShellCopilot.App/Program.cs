@@ -20,6 +20,10 @@ internal class Program
         // TODO-2: Add exception handling. The default exception handling is just to write
         // out the stack trace. We need to have our own exception handling to make it less
         // scary and more useful.
+        //
+        // TODO-3: System.CommandLine is undergoing lots of design changes, with breaking
+        // changes to the existing public APIs. We will need to evaluate whether we want to
+        // keep depending on it when this project moves beyond a prototype.
 
         Console.OutputEncoding = Encoding.UTF8;
         Argument<string> query = new("query", getDefaultValue: () => null, "The query term used to get response from AI.");

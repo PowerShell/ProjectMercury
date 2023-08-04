@@ -37,6 +37,11 @@ internal class Shell
     internal BackendService BackendService => _service;
     internal MarkdownRender MarkdownRender => _render;
 
+    /// <summary>
+    /// For reference:
+    /// https://github.com/dotnet/command-line-api/blob/67df30a1ac4152e7f6278847b88b8f1ea1492ba7/src/System.CommandLine/Invocation/ProcessTerminationHandler.cs#L73
+    /// TODO: We may want to implement `OnPosixSignal` too for more reliable cancellation on non-Windows.
+    /// </summary>
     private void OnCancelKeyPress(object sender, ConsoleCancelEventArgs args)
     {
         // Set the Cancel property to true to prevent the process from terminating.
