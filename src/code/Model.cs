@@ -13,7 +13,7 @@ namespace Microsoft.PowerShell.Copilot
     public class Configuration
     {
         public List<Model> models {get; set;}
-        public Model? activeModel {get; set;}
+        public string? activeModel {get; set;}
 
         public Configuration()
         {
@@ -199,6 +199,7 @@ namespace Microsoft.PowerShell.Copilot
                     };
 
                     allModels.models.Add(newModel);
+                    Program.addModelToHistory(newModel.Name);
 
                     ModelFunctions.logModel(allModels, getStorageFile());
 
@@ -235,14 +236,12 @@ namespace Microsoft.PowerShell.Copilot
                             Console.WriteLine($"Please enter the API Key to use {foundModel.Name}.");
                             foundModel.ApiKey = AnsiConsole.Prompt(new TextPrompt<string>("Enter the API key: ").Secret());
                         }
-                        allModels.activeModel = foundModel;
-                        Program.clearHistory();
+                        allModels.activeModel = foundModel.Name;
                         ModelFunctions.logModel(allModels, getStorageFile());
                     }
                     else if(foundModel != null)
                     {
-                        allModels.activeModel = foundModel;
-                        Program.clearHistory();
+                        allModels.activeModel = foundModel.Name;
                         ModelFunctions.logModel(allModels, getStorageFile());
                     }
                     else
@@ -255,7 +254,7 @@ namespace Microsoft.PowerShell.Copilot
                     Model? foundModel = allModels.models.Find(Model => Model.Name.ToLower() == "default") ?? allModels.models[0];
                     if(foundModel != null)
                     {
-                        allModels.activeModel = foundModel;
+                        allModels.activeModel = foundModel.Name;
                         Program.clearHistory();
                         ModelFunctions.logModel(allModels, getStorageFile());
                     }
@@ -267,7 +266,14 @@ namespace Microsoft.PowerShell.Copilot
         {
             var allModels = getAllModels();
             var current = allModels?.activeModel;
-            return current;
+            Model? foundModel = null;
+            if(allModels != null)
+            {
+                List<string> modelList = allModels.models.Select(model => model.Name).ToList();
+                foundModel = allModels.models.Find(Model => Model.Name.ToLower() == current?.ToLower());
+            }
+            
+            return foundModel;
         }
 
         internal static void exportAModel(string? file, string? modelName = null, bool? all = false, bool? showKey = false)
@@ -467,7 +473,7 @@ namespace Microsoft.PowerShell.Copilot
 
                     if(foundModel.Name.ToLower().Equals(getCurrentModel()?.Name.ToLower()))
                     {
-                        allModels.activeModel = foundModel;
+                        allModels.activeModel = foundModel.Name;
                     }
                     ModelFunctions.logModel(allModels, getStorageFile());
                 }

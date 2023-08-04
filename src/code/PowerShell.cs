@@ -42,10 +42,10 @@ namespace Microsoft.PowerShell.Copilot
             _pwsh.Invoke();
         }
 
-        internal static ConsoleKeyInfo GetPSReadLineKeyHandler()
+        internal static ConsoleKeyInfo GetShellReadLineKeyHandler()
         {
             var key = "F3";
-            var script = @"(Get-PSReadLineKeyHandler -Bound | Where-Object { $_.Description.StartsWith('PSCopilot:') }).Key";
+            var script = @"(Get-PSReadLineKeyHandler -Bound | Where-Object { $_.Description.StartsWith('ShellCopilot:') }).Key";
             _pwsh.Commands.Clear();
             _pwsh.AddScript(script);
             var result = _pwsh.Invoke<string>();

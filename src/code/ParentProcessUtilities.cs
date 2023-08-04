@@ -26,67 +26,19 @@ public static class ParentProcessUtilities
 
     [DllImport("ntdll.dll")]
     private static extern int NtQueryInformationProcess(IntPtr processHandle, int processInformationClass, ref ParentProcessInfo processInformation, int processInformationLength, out int returnLength);
-
-    private static bool IsRunningOnWindows()
-    {
-        int platform = (int)Environment.OSVersion.Platform;
-        return platform == 2 || platform == 3;
-    }
-
+    
     public static Process? GetParentProcess()
     {
-        if (IsRunningOnWindows())
+        if (OperatingSystem.IsWindows())
         {
-            if (IsRunningInPowerShell())
-            {
-                Process process = Process.GetCurrentProcess();
-                string query = $"SELECT ParentProcessId FROM Win32_Process WHERE ProcessId = {process.Id}";
-                ProcessStartInfo psi = new ProcessStartInfo
-                {
-                    FileName = "powershell",
-                    Arguments = $"-Command \"({query}).ParentProcessId\"",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                Process? pwsh = Process.Start(psi);
-                string? output = pwsh?.StandardOutput.ReadToEnd();
-                pwsh?.WaitForExit();
-                int parentProcessId;
-                if (int.TryParse(output?.Trim(), out parentProcessId))
-                {
-                    try
-                    {
-                        return Process.GetProcessById(parentProcessId);
-                    }
-                    catch (ArgumentException)
-                    {
-                        return null;
-                    }
-                }
-            }
-            else
-            {
-                return GetParentProcessOnWindows(Process.GetCurrentProcess().Handle);
-            }
+            return GetParentProcessOnWindows(Process.GetCurrentProcess().Handle);
         }
         else
         {
             return GetParentProcessOnUnix();
         }
-
-        return null;
     }
 
-    private static bool IsRunningInPowerShell()
-    {
-        IntPtr handle = GetStdHandle(-10); 
-        int consoleMode;
-        GetConsoleMode(handle, out consoleMode);
-
-        return consoleMode == 256;
-    }
 
     private static Process? GetParentProcessOnWindows(IntPtr handle)
     {

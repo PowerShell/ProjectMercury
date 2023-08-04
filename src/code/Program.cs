@@ -15,10 +15,20 @@ using System.Diagnostics;
 
 namespace Microsoft.PowerShell.Copilot
 {
-    internal class History
+    public class History
     {
-        public required List<string>? history {get; set;}
-        
+        public List<ModelHistory> historyList {get; set;}
+
+        public History()
+        {
+            historyList = new List<ModelHistory>();
+        }
+    }
+
+    public class ModelHistory
+    {
+        public required string Name {get; set;}
+        public List<string>? History {get; set;}
     }
     
     internal class Program
@@ -28,8 +38,8 @@ namespace Microsoft.PowerShell.Copilot
             var rootCommand = new RootCommand("ai tool allowing use for model and endpoints");
             rootCommand.AddAlias("ai");
             addModelCommand(args, rootCommand); 
-            Option restore = new Option<bool>("--restore", "Restore History");
-            rootCommand.Add(restore);
+            Option newSession = new Option<bool>("--new", "Erase history and start a fresh AI interactive session");
+            rootCommand.Add(newSession);
 
             Argument query = new Argument<string>("query", "question to ask AI");
             rootCommand.AddArgument(query);
@@ -37,7 +47,7 @@ namespace Microsoft.PowerShell.Copilot
 
             var parsedArgs = rootCommand.Parse(args);
             
-            bool restoreValue = (bool)(parsedArgs.GetValueForOption(restore) ?? false);
+            bool newSessionValue = (bool)(parsedArgs.GetValueForOption(newSession) ?? false);
 
             if(ModelFunctions.getCurrentModel() == null)
             {
@@ -48,9 +58,13 @@ namespace Microsoft.PowerShell.Copilot
             { 
                 try
                 {
-                    if(args.Count() == 0 || restoreValue)
+                    if(args.Count() == 0 || newSessionValue)
                     {
-                        Initialize(restoreValue);
+                        if(newSessionValue == true)
+                        {
+                            clearHistory();
+                        }
+                        Initialize(true);
                     }
                     else
                     {
@@ -255,7 +269,10 @@ namespace Microsoft.PowerShell.Copilot
             {
                 string jsonString = File.ReadAllText(filepath);
                 History history = JsonSerializer.Deserialize<History>(jsonString)!;
-                history.history?.Add(input);
+                string? activeModel = ModelFunctions.getCurrentModel()?.Name;
+
+                ModelHistory? foundModel = history.historyList.Find(Model => Model.Name.ToLower() == activeModel?.ToLower());
+                foundModel?.History?.Add(input);
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 string updatedHistory = JsonSerializer.Serialize(history, options);
                 File.WriteAllText(filepath, updatedHistory);
@@ -264,25 +281,76 @@ namespace Microsoft.PowerShell.Copilot
             {
                 List<string> newEntry = new List<string>();
                 newEntry.Add(input);
-                var history = new History {history = newEntry};
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                string jsonString = JsonSerializer.Serialize(history, options);
-                File.WriteAllText(filepath, jsonString);
+                var history = new History();
+                string? activeModel = ModelFunctions.getCurrentModel()?.Name;
+
+                if(activeModel != null)
+                {
+                    ModelHistory modelHistory = new ModelHistory
+                    {
+                        Name = activeModel,
+                        History = newEntry
+                    };
+                    history.historyList?.Add(modelHistory);
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    string updatedHistory = JsonSerializer.Serialize(history, options);
+                    File.WriteAllText(filepath, updatedHistory);
+                }   
             }
-            
+        }
+
+        internal static void addModelToHistory(string model)
+        {
+            string currentDirectory = Directory.GetCurrentDirectory();
+            string filepath = Path.Combine(currentDirectory, "history" + GetParentProcessID() + ".json");
+            if(File.Exists(filepath))
+            {
+                string jsonString = File.ReadAllText(filepath);
+                History history = JsonSerializer.Deserialize<History>(jsonString)!;
+                ModelHistory newModelHistory = new ModelHistory()
+                {
+                    Name = model,
+                    History = new List<string>()
+                };
+                history.historyList?.Add(newModelHistory);
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string updatedHistory = JsonSerializer.Serialize(history, options);
+                File.WriteAllText(filepath, updatedHistory);
+            }
+            else
+            {
+                var history = new History();
+                ModelHistory modelHistory = new ModelHistory
+                {
+                    Name = model,
+                    History = new List<string>()
+                };
+                history.historyList?.Add(modelHistory);
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string updatedHistory = JsonSerializer.Serialize(history, options);
+                File.WriteAllText(filepath, updatedHistory);  
+            }
         }
 
         internal static void clearHistory()
         {
             string currentDirectory = Directory.GetCurrentDirectory();
             string filepath = Path.Combine(currentDirectory, "history" + GetParentProcessID() + ".json");
-            History updatedhistory = new History()
+            if(File.Exists(filepath))
             {
-                history = new List<string>()
-            };
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string updatedHistory = JsonSerializer.Serialize(updatedhistory, options);
-            File.WriteAllText(filepath, updatedHistory);
+                string jsonString = File.ReadAllText(filepath);
+                string? activeModel = ModelFunctions.getCurrentModel()?.Name;
+                History history = JsonSerializer.Deserialize<History>(jsonString)!;
+                ModelHistory? foundModel = history.historyList.Find(Model => Model.Name.ToLower() == activeModel?.ToLower());
+                if(foundModel != null)
+                {
+                    foundModel.History = new List<string>();
+                }
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                string updatedHistory = JsonSerializer.Serialize(history, options);
+                File.WriteAllText(filepath, updatedHistory);
+            }
+            
         }
 
         internal static void printHistory(bool print)
@@ -296,21 +364,27 @@ namespace Microsoft.PowerShell.Copilot
                 if(File.Exists(filepath))
                 {
                     string jsonString = File.ReadAllText(filepath);
+                    string? activeModel = ModelFunctions.getCurrentModel()?.Name;
                     History history = JsonSerializer.Deserialize<History>(jsonString)!;
-                    for(int i = 0; i < history.history?.Count; i++)
+                    ModelHistory? foundModel = history.historyList.Find(Model => Model.Name.ToLower() == activeModel?.ToLower());
+                    if(foundModel != null)
                     {
-                        if(i % 2 == 0)
+                        for(int i = 0; i < foundModel.History?.Count; i++)
                         {
-                            Screenbuffer.WriteConsole("\n" + Readline.PROMPT);
-                            Screenbuffer.WriteLineConsole(history.history[i].ToString().TrimEnd());
-                        }
-                        else
-                        {
-                            var colorOutput = new StringBuilder();
-                            colorOutput.AppendLine($"{PSStyle.Instance.Foreground.BrightYellow}{history.history[i]}");
-                            Screenbuffer.WriteConsole($"{colorOutput.ToString()}{Screenbuffer.RESET}");
+                            if(i % 2 == 0)
+                            {
+                                Screenbuffer.WriteConsole("\n" + Readline.PROMPT);
+                                Screenbuffer.WriteLineConsole(foundModel.History[i].ToString().TrimEnd());
+                            }
+                            else
+                            {
+                                var colorOutput = new StringBuilder();
+                                colorOutput.AppendLine($"{PSStyle.Instance.Foreground.BrightYellow}{foundModel.History[i]}");
+                                Screenbuffer.WriteConsole($"{colorOutput.ToString()}{Screenbuffer.RESET}");
+                            }
                         }
                     }
+                    
                 }
             }
         }
@@ -322,10 +396,8 @@ namespace Microsoft.PowerShell.Copilot
             if(current != null && current?.Name.ToLower() == "default" && current.ApiKey == null)
             {
                 Action action = delegate() { 
-                    welcome();
-                    var answer = AnsiConsole.Confirm("\nWould you like to begin using the Default Model (y/n)...");
-
-                    if(answer)
+                    var answer = welcomeDefaultOrNewModel();
+                    if(answer == true)
                     {
                         var apiKey = AnsiConsole.Prompt(new TextPrompt<string>("Enter your API key: ").Secret());
                         current.ApiKey = apiKey;
@@ -350,12 +422,12 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        static internal void welcome()
+        static internal bool welcomeDefaultOrNewModel()
         {
             AnsiConsole.Write(new FigletText("Shell Copilot").LeftJustified().Color(Color.DarkGoldenrod));
             var rule = new Rule();
             AnsiConsole.Write(rule);
-            string intro = "\nThis module includes AI model management with the ability to enable an interactive chat mode as well as getting the last error and sending to GPT. \n";
+            string intro = "\nThis module includes AI model management with the ability to enable an interactive chat mode as well as get the last error and sending to GPT. \n";
             AnsiConsole.MarkupLineInterpolated($"{intro}");
 
             var grid = new Grid();
@@ -382,38 +454,9 @@ namespace Microsoft.PowerShell.Copilot
             grid.Width = 100;
             AnsiConsole.Write(grid);
 
-            AnsiConsole.MarkupLine("\n[bold]Registering A New Model: [/]\n\nIf you would like to register a model into the system, please enter the" + turnToGolden("register") + "command with the following fields: \n");
+            var answer = AnsiConsole.Confirm("\nWould you like to use the Default Azure OpenAI Model? ");
 
-            grid = new Grid();
-
-            Dictionary<string,string> options = new Dictionary<string, string>{
-                {"-n, --name","Name of the model"}, 
-                {"-d, --description (optional)", "Description of the model"}, 
-                {"-e, --endpoint", "Endpoint URL to use for this model"},
-                {"-k, --key (optional)", "The API key for the model"},
-                {"-m, --deployment", "The deployment id"},
-                {"-o, --openai-model (optional)", "The name of the OpenAI model used by the deployment"},
-                {"-p, --system-prompt", "The system prompt for the model"},
-                {"--trust (optional)", "The trust level of the model"},
-                {"-?, -h, --help", "Show help and usage information"}
-            };
-
-            grid.AddColumn();
-            grid.AddColumn();
-            
-            grid.AddRow(new string[] {"Options: ", ""});
-            foreach(KeyValuePair<string, string> kvp in options)
-            {
-                string key = turnToGolden(kvp.Key);
-                key = key.Replace("(optional)", "[grey69](optional)[/]" );
-                grid.AddRow(new string[]{key, kvp.Value});
-            }
-            grid.Width = 100;
-            AnsiConsole.Write(grid);
-
-            var answer = AnsiConsole.Confirm("\nWould you to continue to the Default Model Access Information?...");
-
-            if(answer)
+            if(answer == true)
             {
                 AnsiConsole.MarkupLine("\n[bold]Using the Default Microsoft Model: [/]\n");
                 string message = "The default Microsoft Model has already been registered in the system.\n" + "If you would like to gain access to the model, follow the instructions below to gain access to an API Key:\n";
@@ -459,6 +502,41 @@ namespace Microsoft.PowerShell.Copilot
                 AnsiConsole.Write(grid);
                 AnsiConsole.MarkupLine("Click on" + turnToGolden("Show") + "to view the primary or secondary key.\n");
             }
+            else
+            {
+                AnsiConsole.MarkupLine("\n[bold]Registering A New Model: [/]\n\nIf you would like to register a model into the system, please enter the" + turnToGolden("register") + "command with the following fields: \n");
+
+                grid = new Grid();
+
+                Dictionary<string,string> options = new Dictionary<string, string>{
+                    {"-n, --name","Name of the model"}, 
+                    {"-d, --description (optional)", "Description of the model"}, 
+                    {"-e, --endpoint", "Endpoint URL to use for this model"},
+                    {"-k, --key (optional)", "The API key for the model"},
+                    {"-m, --deployment", "The deployment id"},
+                    {"-o, --openai-model (optional)", "The name of the OpenAI model used by the deployment"},
+                    {"-p, --system-prompt", "The system prompt for the model"},
+                    {"--trust (optional)", "The trust level of the model"},
+                    {"-?, -h, --help", "Show help and usage information"}
+                };
+
+                grid.AddColumn();
+                grid.AddColumn();
+                
+                grid.AddRow(new string[] {"Options: ", ""});
+                foreach(KeyValuePair<string, string> kvp in options)
+                {
+                    string key = turnToGolden(kvp.Key);
+                    key = key.Replace("(optional)", "[grey69](optional)[/]" );
+                    grid.AddRow(new string[]{key, kvp.Value});
+                }
+                grid.Width = 100;
+                AnsiConsole.Write(grid);
+                AnsiConsole.WriteLine();
+                AnsiConsole.Write("Press any key to exit....");
+                Console.ReadKey();
+            }
+            return answer;
         }
 
         static private string turnToGolden (string words)

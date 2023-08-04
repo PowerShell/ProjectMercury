@@ -9,6 +9,10 @@ using Azure.AI.OpenAI;
 using Azure;
 using Azure.Core;
 using System.Linq;
+using Spectre.Console;
+using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace Microsoft.PowerShell.Copilot
 {
@@ -193,7 +197,10 @@ namespace Microsoft.PowerShell.Copilot
             }
             catch (RequestFailedException e)
             {
-                return $"{PSStyle.Instance.Foreground.BrightRed}HTTP EXCEPTION: {e.Message}";
+                int valueStartIndex = e.Message.IndexOf("\"message\": \"") + "\"message\": \"".Length;
+                int valueEndIndex = e.Message.IndexOf("\"", valueStartIndex);
+                string message = e.Message.Substring(valueStartIndex, valueEndIndex - valueStartIndex);
+                return $"{PSStyle.Instance.Foreground.BrightRed}{message}";
             }
             catch (OperationCanceledException)
             {
@@ -202,6 +209,14 @@ namespace Microsoft.PowerShell.Copilot
             catch (Exception e)
             {
                 return $"{PSStyle.Instance.Foreground.BrightRed}HTTP EXCEPTION: {e.Message}\n{e.StackTrace}";
+            }
+        }
+
+        public static void CountSeconds(int seconds)
+        {
+            for (int i = 1; i <= seconds; i++)
+            {
+                System.Threading.Thread.Sleep(1000); // 1000 milliseconds = 1 second
             }
         }
 

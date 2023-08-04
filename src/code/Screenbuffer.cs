@@ -3,6 +3,7 @@ using System.Management.Automation;
 using System.Text;
 using Spectre.Console;
 
+
 namespace Microsoft.PowerShell.Copilot
 {
     internal class Screenbuffer
