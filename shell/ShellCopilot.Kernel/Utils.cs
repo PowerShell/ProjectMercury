@@ -10,11 +10,14 @@ namespace ShellCopilot.Kernel;
 internal static class Utils
 {
     internal const int InvalidProcessId = -1;
-    internal const string AppName = "ai";
+    internal const string AppName = "aish";
 
     internal const string ApimAuthorizationHeader = "Ocp-Apim-Subscription-Key";
     internal const string ApimGatewayDomain = ".azure-api.net";
     internal const string AzureOpenAIDomain = ".openai.azure.com";
+
+    internal const string ShellCopilotEndpoint = "https://apim-my-openai.azure-api.net";
+    internal const string KeyApplicationHelpLink = "https://github.com/PowerShell/ShellCopilot#readme";
 
     internal static readonly string OS;
     internal static readonly string AppConfigHome;

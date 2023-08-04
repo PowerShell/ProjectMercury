@@ -1,7 +1,10 @@
-﻿using Markdig;
+﻿using System;
+using System.Reflection;
+using System.Text;
+
+using Markdig;
 using Markdown.VT;
 using Spectre.Console;
-using System.Reflection;
 
 namespace ShellCopilot.Kernel;
 
@@ -72,6 +75,15 @@ internal readonly struct RenderElement<T>
 
 internal static class ConsoleRender
 {
+    private static IAnsiConsole s_errConsole = AnsiConsole.Create(
+        new AnsiConsoleSettings
+        {
+            Ansi = AnsiSupport.Detect,
+            ColorSystem = ColorSystemSupport.Detect,
+            Out = new AnsiConsoleOutput(Console.Error),
+        }
+    );
+
     internal static void RenderTable<T>(IList<T> sources, IList<RenderElement<T>> elements)
     {
         ArgumentNullException.ThrowIfNull(sources);
@@ -167,5 +179,99 @@ internal static class ConsoleRender
         AnsiConsole.WriteLine();
         AnsiConsole.Write(spectreTable);
         AnsiConsole.WriteLine();
+    }
+
+    internal static string FormatInlineCode(string code)
+    {
+        return $"[indianred1 on grey19] {code} [/]";
+    }
+
+    internal static string FormatErrorMessage(string code, bool usePrefix = true)
+    {
+        string prefix = usePrefix ? "ERROR: " : string.Empty;
+        return $"[bold red]{prefix}{code}[/]";
+    }
+
+    internal static async Task<string> AskForSecret(string prompt, CancellationToken cancellationToken)
+    {
+        return await new TextPrompt<string>(prompt)
+            .PromptStyle(Color.Red)
+            .Secret()
+            .ShowAsync(AnsiConsole.Console, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    internal static async Task<bool> AskForConfirmation(string prompt, CancellationToken cancellationToken, bool defaultValue = true)
+    {
+        return await new ConfirmationPrompt(prompt)
+        {
+            DefaultValue = defaultValue,
+        }
+        .ShowAsync(AnsiConsole.Console, cancellationToken)
+        .ConfigureAwait(false);
+    }
+
+    internal static Disposable UseErrorConsole()
+    {
+        IAnsiConsole originalConsole = AnsiConsole.Console;
+        AnsiConsole.Console = s_errConsole;
+        return new Disposable(() => AnsiConsole.Console = originalConsole);
+    }
+}
+
+internal sealed class AsciiLetterSpinner : Spinner
+{
+    private readonly List<string> _frames;
+
+    internal static AsciiLetterSpinner Default = new AsciiLetterSpinner(1, 10);
+
+    internal AsciiLetterSpinner(int prefixGap = 0, int charLength = 10)
+    {
+        const int FrameCount = 10;
+        _frames = new List<string>(capacity: FrameCount);
+        StringBuilder sb = new(capacity: prefixGap + charLength + 2);
+
+        string gap = prefixGap is 0 ? null : new string(' ', prefixGap);
+        for (int i = 0; i < FrameCount; i++)
+        {
+            sb.Append(gap).Append('[');
+            for (int j = 0; j < charLength; j++)
+            {
+                sb.Append((char)Random.Shared.Next(33, 127));
+            }
+
+            _frames.Add(sb.Append(']').ToString());
+            sb.Clear();
+        }
+    }
+
+    public override TimeSpan Interval => TimeSpan.FromMilliseconds(80);
+    public override bool IsUnicode => false;
+    public override IReadOnlyList<string> Frames => _frames;
+}
+
+internal sealed class Disposable : IDisposable
+{
+    private Action m_onDispose;
+
+    internal static readonly Disposable NonOp = new Disposable();
+
+    private Disposable()
+    {
+        m_onDispose = null;
+    }
+
+    public Disposable(Action onDispose)
+    {
+        m_onDispose = onDispose ?? throw new ArgumentNullException(nameof(onDispose));
+    }
+
+    public void Dispose()
+    {
+        if (m_onDispose != null)
+        {
+            m_onDispose();
+            m_onDispose = null;
+        }
     }
 }

@@ -26,21 +26,21 @@ internal class BackendService
     private OpenAIClient _client;
     private AIModel _activeModel;
 
-    private readonly string _chatHistoryFile;
+    private readonly string _historyFileNamePrefix;
     private readonly List<ChatMessage> _chatHistory;
-    private readonly ServiceConfig _config;
+    private readonly Configuration _config;
+    private readonly CancellationToken _cancellationToken;
 
-    internal BackendService(bool loadChatHistory, string chatHistoryFile)
+    internal BackendService(Configuration config, string historyFileNamePrefix, CancellationToken cancellationToken)
     {
-        _config = ServiceConfig.ReadFromConfigFile();
+        _config = config;
         _chatHistory = new List<ChatMessage>();
-        _chatHistoryFile = chatHistoryFile ??
-            Path.Combine(Utils.AppConfigHome, $"{Utils.AppName}.history.{Utils.GetParentProcessId()}");
+        _historyFileNamePrefix = historyFileNamePrefix ?? $"history.{Utils.GetParentProcessId()}";
+        _cancellationToken = cancellationToken;
 
         RefreshOpenAIClient();
+        // TODO: load chat history.
     }
-
-    internal ServiceConfig Configuration => _config;
 
     // TODO: chat history loading/saving
     private void LoadChatHistory()
@@ -58,7 +58,7 @@ internal class BackendService
 
     private void RefreshOpenAIClient()
     {
-        AIModel modelInUse = _config.GetModelInUse();
+        AIModel modelInUse = _config.GetModelInUse(promptForKeyIfMissing: true, _cancellationToken);
         if (_activeModel == modelInUse)
         {
             // Active model was not changed.

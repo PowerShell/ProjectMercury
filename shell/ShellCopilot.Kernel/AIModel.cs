@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Security;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -181,48 +182,71 @@ public class AIModel
         }
     }
 
-    internal bool RequestForMissingKey(bool mandatory)
+    internal bool RequestForMissingKey(bool mandatory, CancellationToken cancellationToken)
+    {
+        return RequestForMissingKeyAsync(mandatory, cancellationToken).GetAwaiter().GetResult();
+    }
+
+    internal async Task<bool> RequestForMissingKeyAsync(bool mandatory, CancellationToken cancellationToken)
     {
         Debug.Assert(Key is null, "Expect the key to be missing.");
 
-        AnsiConsole.MarkupLineInterpolated($"The access key is missing for the model [green]'{Name}'[/]. Endpoint: [green]{Endpoint}[/].");
-        if (Console.IsInputRedirected || Console.IsOutputRedirected)
+        AnsiConsole.MarkupLineInterpolated($"The access key is missing for the active model [green]'{Name}'[/]:");
+        ConsoleRender.RenderList(
+            this,
+            new[]
+            {
+                new RenderElement<AIModel>(label: "  Endpoint", m => m.Endpoint),
+                new RenderElement<AIModel>(label: "  Deployment", m => m.Deployment),
+            });
+
+        if (!AnsiConsole.Profile.Capabilities.Interactive)
         {
             // The model not changed.
             return false;
         }
 
-        if (mandatory || AnsiConsole.Confirm("Enter the key now?"))
+        if (Utils.ShellCopilotEndpoint.Equals(_endpoint.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
         {
-            string key;
-            while (true)
+            string docLink = AnsiConsole.Profile.Capabilities.Links
+                ? $"[green][link={Utils.KeyApplicationHelpLink}]the instructions[/][/] in our doc"
+                : $"the instructions at {Utils.KeyApplicationHelpLink}";
+
+            AnsiConsole.MarkupLine("[grey]> The model uses the default ShellCopilot endpoint.[/]");
+            AnsiConsole.MarkupLine($"[grey]> You can apply an access key for it by following {docLink}.[/]");
+            AnsiConsole.WriteLine();
+        }
+
+        if (mandatory)
+        {
+            AnsiConsole.MarkupLine("[bold]Please enter the access key to continue ...[/]");
+        }
+
+        if (mandatory
+            || await ConsoleRender.AskForConfirmation("[bold]Enter the access key now?[/]", cancellationToken).ConfigureAwait(false))
+        {
+            try
             {
-                string key1 = AskForSecret("Enter [green]key[/]:");
-                string key2 = AskForSecret("Enter again:");
+                string secret = await ConsoleRender.AskForSecret("Enter [green]Key[/]:", cancellationToken).ConfigureAwait(false);
+                Key = Utils.ConvertDataToSecureString(secret);
 
-                if (string.Equals(key1, key2, StringComparison.Ordinal))
-                {
-                    key = key1;
-                    break;
-                }
-
-                AnsiConsole.MarkupLine("Input keys don't match. Please try again.");
+                AnsiConsole.WriteLine();
+                return true;
             }
+            catch (OperationCanceledException)
+            {
+                // User cancelled the prompt.
+                string setCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} set");
+                string helpCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} set -h");
+                AnsiConsole.MarkupLine("\n\n[bold]Operation cancelled.[/]");
+                AnsiConsole.MarkupLine($"You can still set the [bold]Key[/] by {setCommand}. Run {helpCommand} for details.");
 
-            Key = Utils.ConvertDataToSecureString(key);
-            return true;
+                return false;
+            }
         }
 
         // User declined, so model is not changed.
         return false;
-
-        static string AskForSecret(string prompt)
-        {
-            return AnsiConsole.Prompt(
-                new TextPrompt<string>(prompt)
-                .PromptStyle(Color.Red)
-                .Secret());
-        }
     }
 }
 

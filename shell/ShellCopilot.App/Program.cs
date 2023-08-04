@@ -46,28 +46,63 @@ internal class Program
             GetImportCommand(),
         };
 
-        rootCommand.SetHandler(StartChat, query);
+        rootCommand.SetHandler(async (context) =>
+        {
+            string queryValue = context.ParseResult.GetValueForArgument(query);
+            await StartShellAsync(queryValue, context.GetCancellationToken());
+        });
         return rootCommand.Invoke(args);
     }
 
-    private static void StartChat(string query)
+    private async static Task StartShellAsync(string query, CancellationToken cancellationToken)
     {
-        if (Console.IsInputRedirected)
+        bool interactive = false;
+
+        try
         {
+            Shell shell;
+            if (query is not null)
+            {
+                shell = new(isInteractive: false, cancellationToken);
 
+                if (Console.IsInputRedirected)
+                {
+                    string context = Console.In.ReadToEnd();
+                    if (context is not null && context.Length > 0)
+                    {
+                        query = string.Concat(query, "\n\n", context);
+                    }
+                }
+
+                await shell.RunOnceAsync(query);
+                return;
+            }
+
+            interactive = true;
+            if (Console.IsInputRedirected)
+            {
+                AnsiConsole.MarkupLineInterpolated($"[bold red]{Utils.AppName} cannot run interactively when the standard input is redirected.[/]");
+                return;
+            }
+
+            shell = new(isInteractive: true, cancellationToken);
+            await shell.RunAsync();
         }
-
-        Shell shell = new(loadChatHistory: true);
-
-        if (query is not null)
+        catch (ShellCopilotException ex)
         {
-            shell.RunOnce(query);
-        }
+            using var _ = ConsoleRender.UseErrorConsole();
 
-        shell.Run();
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine(ConsoleRender.FormatErrorMessage(ex.Message));
+
+            if (interactive)
+            {
+                Shell.RestoreScreenBuffer(hadError: true);
+            }
+        }
     }
 
-    private static string ProcessPromptArgument(string prompt)
+    private static string GetSystemPromptForChat(string prompt)
     {
         // Check if 'prompt' points to a file
         if (prompt.Length <= 256
@@ -82,6 +117,16 @@ internal class Program
         }
 
         return prompt;
+    }
+
+    private async static Task<string> PromptForModelName(List<AIModel> models, CancellationToken cancellationToken)
+    {
+        return await new SelectionPrompt<string>()
+            .Title("Select the model to be acted on:")
+            .MoreChoicesText("[grey](Move up and down to reveal more model names)[/]")
+            .AddChoices(models.Select(m => m.Name))
+            .ShowAsync(AnsiConsole.Console, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private static Command GetRegisterCommand()
@@ -134,9 +179,9 @@ internal class Program
             TrustLevel trust_level)
         {
             SecureString secure_key = Utils.ConvertDataToSecureString(key);
-            system_prompt = ProcessPromptArgument(system_prompt);
+            system_prompt = GetSystemPromptForChat(system_prompt);
 
-            ServiceConfig
+            Configuration
                 .ReadFromConfigFile()
                 .AddModels(new AIModel(
                     name,
@@ -152,17 +197,22 @@ internal class Program
 
     private static Command GetUnregisterCommand()
     {
-        Argument<string> name = new("name", "Name of the custom AI model.");
+        Argument<string> name = new("name", getDefaultValue: () => null, "Name of the custom AI model.");
         Command unregisterCmd = new("unregister", "Unregister a custom AI model.") { name };
 
-        unregisterCmd.SetHandler(Handler, name);
+        unregisterCmd.SetHandler(async (context) =>
+        {
+            string nameValue = context.ParseResult.GetValueForArgument(name);
+            await Handler(nameValue, context.GetCancellationToken());
+        });
+
         return unregisterCmd;
 
-        static void Handler(string name)
+        static async Task Handler(string name, CancellationToken cancellationToken)
         {
-            ServiceConfig
-                .ReadFromConfigFile()
-                .RemoveModel(name);
+            var config = Configuration.ReadFromConfigFile();
+            name ??= await PromptForModelName(config.Models, cancellationToken);
+            config.RemoveModel(name);
         }
     }
 
@@ -174,22 +224,28 @@ internal class Program
 
         static void Handler()
         {
-            ServiceConfig config = ServiceConfig.ReadFromConfigFile();
+            Configuration config = Configuration.ReadFromConfigFile();
             config.ListAllModels();
         }
     }
 
     private static Command GetGetCommand()
     {
-        Argument<string> name = new("name", "Name of the custom AI model.");
+        Argument<string> name = new("name", getDefaultValue: () => null, "Name of the custom AI model.");
         Command getCmd = new("get", "Show the details of one custom AI model.") { name };
 
-        getCmd.SetHandler(Handler, name);
+        getCmd.SetHandler(async (context) =>
+        {
+            string nameValue = context.ParseResult.GetValueForArgument(name);
+            await Handler(nameValue, context.GetCancellationToken());
+        });
+
         return getCmd;
 
-        static void Handler(string name)
+        static async Task Handler(string name, CancellationToken cancellationToken)
         {
-            ServiceConfig config = ServiceConfig.ReadFromConfigFile();
+            var config = Configuration.ReadFromConfigFile();
+            name ??= await PromptForModelName(config.Models, cancellationToken);
             config.ShowOneModel(name);
         }
     }
@@ -243,7 +299,7 @@ internal class Program
             string key,
             TrustLevel? trust_level)
         {
-            ServiceConfig config = ServiceConfig.ReadFromConfigFile();
+            Configuration config = Configuration.ReadFromConfigFile();
             AIModel model = config.GetModelByName(name)
                 ?? throw new ArgumentException($"A model with the name <{name}> cannot be found.", nameof(name));
 
@@ -272,7 +328,7 @@ internal class Program
             if (system_prompt is not null)
             {
                 updated = true;
-                model.SystemPrompt = ProcessPromptArgument(system_prompt);
+                model.SystemPrompt = GetSystemPromptForChat(system_prompt);
             }
             if (key is not null)
             {
@@ -287,7 +343,7 @@ internal class Program
 
             if (updated)
             {
-                ServiceConfig.WriteToConfigFile(config);
+                Configuration.WriteToConfigFile(config);
                 AnsiConsole.MarkupLineInterpolated($"[bold green]Model <{name}> was updated.[/]");
             }
             else
@@ -310,7 +366,7 @@ internal class Program
         static void Handler(string name, FileInfo file, bool include_key)
         {
             bool ignoreKey = !include_key;
-            ServiceConfig config = ServiceConfig.ReadFromConfigFile();
+            Configuration config = Configuration.ReadFromConfigFile();
             string result = config.ExportModel(name, file, ignoreKey);
 
             if (result is not null)
@@ -340,7 +396,7 @@ internal class Program
             };
 
             var models = JsonSerializer.Deserialize<AIModel[]>(stream, options);
-            ServiceConfig config = ServiceConfig.ReadFromConfigFile();
+            Configuration config = Configuration.ReadFromConfigFile();
             config.AddModels(models);
         }
     }
@@ -348,16 +404,22 @@ internal class Program
     private static Command GetUseCommand()
     {
         // Mandatory options
-        Argument<string> name = new("name", "Name of the custom AI model.");
+        Argument<string> name = new("name", getDefaultValue: () => null, "Name of the custom AI model.");
 
         Command useCmd = new("use", "Choose the custom AI model that will be used for operations.") { name };
-        useCmd.SetHandler(Handler, name);
+        useCmd.SetHandler(async (context) =>
+        {
+            string nameValue = context.ParseResult.GetValueForArgument(name);
+            await Handler(nameValue, context.GetCancellationToken());
+        });
+
         return useCmd;
 
-        static void Handler(string name)
+        static async Task Handler(string name, CancellationToken cancellationToken)
         {
-            ServiceConfig config = ServiceConfig.ReadFromConfigFile();
-            config.UseModel(name, alwaysAskForMissingKey: false);
+            var config = Configuration.ReadFromConfigFile();
+            name ??= await PromptForModelName(config.Models, cancellationToken);
+            config.UseModel(name, ensureKeyPresent: false, cancellationToken);
         }
     }
 }

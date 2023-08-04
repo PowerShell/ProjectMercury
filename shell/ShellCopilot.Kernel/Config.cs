@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace ShellCopilot.Kernel;
 
-internal class ServiceConfig
+internal class Configuration
 {
     private static readonly string ConfigFilePath;
     private static readonly string DefaultSystemPrompt;
@@ -13,7 +13,7 @@ internal class ServiceConfig
     private readonly Dictionary<string, AIModel> _modelDict;
     private AIModel _modelInUse;
 
-    static ServiceConfig()
+    static Configuration()
     {
         DefaultSystemPrompt = @$"
 You are an AI assistant with expertise in PowerShell, Azure, and the command line.
@@ -25,7 +25,7 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         ConfigFilePath = Path.Combine(Utils.AppConfigHome, $"{Utils.AppName}.config.json");
     }
 
-    public ServiceConfig(List<AIModel> models, string activeModel)
+    public Configuration(List<AIModel> models, string activeModel)
     {
         _syncObj = new object();
         _models = models ?? new List<AIModel>();
@@ -58,13 +58,13 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
     public List<AIModel> Models => _models;
     public string ActiveModel => _modelInUse.Name;
 
-    internal AIModel GetModelInUse()
+    internal AIModel GetModelInUse(bool promptForKeyIfMissing, CancellationToken cancellationToken)
     {
-        // When it's time to use the model for chat completion, we need to ensure the key is present.
-        if (_modelInUse.Key is null)
+        if (promptForKeyIfMissing && _modelInUse.Key is null)
         {
+            // When it's time to use the model for chat completion, we need to ensure the key is present.
             // Prompting user to enter the key.
-            if (!_modelInUse.RequestForMissingKey(mandatory: true))
+            if (!_modelInUse.RequestForMissingKey(mandatory: true, cancellationToken))
             {
                 string error = $"Key is missing for the chosen model '{_modelInUse.Name}'. Please set the key and try again.";
                 throw new ShellCopilotException(error, ExceptionHandlerAction.Stop);
@@ -90,7 +90,7 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         return null;
     }
 
-    internal void UseModel(string name, bool alwaysAskForMissingKey)
+    internal void UseModel(string name, bool ensureKeyPresent, CancellationToken cancellationToken)
     {
         lock (_syncObj)
         {
@@ -100,7 +100,7 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
                 throw new ArgumentException(message, nameof(name));
             }
 
-            bool modelUpdated = model.Key is null && model.RequestForMissingKey(alwaysAskForMissingKey);
+            bool modelUpdated = model.Key is null && model.RequestForMissingKey(ensureKeyPresent, cancellationToken);
             if (!modelUpdated && _modelInUse.Name.Equals(model.Name, StringComparison.Ordinal))
             {
                 return;
@@ -161,9 +161,9 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
         }
     }
 
-    internal static ServiceConfig ReadFromConfigFile()
+    internal static Configuration ReadFromConfigFile()
     {
-        ServiceConfig config = null;
+        Configuration config = null;
         if (File.Exists(ConfigFilePath))
         {
             using var stream = new FileStream(ConfigFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -173,7 +173,7 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true
             };
-            config = JsonSerializer.Deserialize<ServiceConfig>(stream, options);
+            config = JsonSerializer.Deserialize<Configuration>(stream, options);
         }
 
         if (config is null)
@@ -183,19 +183,19 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
                 name: "powershell-ai",
                 description: "powershell ai model",
                 systemPrompt: DefaultSystemPrompt,
-                endpoint: "https://apim-my-openai.azure-api.net/",
+                endpoint: Utils.ShellCopilotEndpoint,
                 deployment: "gpt4",
                 openAIModel: "gpt-4-0314",
                 key: null);
 
-            config = new ServiceConfig(new() { pwshModel }, pwshModel.Name);
+            config = new Configuration(new() { pwshModel }, pwshModel.Name);
             WriteToConfigFile(config);
         }
 
         return config;
     }
 
-    internal static void WriteToConfigFile(ServiceConfig config)
+    internal static void WriteToConfigFile(Configuration config)
     {
         if (!OperatingSystem.IsWindows() && !File.Exists(ConfigFilePath))
         {
@@ -218,7 +218,7 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
 
 internal static class ServiceConfigExtensions
 {
-    internal static void ListAllModels(this ServiceConfig config)
+    internal static void ListAllModels(this Configuration config)
     {
         ConsoleRender.RenderTable(
             config.Models,
@@ -230,7 +230,7 @@ internal static class ServiceConfigExtensions
             });
     }
 
-    internal static void ShowOneModel(this ServiceConfig config, string name)
+    internal static void ShowOneModel(this Configuration config, string name)
     {
         var model = config.GetModelByName(name);
         ConsoleRender.RenderList(
@@ -247,7 +247,7 @@ internal static class ServiceConfigExtensions
             });
     }
 
-    internal static string ExportModel(this ServiceConfig config, string name, FileInfo file, bool ignoreApiKey)
+    internal static string ExportModel(this Configuration config, string name, FileInfo file, bool ignoreApiKey)
     {
         IList<AIModel> models;
         if (name is null)

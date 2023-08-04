@@ -187,7 +187,7 @@ public class VTSyntaxHighlighter : CodeColorizerBase
     }
 }
 
-public static class ExtensionMethods
+public static class ColorExtensionMethods
 {
     public static string ToVTColor(this string color, bool isForeground = true)
     {
@@ -228,6 +228,11 @@ public static class ExtensionMethods
         return $"\x1b[38;2;{red};{green};{blue}m";
     }
 
+    public static string ForegroundFromRgb(byte red, byte green, byte blue)
+    {
+        return $"\x1b[38;2;{red};{green};{blue}m";
+    }
+
     internal static string BackgroundFromRgb(int rgb)
     {
         byte red, green, blue;
@@ -237,6 +242,11 @@ public static class ExtensionMethods
         rgb >>= 8;
         red = (byte)(rgb & 0xFF);
 
+        return $"\x1b[48;2;{red};{green};{blue}m";
+    }
+
+    public static string BackgroundFromRgb(byte red, byte green, byte blue)
+    {
         return $"\x1b[48;2;{red};{green};{blue}m";
     }
 }
