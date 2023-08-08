@@ -20,8 +20,8 @@ internal class ChatResponse
 internal class BackendService
 {
     // TODO: Maybe expose this to our model registration?
-    // We can still use 500 as the default value.
-    private const int MaxResponseToken = 500;
+    // We can still use 1000 as the default value.
+    private const int MaxResponseToken = 1000;
 
     private OpenAIClient _client;
     private AiModel _activeModel;
@@ -189,8 +189,15 @@ internal class BackendService
 
     public async Task<ChatResponse> GetChatResponseAsync(string input, bool insertToHistory = true, CancellationToken cancellationToken = default)
     {
-        ChatCompletionsOptions chatOptions = PrepareForChatCompletion(input, insertToHistory);
-        Response<ChatCompletions> response = await _client.GetChatCompletionsAsync(_activeModel.Deployment, chatOptions, cancellationToken);
-        return new ChatResponse(response.Value.Choices[0]);
+        try
+        {
+            ChatCompletionsOptions chatOptions = PrepareForChatCompletion(input, insertToHistory);
+            Response<ChatCompletions> response = await _client.GetChatCompletionsAsync(_activeModel.Deployment, chatOptions, cancellationToken);
+            return new ChatResponse(response.Value.Choices[0]);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
     }
 }

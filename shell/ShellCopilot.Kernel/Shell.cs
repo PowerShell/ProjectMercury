@@ -176,18 +176,33 @@ internal class Shell
         return model.Key is not null;
     }
 
-    internal async Task<ChatResponse> ChatWhileRunningSnipperAsync(string prompt, bool insertToHistory, bool useErrStream)
+    internal async Task<ChatResponse> ChatWithSnipperAsync(string prompt, bool insertToHistory, bool useStderr)
     {
-        using var disposable = useErrStream ? ConsoleRender.UseErrorConsole() : null;
-        return await AnsiConsole
-            .Status()
-            .AutoRefresh(true)
-            .Spinner(AsciiLetterSpinner.Default)
-            .SpinnerStyle(new Style(Color.Cyan2, null, Decoration.Italic))
-            .StartAsync(
-                "[italic yellow] Generating response[/]",
-                statusContext => _service.GetChatResponseAsync(prompt, insertToHistory, CancellationToken))
-            .ConfigureAwait(false);
+        using var _ = useStderr ? ConsoleRender.UseErrorConsole() : null;
+        Capabilities caps = AnsiConsole.Profile.Capabilities;
+        bool interactive = caps.Interactive;
+
+        try
+        {
+            // When standard input is redirected, AnsiConsole's auto detection believes it's non-interactive,
+            // and thus doesn't render Status or Progress. However, redirected input should not affect the
+            // Status/Progress rendering as long as its output target, stderr or stdout, is not redirected.
+            caps.Interactive = true;
+
+            return await AnsiConsole
+                .Status()
+                .AutoRefresh(true)
+                .Spinner(AsciiLetterSpinner.Default)
+                .SpinnerStyle(new Style(Color.Olive))
+                .StartAsync(
+                    "[italic slowblink]Generating...[/]",
+                    statusContext => _service.GetChatResponseAsync(prompt, insertToHistory, CancellationToken))
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            caps.Interactive = interactive;
+        }
     }
 
     internal async Task RunOnceAsync(string prompt)
@@ -207,14 +222,14 @@ internal class Shell
 
         try
         {
-            ChatResponse response = await
-                ChatWhileRunningSnipperAsync(
-                    prompt,
-                    insertToHistory: false,
-                    useErrStream: true)
-                .ConfigureAwait(false);
+            ChatResponse response = Console.IsOutputRedirected && Console.IsErrorRedirected
+                ? await _service.GetChatResponseAsync(prompt, insertToHistory: false, CancellationToken).ConfigureAwait(false)
+                : await ChatWithSnipperAsync(prompt, insertToHistory: false, Console.IsOutputRedirected).ConfigureAwait(false);
 
-            PrintChatResponse(response);
+            if (response is not null)
+            {
+                PrintChatResponse(response);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -274,13 +289,16 @@ internal class Shell
                 }
 
                 ChatResponse response = await
-                    ChatWhileRunningSnipperAsync(
+                    ChatWithSnipperAsync(
                         input,
                         insertToHistory: true,
-                        useErrStream: false)
+                        useStderr: false)
                     .ConfigureAwait(false);
 
-                PrintChatResponse(response);
+                if (response is not null)
+                {
+                    PrintChatResponse(response);
+                }
             }
         }
         finally

@@ -232,31 +232,31 @@ internal static class ConsoleRender
 
 internal sealed class AsciiLetterSpinner : Spinner
 {
+    private const int FrameNumber = 8;
     private readonly List<string> _frames;
 
-    internal static AsciiLetterSpinner Default = new AsciiLetterSpinner(1, 10);
+    internal static readonly AsciiLetterSpinner Default = new();
 
-    internal AsciiLetterSpinner(int prefixGap = 0, int charLength = 10)
+    internal AsciiLetterSpinner(int prefixGap = 0, int charLength = 12)
     {
-        const int FrameCount = 10;
-        _frames = new List<string>(capacity: FrameCount);
+        _frames = new List<string>(capacity: FrameNumber);
         StringBuilder sb = new(capacity: prefixGap + charLength + 2);
 
-        string gap = prefixGap is 0 ? null : new string(' ', prefixGap);
-        for (int i = 0; i < FrameCount; i++)
+        var gap = prefixGap is 0 ? null : new string(' ', prefixGap);
+        for (var i = 0; i < FrameNumber; i++)
         {
-            sb.Append(gap).Append('[');
-            for (int j = 0; j < charLength; j++)
+            sb.Append(gap).Append('/');
+            for (var j = 0; j < charLength; j++)
             {
                 sb.Append((char)Random.Shared.Next(33, 127));
             }
 
-            _frames.Add(sb.Append(']').ToString());
+            _frames.Add(sb.Append('/').ToString());
             sb.Clear();
         }
     }
 
-    public override TimeSpan Interval => TimeSpan.FromMilliseconds(80);
+    public override TimeSpan Interval => TimeSpan.FromMilliseconds(100);
     public override bool IsUnicode => false;
     public override IReadOnlyList<string> Frames => _frames;
 }
