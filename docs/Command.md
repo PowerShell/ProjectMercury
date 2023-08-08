@@ -8,7 +8,7 @@ so that they can, for example, include content of a file as the context informat
 Take the Bing chat that is built-in to the Edge browser as an example.
 It makes it very easy to include the current page as context information when chatting with AI.
 As (*mostly*) a counterpart of it in command line,
-Shell Copilot should make it easy to include local resources in the chat.
+Shell Copilot should make it easy to include local resources in the chat too.
 
 One way to achieve this is to support command invocation in Shell Copilot.
 
@@ -151,8 +151,24 @@ PSReadLine can also do syntax highlighting for user input properly by using the 
 ```none
 aish:2> :use file e:\yard\docs\one-pager.demo.md
 
-Read "e:\yard\docs\one-pager.demo.md" ... Done
+Reading "e:\yard\docs\one-pager.demo.md" ... Done
 Content of the file will be included as the context for the subsequent chat.
 
 aish:3> please use the `one-pager.demo.md` as a template and genearte a spec for the feature called "auto completon for nature langauge".
+```
+```none
+aish:2> :use url https://gist.githubusercontent.com/gistfile1.txt
+
+Downloading file ... Done
+Content of the file will be included as the context for the subsequent chat.
+
+aish:3> explain to me what this script does, in a concise way.
+```
+```none
+aish:2> :use shell --name pwsh e:\yard\data.summary.ps1
+
+Running command in pwsh ... Done
+Content of the result will be included as the context for the subsequent chat.
+
+aish:3> analyze the CSV file to find the top 3 areas that should be improved to maximize the performance.
 ```
