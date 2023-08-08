@@ -151,7 +151,8 @@ PSReadLine can also do syntax highlighting for user input properly by using the 
 ```none
 aish:2> :use file e:\yard\docs\one-pager.demo.md
 
-Content of the file `e:\yard\docs\one-pager.demo.md` will be included as the context for the subsequent chat.
+Read "e:\yard\docs\one-pager.demo.md" ... Done
+Content of the file will be included as the context for the subsequent chat.
 
 aish:3> please use the `one-pager.demo.md` as a template and genearte a spec for the feature called "auto completon for nature langauge".
 ```
