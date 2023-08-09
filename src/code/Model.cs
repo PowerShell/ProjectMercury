@@ -10,6 +10,8 @@ using Spectre.Console;
 
 namespace Microsoft.PowerShell.Copilot
 {
+
+    
     public class Configuration
     {
         public List<Model> models {get; set;}
@@ -156,9 +158,9 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        public static void addModel(string? name, string? description, string? endpoint, string? apiKey, string? deployment, string? openaiModel, string? prompt, string? trust)
+        public static void addModel(string? name, string? description, string? endpoint, string? apiKey, string? deployment, string? openaiModel, string? prompt, string? trust, bool? altStorage = false)
         {
-            var allModels = getAllModels();
+            var allModels = getAllModels(altStorage);
             var trustLevel = "public";
 
             if(allModels != null)
@@ -199,9 +201,9 @@ namespace Microsoft.PowerShell.Copilot
                     };
 
                     allModels.models.Add(newModel);
-                    Program.addModelToHistory(newModel.Name);
-
-                    ModelFunctions.logModel(allModels, getStorageFile());
+                    HistoryFunctions.addModelToHistory(newModel.Name);
+                    ModelFunctions.logModel(allModels, getStorageFile(altStorage));
+                   
 
                     if(allModels.models.Count == 1)
                     {
@@ -215,9 +217,9 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        internal static void setCurrentModel(string? modelName)
+        public static void setCurrentModel(string? modelName, bool? altStorage = false)
         {
-            var allModels = getAllModels();
+            var allModels = getAllModels(altStorage);
 
 
             if(allModels != null)
@@ -237,16 +239,16 @@ namespace Microsoft.PowerShell.Copilot
                             foundModel.ApiKey = AnsiConsole.Prompt(new TextPrompt<string>("Enter the API key: ").Secret());
                         }
                         allModels.activeModel = foundModel.Name;
-                        ModelFunctions.logModel(allModels, getStorageFile());
+                        ModelFunctions.logModel(allModels, getStorageFile(altStorage));
                     }
                     else if(foundModel != null)
                     {
                         allModels.activeModel = foundModel.Name;
-                        ModelFunctions.logModel(allModels, getStorageFile());
+                        ModelFunctions.logModel(allModels, getStorageFile(altStorage));
                     }
                     else
                     {
-                        throw new Exception("Model not found");
+                        //throw new Exception("Model not found");
                     }
                 }
                 else
@@ -255,14 +257,14 @@ namespace Microsoft.PowerShell.Copilot
                     if(foundModel != null)
                     {
                         allModels.activeModel = foundModel.Name;
-                        Program.clearHistory();
-                        ModelFunctions.logModel(allModels, getStorageFile());
+                        HistoryFunctions.clearHistory();
+                        ModelFunctions.logModel(allModels, getStorageFile(altStorage));
                     }
                 }
             }
         }
 
-        internal static Model? getCurrentModel()
+        public static Model? getCurrentModel()
         {
             var allModels = getAllModels();
             var current = allModels?.activeModel;
@@ -276,7 +278,7 @@ namespace Microsoft.PowerShell.Copilot
             return foundModel;
         }
 
-        internal static void exportAModel(string? file, string? modelName = null, bool? all = false, bool? showKey = false)
+        public static void exportAModel(string? file, string? modelName = null, bool? all = false, bool? showKey = false)
         {
             var allModels = getAllModels();
 
@@ -308,7 +310,7 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        internal static void importAModel(string? file)
+        public static void importAModel(string? file)
         {
             if(File.Exists(file))
             {
@@ -371,16 +373,16 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        internal static void unregisterAModel(string? modelName = null, bool? all = false)
+        public static void unregisterAModel(string? modelName = null, bool? all = false, bool? altStorage = false)
         {
-            var allModels = getAllModels();
+            var allModels = getAllModels(altStorage);
             if(allModels != null)
             {
                 if(all != null && all == true)
                 {
                     allModels.models.Clear();
                     allModels.activeModel = null;
-                    ModelFunctions.logModel(allModels, getStorageFile());
+                    ModelFunctions.logModel(allModels, getStorageFile(altStorage));
                 }
                 else
                 {
@@ -401,7 +403,7 @@ namespace Microsoft.PowerShell.Copilot
                     {
                         Console.WriteLine("Model not Found. ");
                     }
-                    ModelFunctions.logModel(allModels, getStorageFile());
+                    ModelFunctions.logModel(allModels, getStorageFile(altStorage));
                 }
             }
             else
@@ -410,7 +412,7 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        internal static void listAllModels()
+        public static void listAllModels()
         {
             var allModels = getAllModels();
 
@@ -445,9 +447,9 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        internal static void setAModel(string? modelName, string? modelDescription, string? modelEndpointUrl, string? modelApiKey, string? modelDeployment, string? modelOpenAI, string? modelPrompt, string? modelTrustLevel)
+        public static void setAModel(string? modelName, string? modelDescription, string? modelEndpointUrl, string? modelApiKey, string? modelDeployment, string? modelOpenAI, string? modelPrompt, string? modelTrustLevel, bool? altStorage = false)
         {
-            var allModels = getAllModels();
+            var allModels = getAllModels(altStorage);
 
             if(allModels != null)
             {
@@ -475,7 +477,7 @@ namespace Microsoft.PowerShell.Copilot
                     {
                         allModels.activeModel = foundModel.Name;
                     }
-                    ModelFunctions.logModel(allModels, getStorageFile());
+                    ModelFunctions.logModel(allModels, getStorageFile(altStorage));
                 }
                 else
                 {
@@ -484,7 +486,7 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
         
-        internal static string getSpecifiedModel(string? modelName)
+        public static string getSpecifiedModel(string? modelName)
         {
             var allModels = getAllModels();
 
@@ -511,9 +513,9 @@ namespace Microsoft.PowerShell.Copilot
             }
         }
 
-        internal static Configuration? getAllModels()
+        public static Configuration? getAllModels(bool? altStorage = false)
         {
-            string storageFile = getStorageFile();
+            string storageFile = getStorageFile(altStorage);
             var allModels = new Configuration();
 
             if(File.Exists(storageFile))
@@ -524,30 +526,30 @@ namespace Microsoft.PowerShell.Copilot
             return allModels;
         }
 
-        internal static string getStorageFile(bool? alternateFile = false)
+        public static string getStorageFile(bool? alternateFile = false)
         {
             if(alternateFile != null && alternateFile == true)
             {
                 string storage = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 string storageFolder = Path.Combine(storage, "ai");
-                string storageFile = Path.Combine(storageFolder, "modelsTest.json");
 
                 if (!Directory.Exists(storageFolder))
                 {
                     Directory.CreateDirectory(storageFolder);
                 }
+                string storageFile = Path.Combine(storageFolder, "modelsTest.json");
                 return storageFile;
             }
             else
             {
                 string storage = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 string storageFolder = Path.Combine(storage, "ai");
-                string storageFile = Path.Combine(storageFolder, "models.json");
 
                 if (!Directory.Exists(storageFolder))
                 {
                     Directory.CreateDirectory(storageFolder);
                 }
+                string storageFile = Path.Combine(storageFolder, "models.json");
                 return storageFile;
             }
         }

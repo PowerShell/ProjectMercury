@@ -154,8 +154,8 @@ namespace Microsoft.PowerShell.Copilot
 
                 if(restore)
                 {
-                    Program.addToHistory(_promptHistory.Last());
-                    Program.addToHistory(_assistHistory.Last());
+                    HistoryFunctions.addToHistory(_promptHistory.Last());
+                    HistoryFunctions.addToHistory(_assistHistory.Last());
                 }
 
                 Screenbuffer.WriteConsole($"{colorOutput.ToString()}{Screenbuffer.RESET}");
@@ -266,22 +266,33 @@ namespace Microsoft.PowerShell.Copilot
                 );
             }
 
-            for (int i = 0; i < _assistHistory.Count; i++)
+            List<string>? history = HistoryFunctions.getHistory();
+            for (int i = 0; i < history?.Count; i++)
             {
-                messages.Add(
-                    new ChatMessage
-                    (
-                        role: "user",
-                        content: _promptHistory[i]
-                    )
-                );
-                messages.Add(
-                    new ChatMessage
-                    (
-                        role: "assistant",
-                        content: _assistHistory[i]
-                    )
-                );
+                if(!(history[i].Contains("Rate limit is exceeded.")))
+                {
+                    if(i % 2 == 0)
+                    {
+                        messages.Add(
+                            new ChatMessage
+                            (
+                                role: "user",
+                                content: history[i]
+                            )
+                        );
+                    }
+                    else
+                    {
+                        messages.Add(
+                            new ChatMessage
+                            (
+                                role: "assistant",
+                                content: history[i]
+                            )
+                        );
+                    }
+                }
+                
             }
 
             messages.Add(

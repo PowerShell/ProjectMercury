@@ -4,10 +4,10 @@ using System.Windows;
 using Microsoft.PowerShell.Commands.Internal;
 
 
-namespace Microsoft.Powershell.Copilot
+namespace Microsoft.PowerShell
 {
     class ShellTest
     {
-
+        
     }
 }

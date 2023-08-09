@@ -57,8 +57,9 @@ namespace Microsoft.PowerShell.Copilot
                 if(restore == false)
                 {
                     Screenbuffer.WriteLineConsole($"\n{PSStyle.Instance.Foreground.Yellow}Welcome to the chat session of ShellCopilot!\n");
-                    Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.Cyan}You can ask questions and get responses back from the current active registered model. In order to run the code you are suggested you will need to exit the chat experience with the exit command, and run the code in your normal shell experience. You can switch back and forth between this chat and your shell by using the F3 key or using ai --restore. Use the help command in the chat experience and the ai --help command in your shell to show the available commands.\n");
+                    Screenbuffer.WriteLineConsole($"{PSStyle.Instance.Foreground.Cyan}You can ask questions and get responses back from the current active registered model. In order to run the code you are suggested you will need to exit the chat experience with the exit command, and run the code in your normal shell experience. You can switch back and forth between this chat and your shell by using the F3 key or using ai. Use the help command in the chat experience and the ai --help command in your shell to show the available commands.\n");
                 }
+                restore = true;
                 
                 if (LastError)
                 {
@@ -69,7 +70,7 @@ namespace Microsoft.PowerShell.Copilot
                         _openai?.SendPrompt(input, restore, false, _cancelToken);
                     }
                 }
-                Program.printHistory(restore);
+                HistoryFunctions.printHistory(restore);
                 Readline.EnterInputLoop(this, restore, _cancelToken);
             }
             finally

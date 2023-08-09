@@ -185,6 +185,7 @@ namespace Microsoft.PowerShell.Copilot
                     case "clear":
                         Console.Clear();
                         Screenbuffer.Clear();
+                        HistoryFunctions.clearHistory();
                         Console.CursorTop = Console.WindowHeight - 2;
                         break;
                     case "debug":
