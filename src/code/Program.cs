@@ -262,7 +262,7 @@ namespace Microsoft.PowerShell.Copilot
                         current.ApiKey = apiKey;
                         ModelFunctions.setAModel("Default", null, null, apiKey, null, null, null, null);
                         ModelFunctions.setCurrentModel("Default");
-                        new Microsoft.PowerShell.Copilot.EnterCopilot(false);
+                        new Microsoft.PowerShell.Copilot.EnterCopilot(true);
                     }
                 ;};
                 AnsiConsole.AlternateScreen(action);

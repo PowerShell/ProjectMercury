@@ -394,6 +394,7 @@ namespace Microsoft.PowerShell.Copilot
                     {
                         if(getCurrentModel() != null && foundModel.Name.Equals(getCurrentModel()?.Name))
                         {
+                            HistoryFunctions.clearHistory();
                             setCurrentModel(null);
                         }
                         allModels.models.RemoveAll(model => model.Name.ToLower() == foundModel.Name.ToLower());

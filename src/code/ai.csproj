@@ -13,6 +13,7 @@
         <IsPackable>true</IsPackable>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
     <ItemGroup>
