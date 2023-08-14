@@ -22,7 +22,7 @@ internal class ListBlockRenderer : VTObjectRenderer<ListBlock>
         else
         {
             renderer.EnsureLine();
-            renderer.PushIndent("  ");
+            renderer.PushIndentAndUpdateWidth("  ");
         }
 
         int index = 1;
@@ -42,7 +42,7 @@ internal class ListBlockRenderer : VTObjectRenderer<ListBlock>
 
         if (!isTopLevel)
         {
-            renderer.PopIndent();
+            renderer.PopIndentAndUpdateWidth();
         }
     }
 }

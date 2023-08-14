@@ -34,7 +34,7 @@ public class CodeBlockRenderer : VTObjectRenderer<CodeBlock>
     protected override void Write(VTRenderer renderer, CodeBlock obj)
     {
         renderer.WriteLine($"{_plainTextForeground}{_plainTextBackground}");
-        renderer.PushIndent("  ");
+        renderer.PushIndentAndUpdateWidth("  ");
 
         ILanguage language = null;
         if (obj is FencedCodeBlock fencedCodeBlock && fencedCodeBlock.Info is string info)
@@ -79,7 +79,7 @@ public class CodeBlockRenderer : VTObjectRenderer<CodeBlock>
             }
         }
 
-        renderer.PopIndent();
+        renderer.PopIndentAndUpdateWidth();
         renderer.EnsureLine();
     }
 

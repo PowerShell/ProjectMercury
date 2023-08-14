@@ -75,7 +75,7 @@ internal readonly struct RenderElement<T>
 
 internal static class ConsoleRender
 {
-    private static IAnsiConsole s_errConsole = AnsiConsole.Create(
+    private static readonly IAnsiConsole s_errConsole = AnsiConsole.Create(
         new AnsiConsoleSettings
         {
             Ansi = AnsiSupport.Detect,

@@ -11,6 +11,7 @@ internal class Shell
 
     private readonly bool _interactive;
     private readonly bool _useAlternateBuffer;
+    private readonly Pager _pager;
     private readonly Configuration _config;
     private readonly BackendService _service;
     private readonly MarkdownRender _render;
@@ -21,6 +22,7 @@ internal class Shell
     {
         _interactive = interactive;
         _useAlternateBuffer = useAlternateBuffer;
+        _pager = new Pager();
         _config = Configuration.ReadFromConfigFile();
         _service = new BackendService(_config, historyFileNamePrefix);
         _render = new MarkdownRender();
@@ -83,6 +85,24 @@ internal class Shell
             // Write out help.
             AnsiConsole.MarkupLine($"Type {ConsoleRender.FormatInlineCode(":help")} for instructions.");
             AnsiConsole.WriteLine();
+
+            if (!_pager.CanBeResolved)
+            {
+                if (_pager.SpecifiedByUser)
+                {
+                    string inline = ConsoleRender.FormatInlineCode(Pager.EnvVarName);
+                    AnsiConsole.MarkupLine(ConsoleRender.FormatError($"Command specified in the environment variable {inline} cannot be resolved."));
+                    AnsiConsole.MarkupLine(ConsoleRender.FormatError("Paging functionality is disabled."));
+                    AnsiConsole.WriteLine();
+                }
+                else if (_useAlternateBuffer)
+                {
+                    string inline = ConsoleRender.FormatInlineCode(Pager.DefaultPager);
+                    AnsiConsole.MarkupLine(ConsoleRender.FormatWarning($"Default paging utility {inline} cannot be found in PATH. Paging functionality is disabled."));
+                    AnsiConsole.MarkupLine(ConsoleRender.FormatWarning($"It's recommended to enable paging when using the alternate screen buffer. Please consider install {inline} to your PATH"));
+                    AnsiConsole.WriteLine();
+                }
+            }
         }
     }
 
@@ -142,19 +162,20 @@ internal class Shell
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine(ConsoleRender.FormatNote("Received response is empty or contains whitespace only."));
         }
+        else if (Console.IsOutputRedirected)
+        {
+            Console.WriteLine(response.Content);
+        }
         else
         {
             // Render the markdown only if standard output is not redirected.
-            string text = Console.IsOutputRedirected
-                ? response.Content
-                : _render.RenderText(response.Content);
-
+            string text = _render.RenderText(response.Content);
             if (!Utils.LeadingWhiteSpaceHasNewLine(text))
             {
-                AnsiConsole.WriteLine();
+                Console.WriteLine();
             }
 
-            Console.WriteLine(text);
+            _pager.WriteOutput(text);
         }
 
         string warning = GetWarningBasedOnFinishReason(response.FinishReason);
@@ -247,20 +268,23 @@ internal class Shell
 
     internal async Task RunREPLAsync()
     {
-        try
+        if (!EnsureKeyPresentForActiveModel())
         {
-            if (!EnsureKeyPresentForActiveModel())
-            {
-                ChatDisabled = true;
-                WriteChatDisabledWarning();
-            }
+            ChatDisabled = true;
+            WriteChatDisabledWarning();
+        }
 
-            int count = 1;
-            while (true)
-            {
-                string rlPrompt = _rlPrompt(count, ChatDisabled);
-                AnsiConsole.Markup(rlPrompt);
+        int count = 1;
+        bool hadError;
 
+        while (true)
+        {
+            hadError = false;
+            string rlPrompt = _rlPrompt(count, ChatDisabled);
+            AnsiConsole.Markup(rlPrompt);
+
+            try
+            {
                 string input = PSConsoleReadLine.ReadLine();
                 if (string.IsNullOrEmpty(input))
                 {
@@ -300,10 +324,16 @@ internal class Shell
                     PrintChatResponse(response);
                 }
             }
+            catch (ShellCopilotException e)
+            {
+                AnsiConsole.MarkupLine(ConsoleRender.FormatError(e.Message));
+                if (e.HandlerAction is ExceptionHandlerAction.Stop)
+                {
+                    break;
+                }
+            }
         }
-        finally
-        {
-            ExitShell(hadError: false);
-        }
+
+        ExitShell(hadError);
     }
 }

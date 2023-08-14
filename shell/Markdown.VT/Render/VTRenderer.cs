@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
 
 using Markdig.Helpers;
 using Markdig.Syntax;
@@ -15,6 +16,8 @@ namespace Markdown.VT;
 /// </summary>
 public sealed class VTRenderer : TextRendererBase<VTRenderer>
 {
+    private List<int> _indentWidth;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="VTRenderer"/> class.
     /// </summary>
@@ -22,6 +25,7 @@ public sealed class VTRenderer : TextRendererBase<VTRenderer>
     /// <param name="optionInfo">PSMarkdownOptionInfo object with options.</param>
     public VTRenderer(TextWriter writer, PSMarkdownOptionInfo optionInfo) : base(writer)
     {
+        _indentWidth = new List<int>();
         EscapeSequences = new VT100EscapeSequences(optionInfo);
 
         // Default block renderers
@@ -55,6 +59,28 @@ public sealed class VTRenderer : TextRendererBase<VTRenderer>
 
     internal string CurrentStyle { get; set; }
     internal bool UseSpectreMarkup { get; set; }
+
+    internal void PushIndentAndUpdateWidth(string indent)
+    {
+        _indentWidth.Add(indent.Length);
+        PushIndent(indent);
+    }
+
+    internal void PopIndentAndUpdateWidth()
+    {
+        _indentWidth.RemoveAt(_indentWidth.Count - 1);
+        PopIndent();
+    }
+
+    internal int GetIndentWidth()
+    {
+        int result = 0;
+        foreach (int w in _indentWidth)
+        {
+            result += w;
+        }
+        return result;
+    }
 
     /// <summary>
     /// Writes the lines of a <see cref="LeafBlock"/>

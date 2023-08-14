@@ -15,6 +15,11 @@ public sealed class ShellCopilotException : Exception
     {
     }
 
+    public ShellCopilotException(string message, Exception innerException)
+        : this(message, ExceptionHandlerAction.Continue, innerException)
+    {
+    }
+
     public ShellCopilotException(string message, ExceptionHandlerAction action, Exception innerException = null)
         : base(message, innerException)
     {

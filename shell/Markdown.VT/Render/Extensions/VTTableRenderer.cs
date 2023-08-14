@@ -1,6 +1,5 @@
-// Copyright (c) Alexandre Mutel. All rights reserved.
-// This file is licensed under the BSD-Clause 2 license.
-// See the license.txt file in the project root for more information.
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System;
 using System.IO;
@@ -15,7 +14,7 @@ using TableCell = Markdig.Extensions.Tables.TableCell;
 namespace Markdown.VT;
 
 /// <summary>
-/// A HTML renderer for a <see cref="Table"/>
+/// A VT100 renderer for a <see cref="Table"/>
 /// </summary>
 /// <seealso cref="VTObjectRenderer{Table}" />
 public class VTTableRenderer : VTObjectRenderer<Table>
@@ -25,6 +24,12 @@ public class VTTableRenderer : VTObjectRenderer<Table>
         var spectreTable = new Spectre.Console.Table()
             .LeftAligned()
             .MinimalBorder();
+
+        int consoleWidth = AnsiConsole.Profile.Width;
+        int indentWidth = renderer.GetIndentWidth();
+        // The table construct consumes 1 leading space and 1 trailing space.
+        // TODO: setting width this way may cause the table frame to be excessively long when the terminal width is large. Need to investigate.
+        spectreTable.Width(consoleWidth - indentWidth - 2);
 
         var sb = new StringBuilder();
         var newWriter = new StringWriter(sb);
