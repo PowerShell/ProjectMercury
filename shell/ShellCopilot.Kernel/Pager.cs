@@ -37,7 +37,7 @@ namespace ShellCopilot.Kernel
             }
         }
 
-        internal void ReportIfPagerCannotBeResolved()
+        internal void ReportAnyResolutionFailure()
         {
             if (_enabled && _command is null)
             {
@@ -60,6 +60,8 @@ namespace ShellCopilot.Kernel
 
         internal void WriteOutput(string text)
         {
+            // Write out directly to the console if the pager is not enabled,
+            // or if we failed to resolve the pager command.
             if (!_enabled || _command is null)
             {
                 Console.WriteLine(text);

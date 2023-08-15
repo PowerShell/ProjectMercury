@@ -87,7 +87,7 @@ internal class Shell
             AnsiConsole.WriteLine();
 
             // Write out error or warning if pager cannot be resolved while using alternate buffer.
-            _pager.ReportIfPagerCannotBeResolved();
+            _pager.ReportAnyResolutionFailure();
         }
     }
 
