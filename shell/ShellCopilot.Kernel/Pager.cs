@@ -3,6 +3,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
 
+using Spectre.Console;
+
 namespace ShellCopilot.Kernel
 {
     internal class Pager
@@ -17,25 +19,48 @@ namespace ShellCopilot.Kernel
             s_extension = OperatingSystem.IsWindows() ? new[] { ".exe", ".com" } : Array.Empty<string>();
         }
 
-        internal const string DefaultPager = "less";
-        internal const string EnvVarName = "PAGER";
+        private const string DefaultPager = "less";
+        private const string EnvVarName = "PAGER";
 
+        private readonly bool _enabled;
         private readonly bool _specifiedByUser;
         private readonly string _command;
         private readonly string _arguments;
 
-        internal Pager()
+        internal Pager(bool enabled)
         {
-            (_command, _arguments) = GetPagerCommandAndArgs(out _specifiedByUser);
-            _command = ResolveCommand(_command);
+            _enabled = enabled;
+            if (enabled)
+            {
+                (_command, _arguments) = GetPagerCommandAndArgs(out _specifiedByUser);
+                _command = ResolveCommand(_command);
+            }
         }
 
-        internal bool SpecifiedByUser => _specifiedByUser;
-        internal bool CanBeResolved => _command is not null;
+        internal void ReportIfPagerCannotBeResolved()
+        {
+            if (_enabled && _command is null)
+            {
+                if (_specifiedByUser)
+                {
+                    string inline = ConsoleRender.FormatInlineCode(EnvVarName);
+                    AnsiConsole.MarkupLine(ConsoleRender.FormatError($"Command specified in the environment variable {inline} cannot be resolved."));
+                    AnsiConsole.MarkupLine(ConsoleRender.FormatError("Paging functionality is disabled."));
+                    AnsiConsole.WriteLine();
+                }
+                else
+                {
+                    string inline = ConsoleRender.FormatInlineCode(DefaultPager);
+                    AnsiConsole.MarkupLine(ConsoleRender.FormatWarning($"Default paging utility {inline} cannot be found in PATH. Paging functionality is disabled."));
+                    AnsiConsole.MarkupLine(ConsoleRender.FormatWarning($"It's recommended to enable paging when using the alternate screen buffer. Please consider install {inline} to your PATH"));
+                    AnsiConsole.WriteLine();
+                }
+            }
+        }
 
         internal void WriteOutput(string text)
         {
-            if (_command is null)
+            if (!_enabled || _command is null)
             {
                 Console.WriteLine(text);
                 return;

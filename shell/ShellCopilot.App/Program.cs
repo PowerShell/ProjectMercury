@@ -25,12 +25,14 @@ internal class Program
         // changes to the existing public APIs. We will need to evaluate whether we want to
         // keep depending on it when this project moves beyond a prototype.
 
-        Console.OutputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.Default;
         Argument<string> query = new("query", getDefaultValue: () => null, "The query term used to get response from AI.");
+        Option<bool> use_alt_buffer = new("--use-alt-buffer", "Use the alternate screen buffer for an interactive session.");
 
         query.AddValidator(result =>
         {
             string value = result.GetValueForArgument(query);
+
             if (value is not null && value.StartsWith('-'))
             {
                 result.ErrorMessage = $"Bad flag or option syntax: {value}";
@@ -39,7 +41,7 @@ internal class Program
 
         RootCommand rootCommand = new("AI for the command line.")
         {
-            query,
+            query, use_alt_buffer,
             GetRegisterCommand(),
             GetUnregisterCommand(),
             GetListCommand(),
@@ -50,11 +52,11 @@ internal class Program
             GetImportCommand(),
         };
 
-        rootCommand.SetHandler(StartShellAsync, query);
+        rootCommand.SetHandler(StartShellAsync, query, use_alt_buffer);
         return rootCommand.Invoke(args);
     }
 
-    private async static Task StartShellAsync(string query)
+    private async static Task StartShellAsync(string query, bool use_alt_buffer)
     {
         Shell shell;
         if (query is not null)
@@ -84,7 +86,7 @@ internal class Program
             return;
         }
 
-        shell = new(interactive: true);
+        shell = new(interactive: true, use_alt_buffer);
         await shell.RunREPLAsync();
     }
 

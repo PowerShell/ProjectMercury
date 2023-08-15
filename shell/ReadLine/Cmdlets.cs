@@ -733,10 +733,14 @@ namespace Microsoft.PowerShell
 
     public static class VTColorUtils
     {
+        //  internal const string DefaultForeground = "\x1b[39m";
+        //  internal const string DefaultColor = "\x1b[39;49m";
+        // TODO: hard-coded the default color to 'string' color. Need to do this in the reasonable way:
+        // maybe treat all input without the leading ':' as string, and thus use the string color when rendering.
         internal const string AnsiReset = "\x1b[0m";
-        internal const string DefaultForeground = "\x1b[39m";
+        internal const string DefaultForeground = "\x1b[36m";
         internal const string DefaultBackground = "\x1b[49m";
-        internal const string DefaultColor = "\x1b[39;49m";
+        internal const string DefaultColor = "\x1b[36;49m";
 
         public const ConsoleColor UnknownColor = (ConsoleColor) (-1);
         private static readonly Dictionary<string, ConsoleColor> ConsoleColors =

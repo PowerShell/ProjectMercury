@@ -18,11 +18,11 @@ internal class Shell
     private readonly Func<int, bool, string> _rlPrompt;
     private CancellationTokenSource _cancellationSource;
 
-    internal Shell(bool interactive, bool useAlternateBuffer = true, string historyFileNamePrefix = null)
+    internal Shell(bool interactive, bool useAlternateBuffer = false, string historyFileNamePrefix = null)
     {
         _interactive = interactive;
         _useAlternateBuffer = useAlternateBuffer;
-        _pager = new Pager();
+        _pager = new Pager(interactive && useAlternateBuffer);
         _config = Configuration.ReadFromConfigFile();
         _service = new BackendService(_config, historyFileNamePrefix);
         _render = new MarkdownRender();
@@ -86,23 +86,8 @@ internal class Shell
             AnsiConsole.MarkupLine($"Type {ConsoleRender.FormatInlineCode(":help")} for instructions.");
             AnsiConsole.WriteLine();
 
-            if (!_pager.CanBeResolved)
-            {
-                if (_pager.SpecifiedByUser)
-                {
-                    string inline = ConsoleRender.FormatInlineCode(Pager.EnvVarName);
-                    AnsiConsole.MarkupLine(ConsoleRender.FormatError($"Command specified in the environment variable {inline} cannot be resolved."));
-                    AnsiConsole.MarkupLine(ConsoleRender.FormatError("Paging functionality is disabled."));
-                    AnsiConsole.WriteLine();
-                }
-                else if (_useAlternateBuffer)
-                {
-                    string inline = ConsoleRender.FormatInlineCode(Pager.DefaultPager);
-                    AnsiConsole.MarkupLine(ConsoleRender.FormatWarning($"Default paging utility {inline} cannot be found in PATH. Paging functionality is disabled."));
-                    AnsiConsole.MarkupLine(ConsoleRender.FormatWarning($"It's recommended to enable paging when using the alternate screen buffer. Please consider install {inline} to your PATH"));
-                    AnsiConsole.WriteLine();
-                }
-            }
+            // Write out error or warning if pager cannot be resolved while using alternate buffer.
+            _pager.ReportIfPagerCannotBeResolved();
         }
     }
 
