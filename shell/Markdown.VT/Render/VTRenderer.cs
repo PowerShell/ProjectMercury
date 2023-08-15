@@ -16,15 +16,22 @@ namespace Markdown.VT;
 /// </summary>
 public sealed class VTRenderer : TextRendererBase<VTRenderer>
 {
-    private List<int> _indentWidth;
+    private readonly List<int> _indentWidth;
+    private readonly IVTRenderVisitor _visitor;
+
+    public VTRenderer(TextWriter writer, PSMarkdownOptionInfo optionInfo)
+        : this(writer, optionInfo, visitor: null)
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VTRenderer"/> class.
     /// </summary>
     /// <param name="writer">TextWriter to write to.</param>
     /// <param name="optionInfo">PSMarkdownOptionInfo object with options.</param>
-    public VTRenderer(TextWriter writer, PSMarkdownOptionInfo optionInfo) : base(writer)
+    public VTRenderer(TextWriter writer, PSMarkdownOptionInfo optionInfo, IVTRenderVisitor visitor) : base(writer)
     {
+        _visitor = visitor;
         _indentWidth = new List<int>();
         EscapeSequences = new VT100EscapeSequences(optionInfo);
 
@@ -59,6 +66,7 @@ public sealed class VTRenderer : TextRendererBase<VTRenderer>
 
     internal string CurrentStyle { get; set; }
     internal bool UseSpectreMarkup { get; set; }
+    internal IVTRenderVisitor Visitor => _visitor;
 
     internal void PushIndentAndUpdateWidth(string indent)
     {
@@ -114,4 +122,9 @@ public sealed class VTRenderer : TextRendererBase<VTRenderer>
 
         return this;
     }
+}
+
+public interface IVTRenderVisitor
+{
+    public void VisitCodeBlock(string code);
 }

@@ -54,6 +54,9 @@ public class CodeBlockRenderer : VTObjectRenderer<CodeBlock>
             string code = ExtractCode(obj);
             string vtText = _vtHighlighter.GetVTString(code, language);
 
+            // Call the visitor with the original code.
+            renderer.Visitor?.VisitCodeBlock(code);
+
             int start = 0;
             while (true)
             {
