@@ -5,7 +5,6 @@ Copyright (c) Microsoft Corporation.  All rights reserved.
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading;
 using Microsoft.PowerShell.PSReadLine;
@@ -231,7 +230,6 @@ namespace Microsoft.PowerShell
         /// <summary>
         /// Helper function for the Set-PSReadLineKeyHandler cmdlet.
         /// </summary>
-        [SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures")]
         public static void SetKeyHandler(string[] key, Action<ConsoleKeyInfo?, object> handler, string briefDescription, string longDescription)
         {
             _singleton.SetKeyHandlerInternal(key, handler, briefDescription, longDescription);

@@ -69,6 +69,20 @@ internal class Shell
         }
     }
 
+    private void ReadLineInitialization()
+    {
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+d,Ctrl+c" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert(":code copy");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCode",
+            "Copy the code snippet from the last response to clipboard.");
+    }
+
     private void InitShell()
     {
         ChatDisabled = false;
@@ -94,6 +108,9 @@ internal class Shell
             // Write out help.
             AnsiConsole.MarkupLine($"Type {ConsoleRender.FormatInlineCode(":help")} for instructions.");
             AnsiConsole.WriteLine();
+
+            // Set readline configuration.
+            ReadLineInitialization();
 
             // Write out error or warning if pager cannot be resolved while using alternate buffer.
             _pager.ReportAnyResolutionFailure();

@@ -30,9 +30,33 @@ namespace ShellCopilot.Kernel.Commands
             save.SetHandler(SaveAction, file, append);
         }
 
+        private string GetCodeText()
+        {
+            List<string> code = _shell.MarkdownRender.GetAllCodeBlocks();
+            if (code is not null && code.Count > 0)
+            {
+                // Use LF as line ending to be consistent with the response from LLM.
+                StringBuilder sb = new(capacity: 50);
+                for (int i = 0; i < code.Count; i++)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append('\n');
+                    }
+
+                    sb.Append(code[i])
+                      .Append('\n');
+                }
+
+                return sb.ToString();
+            }
+
+            return null;
+        }
+
         private void CopyAction()
         {
-            string code = _shell.MarkdownRender.GetLastCodeBlock();
+            string code = GetCodeText();
             if (code is null)
             {
                 AnsiConsole.MarkupLine("[olive]No code snippet available for copy.[/]");
@@ -45,7 +69,7 @@ namespace ShellCopilot.Kernel.Commands
 
         private void SaveAction(FileInfo file, bool append)
         {
-            string code = _shell.MarkdownRender.GetLastCodeBlock();
+            string code = GetCodeText();
             if (code is null)
             {
                 AnsiConsole.MarkupLine("[olive]No code snippet available for save.[/]");

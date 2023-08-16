@@ -4,7 +4,6 @@ Copyright (c) Microsoft Corporation.  All rights reserved.
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.PowerShell.PSReadLine;
@@ -22,7 +21,6 @@ namespace Microsoft.PowerShell
             Task<List<PredictionResult>> PredictInputAsync(string input);
         }
 
-        [SuppressMessage("Microsoft.MSInternal", "CA903:InternalNamespaceShouldNotContainPublicTypes")]
         public interface IConsole
         {
             ConsoleKeyInfo ReadKey();

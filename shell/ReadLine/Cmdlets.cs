@@ -5,9 +5,7 @@ Copyright (c) Microsoft Corporation.  All rights reserved.
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.PowerShell.PSReadLine;
@@ -204,7 +202,7 @@ namespace Microsoft.PowerShell
                 // PSReadLine can't use Utils.CorePSPlatform (6.0+ only), so do the equivalent:
                 string historyPath = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
 
-                if (!String.IsNullOrEmpty(historyPath))
+                if (!string.IsNullOrEmpty(historyPath))
                 {
                     HistorySavePath = System.IO.Path.Combine(
                         historyPath,
@@ -217,7 +215,7 @@ namespace Microsoft.PowerShell
                     // History is data, so it goes into .local/share/powershell folder
                     var home = Environment.GetEnvironmentVariable("HOME");
 
-                    if (!String.IsNullOrEmpty(home))
+                    if (!string.IsNullOrEmpty(home))
                     {
                         HistorySavePath = System.IO.Path.Combine(
                             home,
@@ -292,7 +290,6 @@ namespace Microsoft.PowerShell
         /// odd things with script blocks, we create a white-list of commands
         /// that do invoke the script block - this covers the most useful cases.
         /// </summary>
-        [SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public HashSet<string> CommandsToValidateScriptBlockArguments { get; set; }
 
         /// <summary>
