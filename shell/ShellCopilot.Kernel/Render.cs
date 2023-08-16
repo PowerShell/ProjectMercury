@@ -54,7 +54,7 @@ internal class MarkdownRender
     internal string GetLastCodeBlock()
     {
         var code = _visitor.CodeBlock;
-        return code.Count > 0 ? code[-1] : null;
+        return code.Count > 0 ? code[^1] : null;
     }
 
     internal string RenderText(string text)

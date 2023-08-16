@@ -29,7 +29,7 @@ internal static class Utils
     {
         string rid = RuntimeInformation.RuntimeIdentifier;
         int index = rid.IndexOf('-');
-        OS = index is -1 ? rid : rid.Substring(0, index);
+        OS = index is -1 ? rid : rid[..index];
 
         bool isWindows = OperatingSystem.IsWindows();
         string locationPath = isWindows
@@ -138,7 +138,7 @@ internal static class Utils
         dirSecurity.SetOwner(WindowsIdentity.GetCurrent().User);
 
         // Apply new rules.
-        System.IO.FileSystemAclExtensions.SetAccessControl(
+        FileSystemAclExtensions.SetAccessControl(
             directoryInfo: new DirectoryInfo(directoryPath),
             directorySecurity: dirSecurity);
     }
@@ -183,7 +183,7 @@ internal static class Utils
                 processInformationClass: 0,
                 processInformation: out Interop.Windows.PROCESS_BASIC_INFORMATION pbi,
                 processInformationLength: Marshal.SizeOf<Interop.Windows.PROCESS_BASIC_INFORMATION>(),
-                returnLength: out int size);
+                returnLength: out _);
 
             return res is 0 ? pbi.InheritedFromUniqueProcessId.ToInt32() : InvalidProcessId;
         }

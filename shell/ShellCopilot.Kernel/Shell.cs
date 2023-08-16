@@ -1,6 +1,8 @@
 using Azure.AI.OpenAI;
 using Spectre.Console;
 using Microsoft.PowerShell;
+using ShellCopilot.Kernel.Commands;
+using System.CommandLine;
 
 namespace ShellCopilot.Kernel;
 
@@ -11,10 +13,13 @@ internal class Shell
 
     private readonly bool _interactive;
     private readonly bool _useAlternateBuffer;
+
     private readonly Pager _pager;
     private readonly Configuration _config;
     private readonly BackendService _service;
-    private readonly MarkdownRender _render;
+    private readonly MarkdownRender _mdRender;
+    private readonly CommandRunner _cmdRunner;
+
     private readonly Func<int, bool, string> _rlPrompt;
     private CancellationTokenSource _cancellationSource;
 
@@ -22,10 +27,13 @@ internal class Shell
     {
         _interactive = interactive;
         _useAlternateBuffer = useAlternateBuffer;
+
         _pager = new Pager(interactive && useAlternateBuffer);
         _config = Configuration.ReadFromConfigFile();
         _service = new BackendService(_config, historyFileNamePrefix);
-        _render = new MarkdownRender();
+        _mdRender = new MarkdownRender();
+        _cmdRunner = new CommandRunner();
+
         _rlPrompt = ReadLinePrompt;
         _cancellationSource = new CancellationTokenSource();
 
@@ -37,7 +45,8 @@ internal class Shell
 
     internal Configuration Configuration => _config;
     internal BackendService BackendService => _service;
-    internal MarkdownRender MarkdownRender => _render;
+    internal MarkdownRender MarkdownRender => _mdRender;
+    internal CommandRunner CommandRunner => _cmdRunner;
 
     /// <summary>
     /// For reference:
@@ -88,6 +97,7 @@ internal class Shell
 
             // Write out error or warning if pager cannot be resolved while using alternate buffer.
             _pager.ReportAnyResolutionFailure();
+            _cmdRunner.LoadBuiltInCommands(this);
         }
     }
 
@@ -154,7 +164,7 @@ internal class Shell
         else
         {
             // Render the markdown only if standard output is not redirected.
-            string text = _render.RenderText(response.Content);
+            string text = _mdRender.RenderText(response.Content);
             if (!Utils.LeadingWhiteSpaceHasNewLine(text))
             {
                 Console.WriteLine();
@@ -279,14 +289,27 @@ internal class Shell
                 count++;
                 if (input.StartsWith(':'))
                 {
-                    string command = input[1..].Trim();
-                    if (command.Equals("exit", StringComparison.OrdinalIgnoreCase))
+                    string commandLine = input[1..].Trim();
+                    if (commandLine == string.Empty)
+                    {
+                        AnsiConsole.MarkupLine(ConsoleRender.FormatError("Command is missing."));
+                        continue;
+                    }
+
+                    if (commandLine.Equals("exit", StringComparison.OrdinalIgnoreCase))
                     {
                         break;
                     }
 
-                    // TODO: Handle commands
-                    AnsiConsole.MarkupLineInterpolated($"[cyan]Received '{input}'. Command handling is coming soon.[/]");
+                    try
+                    {
+                        _cmdRunner.InvokeCommand(commandLine);
+                    }
+                    catch (Exception e)
+                    {
+                        AnsiConsole.MarkupLine(ConsoleRender.FormatError(e.Message));
+                    }
+
                     continue;
                 }
 
