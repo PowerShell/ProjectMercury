@@ -10,16 +10,15 @@ using Microsoft.PowerShell.PSReadLine;
 
 namespace Microsoft.PowerShell
 {
+    public interface IReadLineHelper
+    {
+        CommandCompletion CompleteInput(string input, int cursorIndex);
+        Task<List<PredictionResult>> PredictInputAsync(string input);
+    }
+
     namespace Internal
     {
 #pragma warning disable 1591
-
-        public interface IPSConsoleReadLineMockableMethods
-        {
-            void Ding();
-            CommandCompletion CompleteInput(string input, int cursorIndex);
-            Task<List<PredictionResult>> PredictInputAsync(string input);
-        }
 
         public interface IConsole
         {

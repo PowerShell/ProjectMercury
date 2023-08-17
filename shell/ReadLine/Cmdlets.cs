@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Microsoft.PowerShell.PSReadLine;
 
+
 namespace Microsoft.PowerShell
 {
 
@@ -311,6 +312,8 @@ namespace Microsoft.PowerShell
         /// </summary>
         public int DingDuration { get; set; }
         public BellStyle BellStyle { get; set; }
+
+        public IReadLineHelper RenderHelper { get; set; }
 
         public bool HistorySearchCaseSensitive { get; set; }
         internal StringComparison HistoryStringComparison => HistorySearchCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;

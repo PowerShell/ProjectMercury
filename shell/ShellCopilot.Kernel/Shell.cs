@@ -2,7 +2,6 @@ using Azure.AI.OpenAI;
 using Spectre.Console;
 using Microsoft.PowerShell;
 using ShellCopilot.Kernel.Commands;
-using System.CommandLine;
 
 namespace ShellCopilot.Kernel;
 
@@ -22,6 +21,7 @@ internal class Shell
 
     private readonly Func<int, bool, string> _rlPrompt;
     private CancellationTokenSource _cancellationSource;
+    private bool _hasExited;
 
     internal Shell(bool interactive, bool useAlternateBuffer = false, string historyFileNamePrefix = null)
     {
@@ -37,7 +37,7 @@ internal class Shell
         _rlPrompt = ReadLinePrompt;
         _cancellationSource = new CancellationTokenSource();
 
-        InitShell();
+        InitializeShell();
     }
 
     private CancellationToken CancellationToken => _cancellationSource.Token;
@@ -71,6 +71,9 @@ internal class Shell
 
     private void ReadLineInitialization()
     {
+        PSConsoleReadLineOptions options = PSConsoleReadLine.GetOptions();
+        options.RenderHelper = new ReadLine(_cmdRunner);
+
         PSConsoleReadLine.SetKeyHandler(
             new[] { "Ctrl+d,Ctrl+c" },
             (key, arg) =>
@@ -83,7 +86,7 @@ internal class Shell
             "Copy the code snippet from the last response to clipboard.");
     }
 
-    private void InitShell()
+    private void InitializeShell()
     {
         ChatDisabled = false;
         Console.CancelKeyPress += OnCancelKeyPress;
@@ -118,7 +121,7 @@ internal class Shell
         }
     }
 
-    internal void ExitShell(bool hadError = false)
+    private void CleanupShell(bool hadError = false)
     {
         if (_interactive && _useAlternateBuffer)
         {
@@ -198,6 +201,11 @@ internal class Shell
         }
     }
 
+    internal void ExitShell()
+    {
+        _hasExited = true;
+    }
+
     internal bool EnsureKeyPresentForActiveModel()
     {
         AiModel model = _config.GetModelInUse();
@@ -274,7 +282,7 @@ internal class Shell
         }
         finally
         {
-            ExitShell();
+            CleanupShell();
         }
     }
 
@@ -287,9 +295,9 @@ internal class Shell
         }
 
         int count = 1;
-        bool hadError;
+        bool hadError = false;
 
-        while (true)
+        while (!_hasExited)
         {
             hadError = false;
             string rlPrompt = _rlPrompt(count, ChatDisabled);
@@ -311,11 +319,6 @@ internal class Shell
                     {
                         AnsiConsole.MarkupLine(ConsoleRender.FormatError("Command is missing."));
                         continue;
-                    }
-
-                    if (commandLine.Equals("exit", StringComparison.OrdinalIgnoreCase))
-                    {
-                        break;
                     }
 
                     try
@@ -354,11 +357,12 @@ internal class Shell
                 AnsiConsole.MarkupLine(ConsoleRender.FormatError(e.Message));
                 if (e.HandlerAction is ExceptionHandlerAction.Stop)
                 {
+                    hadError = true;
                     break;
                 }
             }
         }
 
-        ExitShell(hadError);
+        CleanupShell(hadError);
     }
 }

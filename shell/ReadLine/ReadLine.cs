@@ -18,7 +18,7 @@ namespace Microsoft.PowerShell
 {
     class ExitException : Exception { }
 
-    public partial class PSConsoleReadLine : IPSConsoleReadLineMockableMethods
+    public partial class PSConsoleReadLine
     {
         private const int ConsoleExiting = 1;
 
@@ -35,7 +35,6 @@ namespace Microsoft.PowerShell
 
         private bool _delayedOneTimeInitCompleted;
 
-        private IPSConsoleReadLineMockableMethods _mockableMethods;
         private IConsole _console;
         private ICharMap _charMap;
         private Encoding _initialOutputEncoding;
@@ -305,12 +304,6 @@ namespace Microsoft.PowerShell
                 }
                 catch (Exception e)
                 {
-                    // If we're running tests, just throw.
-                    if (_singleton._mockableMethods != _singleton)
-                    {
-                        throw;
-                    }
-
                     while (e.InnerException != null)
                     {
                         e = e.InnerException;
@@ -536,7 +529,6 @@ namespace Microsoft.PowerShell
 
         private PSConsoleReadLine()
         {
-            _mockableMethods = this;
             _console = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? PlatformWindows.OneTimeInit(this)
                 : new VirtualTerminal();

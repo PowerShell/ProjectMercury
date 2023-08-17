@@ -4,9 +4,7 @@ Copyright (c) Microsoft Corporation.  All rights reserved.
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using Microsoft.PowerShell.Internal;
@@ -57,7 +55,7 @@ namespace Microsoft.PowerShell
     public class CommandCompletion
     {
         public CommandCompletion(
-            Collection<CompletionResult> matches,
+            List<CompletionResult> matches,
             int currentMatchIndex,
             int replacementIndex,
             int replacementLength)
@@ -68,20 +66,10 @@ namespace Microsoft.PowerShell
             ReplacementLength = replacementLength;
         }
 
-        public Collection<CompletionResult> CompletionMatches { get; set; }
+        public List<CompletionResult> CompletionMatches { get; set; }
         public int CurrentMatchIndex { get; set; }
         public int ReplacementIndex { get; set; }
         public int ReplacementLength { get; set; }
-
-        public static CommandCompletion CompleteInput(string input, int cursorIndex)
-        {
-            return null;
-        }
-
-        public CompletionResult GetNextResult(bool forward)
-        {
-            return null;
-        }
     }
 
     public partial class PSConsoleReadLine
@@ -107,14 +95,6 @@ namespace Microsoft.PowerShell
 
         // String helper for directory paths
         private static readonly string DirectorySeparatorString = System.IO.Path.DirectorySeparatorChar.ToString();
-
-        // Stub helper method so completion can be mocked
-        [ExcludeFromCodeCoverage]
-        CommandCompletion IPSConsoleReadLineMockableMethods.CompleteInput(string input, int cursorIndex)
-        {
-            return CallPossibleExternalApplication(
-                () => CommandCompletion.CompleteInput(input, cursorIndex));
-        }
 
         /// <summary>
         /// Attempt to complete the text surrounding the cursor with the next
@@ -201,7 +181,7 @@ namespace Microsoft.PowerShell
             _singleton.CompleteImpl(true);
         }
 
-        private bool IsConsistentQuoting(Collection<CompletionResult> matches)
+        private bool IsConsistentQuoting(List<CompletionResult> matches)
         {
             int quotedCompletions = matches.Count(match => IsQuoted(match.CompletionText));
             return
@@ -211,7 +191,7 @@ namespace Microsoft.PowerShell
                     m => m.CompletionText[0] == matches[0].CompletionText[0]));
         }
 
-        private string GetUnambiguousPrefix(Collection<CompletionResult> matches, out bool ambiguous)
+        private string GetUnambiguousPrefix(List<CompletionResult> matches, out bool ambiguous)
         {
             // Find the longest unambiguous prefix.  This might be the empty
             // string, in which case we don't want to remove any of the users input,
@@ -339,16 +319,26 @@ namespace Microsoft.PowerShell
             {
                 try
                 {
-                    _tabCompletions = _mockableMethods.CompleteInput(_buffer.ToString(), _current);
+                    _tabCompletions = _options.RenderHelper?.CompleteInput(_buffer.ToString(), _current);
 
-                    if (_tabCompletions.CompletionMatches.Count == 0) return null;
+                    if (_tabCompletions is null || _tabCompletions.CompletionMatches.Count == 0)
+                    {
+                        return null;
+                    }
 
                     // Validate the replacement index/length - if we can't do
                     // the replacement, we'll ignore the completions.
                     var start = _tabCompletions.ReplacementIndex;
                     var length = _tabCompletions.ReplacementLength;
-                    if (start < 0 || start > _singleton._buffer.Length) return null;
-                    if (length < 0 || length > (_singleton._buffer.Length - start)) return null;
+                    if (start < 0 || start > _singleton._buffer.Length)
+                    {
+                        return null;
+                    }
+
+                    if (length < 0 || length > (_singleton._buffer.Length - start))
+                    {
+                        return null;
+                    }
 
                     if (_tabCompletions.CompletionMatches.Count > 1)
                     {
@@ -493,7 +483,7 @@ namespace Microsoft.PowerShell
             internal int Columns;
             internal int ToolTipLines;
 
-            internal Collection<CompletionResult> MenuItems;
+            internal List<CompletionResult> MenuItems;
             internal CompletionResult CurrentMenuItem => MenuItems[CurrentSelection];
             internal int CurrentSelection;
 
@@ -766,7 +756,7 @@ namespace Microsoft.PowerShell
             }
         }
 
-        private Menu CreateCompletionMenu(Collection<CompletionResult> matches)
+        private Menu CreateCompletionMenu(List<CompletionResult> matches)
         {
             var bufferWidth = _console.BufferWidth;
             var colWidth = Math.Min(matches.Max(c => LengthInBufferCells(c.ListItemText)) + 2, bufferWidth);
@@ -782,9 +772,9 @@ namespace Microsoft.PowerShell
             };
         }
 
-        private Collection<CompletionResult> FilterCompletions(CommandCompletion completion, string completionFilter)
+        private List<CompletionResult> FilterCompletions(CommandCompletion completion, string completionFilter)
         {
-            var newMatches = new Collection<CompletionResult>();
+            var newMatches = new List<CompletionResult>();
             var matches = completion.CompletionMatches;
 
             bool consistentQuoting = IsConsistentQuoting(matches);

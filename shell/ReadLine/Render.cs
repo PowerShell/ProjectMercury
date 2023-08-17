@@ -1383,38 +1383,33 @@ namespace Microsoft.PowerShell
             return (_statusLinePrompt.Length + _statusBuffer.Length) / _console.BufferWidth + 1;
         }
 
-        [ExcludeFromCodeCoverage]
-        void IPSConsoleReadLineMockableMethods.Ding()
-        {
-            switch (Options.BellStyle)
-            {
-            case BellStyle.None:
-                break;
-            case BellStyle.Audible:
-                if (Options.DingDuration > 0)
-                {
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        Console.Beep(Options.DingTone, Options.DingDuration);
-                    }
-                    else
-                    {
-                        Console.Beep();
-                    }
-                }
-                break;
-            case BellStyle.Visual:
-                // TODO: flash prompt? command line?
-                break;
-            }
-        }
-
         /// <summary>
         /// Notify the user based on their preference for notification.
         /// </summary>
         public static void Ding()
         {
-            _singleton._mockableMethods.Ding();
+            var options = _singleton.Options;
+            switch (options.BellStyle)
+            {
+                case BellStyle.None:
+                    break;
+                case BellStyle.Audible:
+                    if (options.DingDuration > 0)
+                    {
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            Console.Beep(options.DingTone, options.DingDuration);
+                        }
+                        else
+                        {
+                            Console.Beep();
+                        }
+                    }
+                    break;
+                case BellStyle.Visual:
+                    // TODO: flash prompt? command line?
+                    break;
+            }
         }
 
         private bool PromptYesOrNo(string s)

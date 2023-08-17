@@ -3,7 +3,7 @@ using Spectre.Console;
 
 namespace ShellCopilot.Kernel.Commands;
 
-internal class HelpCommand : Command
+internal class HelpCommand : CommandBase
 {
     private readonly Shell _shell;
 
@@ -26,8 +26,8 @@ internal class HelpCommand : Command
 
         var elements = new[]
         {
-            new RenderElement<Command>(nameof(Name)),
-            new RenderElement<Command>(nameof(Description))
+            new RenderElement<CommandBase>(nameof(Name)),
+            new RenderElement<CommandBase>(nameof(Description))
         };
 
         ConsoleRender.RenderTable(list, elements);

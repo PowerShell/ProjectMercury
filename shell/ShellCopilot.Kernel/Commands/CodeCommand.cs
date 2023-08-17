@@ -1,12 +1,10 @@
-﻿using System;
+﻿using System.Text;
 using System.CommandLine;
-using System.Text;
-
 using Spectre.Console;
 
 namespace ShellCopilot.Kernel.Commands
 {
-    internal class CodeCommand : Command
+    internal class CodeCommand : CommandBase
     {
         private readonly Shell _shell;
 

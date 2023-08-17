@@ -33,7 +33,7 @@ namespace Microsoft.PowerShell
         /// </summary>
         public IReadOnlyList<PredictiveSuggestion> Suggestions { get; }
 
-        internal PredictionResult(Guid id, string name, uint? session, List<PredictiveSuggestion> suggestions)
+        public PredictionResult(Guid id, string name, uint? session, List<PredictiveSuggestion> suggestions)
         {
             Id = id;
             Name = name;
@@ -83,25 +83,9 @@ namespace Microsoft.PowerShell
         }
     }
 
-    public static class CommandPrediction
-    {
-        public static Task<List<PredictionResult>> PredictInputAsync(string input)
-        {
-            return null;
-        }
-    }
-
     public partial class PSConsoleReadLine
     {
         private const string DefaultName = "PSReadLine";
-
-        // Stub helper methods so prediction can be mocked
-        [ExcludeFromCodeCoverage]
-        Task<List<PredictionResult>> IPSConsoleReadLineMockableMethods.PredictInputAsync(string input)
-        {
-            return CommandPrediction.PredictInputAsync(input);
-        }
-
         private readonly Prediction _prediction;
 
         /// <summary>
