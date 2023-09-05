@@ -1,14 +1,14 @@
 # Plugin One Pager
 
 In order to support different kinds of generative A.I models, we need to support a plugin system
-that provides the necessary details for users to be able to register and use their own models.
+that provides the necessary details for users to be able to register and use their own models. 
+For sake of this doc, model is a loose term being used for some of the basic properties of 
+generative LLM model APIs, i.e endpoint, key, deployment and prompt.
 
 ## Motivations
 
 As a shell and generative A.I user, I may not want to just use one model, but many and I want to be
-able to register these additional models as easy as possible. For sake of this doc, model is a loose
-term being used for some of the basic properties of generative LLM model APIs, i.e endpoint, key,
-deployment and prompt.
+able to register these additional models as easy as possible. 
 
 ## Goals
 
