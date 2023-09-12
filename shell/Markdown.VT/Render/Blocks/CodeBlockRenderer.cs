@@ -45,17 +45,17 @@ public class CodeBlockRenderer : VTObjectRenderer<CodeBlock>
             language = _vtHighlighter.FindLanguageById(langId);
         }
 
+        // Call the visitor with the original code.
+        string code = ExtractCode(obj);
+        renderer.Visitor?.VisitCodeBlock(code);
+
         if (language is null)
         {
             renderer.WriteLeafRawLines(obj);
         }
         else
         {
-            string code = ExtractCode(obj);
             string vtText = _vtHighlighter.GetVTString(code, language);
-
-            // Call the visitor with the original code.
-            renderer.Visitor?.VisitCodeBlock(code);
 
             int start = 0;
             while (true)
