@@ -19,17 +19,25 @@ namespace Markdown.VT;
 /// <seealso cref="VTObjectRenderer{Table}" />
 public class VTTableRenderer : VTObjectRenderer<Table>
 {
+    private readonly IAnsiConsole _myConsole;
+
+    public VTTableRenderer()
+    {
+        _myConsole = AnsiConsole.Create(
+            new AnsiConsoleSettings
+            {
+                Ansi = AnsiSupport.Detect,
+                ColorSystem = ColorSystemSupport.Detect,
+                Out = new AnsiConsoleOutput(Console.Out),
+            }
+        );
+    }
+
     protected override void Write(VTRenderer renderer, Table table)
     {
         var spectreTable = new Spectre.Console.Table()
             .LeftAligned()
             .MinimalBorder();
-
-        int consoleWidth = AnsiConsole.Profile.Width;
-        int indentWidth = renderer.GetIndentWidth();
-        // The table construct consumes 1 leading space and 1 trailing space.
-        // TODO: setting width this way may cause the table frame to be excessively long when the terminal width is large. Need to investigate.
-        spectreTable.Width(consoleWidth - indentWidth - 2);
 
         var sb = new StringBuilder();
         var newWriter = new StringWriter(sb);
@@ -77,7 +85,11 @@ public class VTTableRenderer : VTObjectRenderer<Table>
         }
 
         int start = 0;
-        string result = AnsiConsole.Console.ToAnsi(spectreTable);
+        int consoleWidth = AnsiConsole.Profile.Width;
+        int indentWidth = renderer.GetIndentWidth();
+
+        _myConsole.Profile.Width = consoleWidth - indentWidth;
+        string result = _myConsole.ToAnsi(spectreTable);
 
         renderer.WriteLine();
         while (true)
