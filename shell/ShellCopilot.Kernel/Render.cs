@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Globalization;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 
 using Markdig;
 using Markdown.VT;
@@ -264,6 +264,231 @@ internal static class ConsoleRender
         IAnsiConsole originalConsole = AnsiConsole.Console;
         AnsiConsole.Console = s_errConsole;
         return new Disposable(() => AnsiConsole.Console = originalConsole);
+    }
+}
+
+internal struct Point
+{
+    public int X;
+    public int Y;
+
+    internal Point(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
+
+    public override readonly string ToString()
+    {
+        return string.Format(CultureInfo.InvariantCulture, "{0},{1}", X, Y);
+    }
+}
+
+internal partial class StreamingRender
+{
+    internal const char ESC = '\x1b';
+    internal static readonly Regex AnsiRegex = CreateAnsiRegex();
+
+    private string _currentText;
+    private int _bufferWidth, _bufferHeight;
+    private Point _initialCursor;
+
+    internal StreamingRender()
+    {
+        _currentText = string.Empty;
+        _bufferWidth = Console.BufferWidth;
+        _bufferHeight = Console.BufferHeight;
+        _initialCursor = new(Console.CursorLeft, Console.CursorTop);
+    }
+
+    internal void Refresh(string newText)
+    {
+        if (string.Equals(newText, _currentText, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        int newTextStartIndex = 0;
+        var cursorStart = _initialCursor;
+
+        if (!string.IsNullOrEmpty(_currentText))
+        {
+            int index = SameUpTo(newText);
+            newTextStartIndex = index + 1;
+
+            // When the new text start exactly with the current text, we just continue to write.
+            // No need to move the cursor in that case.
+            bool moveCursor = index < _currentText.Length - 1;
+            if (moveCursor && index >= 0)
+            {
+                // When 'index == -1', we just move the cursor to the initial position.
+                // Otherwise, calculate the cursor position for the next write.
+                string oldPlainText = GetPlainText(_currentText[..newTextStartIndex]);
+                cursorStart = ConvertOffsetToPoint(cursorStart, oldPlainText, oldPlainText.Length);
+            }
+
+            if (moveCursor)
+            {
+                Console.SetCursorPosition(cursorStart.X, cursorStart.Y);
+                // erase from that cursor position (inclusive) to the end of the display
+                Console.Write("\x1b[0J");
+            }
+            else
+            {
+                cursorStart = new(Console.CursorLeft, Console.CursorTop);
+            }
+        }
+
+        Console.Out.Write(newText.AsSpan(newTextStartIndex));
+
+        // Update the streaming render
+        int topMax = _bufferHeight - 1;
+        if (Console.CursorTop == topMax)
+        {
+            // If the current cursor top is less than top-max, then there was no scrolling-up and the
+            // initial cursor position was not changed.
+            // But if it's equal to top-max, then the terminal buffer may have scrolled, and in that
+            // case we need to re-calculate and update the relative position of the initial cursor.
+            string newPlainText = GetPlainText(newText[newTextStartIndex..]);
+            Point cursorEnd = ConvertOffsetToPoint(cursorStart, newPlainText, newPlainText.Length);
+
+            if (cursorEnd.Y > topMax)
+            {
+                int offset = cursorEnd.Y - topMax;
+                _initialCursor.Y -= offset;
+            }
+        }
+
+        _currentText = newText;
+
+        // Wait for 50ms before refreshing again for the in-coming payload.
+        // TODO: 50ms interval makes it a little flashing when rendering code blocks because we usually
+        // rewrite a whole line when rendering updates in code blocks. Need to think about how to reduce
+        // the flashing, maybe use a very small interval (or no interval at all) when rendering a whole
+        // line.
+        Thread.Sleep(50);
+    }
+
+    /// <summary>
+    /// The regular expression for matching ANSI escape sequences, which consists of the followings in the same order:
+    ///  - graphics regex: graphics/color mode ESC[1;2;...m
+    ///  - csi regex: CSI escape sequences
+    ///  - hyperlink regex: hyperlink escape sequences. Note: '.*?' makes '.*' do non-greedy match.
+    /// </summary>
+    [GeneratedRegex(@"(\x1b\[\d+(;\d+)*m)|(\x1b\[\?\d+[hl])|(\x1b\]8;;.*?\x1b\\)", RegexOptions.Compiled)]
+    private static partial Regex CreateAnsiRegex();
+
+    private string GetPlainText(string text)
+    {
+        if (!text.Contains(ESC))
+        {
+            return text;
+        }
+
+        return AnsiRegex.Replace(text, string.Empty);
+    }
+
+    /// <summary>
+    /// Return the index up to which inclusively we consider the current text and the new text are the same.
+    /// Note that, the return value can range from -1 (nothing is the same) to `cur_text.Length - 1` (all is the same).
+    /// </summary>
+    private int SameUpTo(string newText)
+    {
+        int i = 0;
+        for (; i < _currentText.Length; i++)
+        {
+            if (_currentText[i] != newText[i])
+            {
+                break;
+            }
+        }
+
+        int j = i - 1;
+        if (i < _currentText.Length && !char.IsWhiteSpace(_currentText[i]))
+        {
+            // When `i` points to a non-whitespace character, it could be in the middle of a VT escape sequence,
+            // which may happen when dealing with an incomplete code block -- VT decoration changes as new text
+            // received for the code block.
+            if (_currentText.IndexOf("\x1b[0m", i, StringComparison.Ordinal) != -1)
+            {
+                // When the portion to be re-written contains the 'RESET' sequence, then it's safer to re-write
+                // the whole logical line because all existing color or font effect was already reset, so those
+                // decorations would be lost if we re-write at the middle of the logical line.
+                // Well, this assumes decorations always start fresh for a new logical line, which is truely the
+                // case for the code block syntax highlighting done by our Markdown VT render.
+                for (; j >= 0; j--)
+                {
+                    if (_currentText[j] == '\n')
+                    {
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // Otherwise, we will be less conservative -- we move backward to find the beginning of the word and
+                // then re-render that whole word.
+                // This is done by locating the first whitespace character going backward, and consider current text
+                // and the new text are the same up to that point.
+                for (; j >= 0; j--)
+                {
+                    if (char.IsWhiteSpace(_currentText[j]))
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        return j;
+    }
+
+    private Point ConvertOffsetToPoint(Point point, string text, int offset)
+    {
+        int x = point.X;
+        int y = point.Y;
+
+        for (int i = 0; i < offset; i++)
+        {
+            char c = text[i];
+            if (c == '\n')
+            {
+                y += 1;
+                x = 0;
+            }
+            else
+            {
+                int size = c.GetCellWidth();
+                x += size;
+                // Wrap?  No prompt when wrapping
+                if (x >= _bufferWidth)
+                {
+                    // If character didn't fit on current line, it will move entirely to the next line.
+                    x = (x == _bufferWidth) ? 0 : size;
+
+                    // If cursor is at column 0 and the next character is newline, let the next loop
+                    // iteration increment y.
+                    if (x != 0 || !(i + 1 < offset && text[i + 1] == '\n'))
+                    {
+                        y += 1;
+                    }
+                }
+            }
+        }
+
+        // If next character actually exists, and isn't newline, check if wider than the space left on the current line.
+        if (text.Length > offset && text[offset] != '\n')
+        {
+            int size = text[offset].GetCellWidth();
+            if (x + size > _bufferWidth)
+            {
+                // Character was wider than remaining space, so character, and cursor, appear on next line.
+                x = 0;
+                y++;
+            }
+        }
+
+        return new Point(x, y);
     }
 }
 

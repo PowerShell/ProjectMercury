@@ -200,4 +200,18 @@ internal class BackendService
             return null;
         }
     }
+
+    public async Task<StreamingChatCompletions> GetStreamingChatResponseAsync(string input, bool insertToHistory = true, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ChatCompletionsOptions chatOptions = PrepareForChatCompletion(input, insertToHistory);
+            Response<StreamingChatCompletions> response = await _client.GetChatCompletionsStreamingAsync(_activeModel.Deployment, chatOptions, cancellationToken);
+            return response.Value;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+    }
 }
