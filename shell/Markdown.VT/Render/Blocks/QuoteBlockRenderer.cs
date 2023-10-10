@@ -15,7 +15,7 @@ internal class QuoteBlockRenderer : VTObjectRenderer<QuoteBlock>
     protected override void Write(VTRenderer renderer, QuoteBlock obj)
     {
         renderer.EnsureLine();
-        renderer.PushIndentAndUpdateWidth($"  {QuoteChar} ");
+        renderer.PushIndentAndUpdateWidth($"{VTRenderer.DefaultIndent}{QuoteChar} ");
 
         renderer.WriteChildren(obj);
 

@@ -41,7 +41,6 @@ internal class MarkdownRender
         _stringWriter = new StringWriter();
         _visitor = new CodeBlockVisitor();
         _vtRender = new VTRenderer(_stringWriter, new PSMarkdownOptionInfo(), _visitor);
-        _vtRender.PushIndent("  ");
         _pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
     }
 
