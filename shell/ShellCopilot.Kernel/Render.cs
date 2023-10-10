@@ -362,11 +362,9 @@ internal partial class StreamingRender
 
         _currentText = newText;
 
-        // Wait for 50ms before refreshing again for the in-coming payload.
-        // TODO: 50ms interval makes it a little flashing when rendering code blocks because we usually
-        // rewrite a whole line when rendering updates in code blocks. Need to think about how to reduce
-        // the flashing, maybe use a very small interval (or no interval at all) when rendering a whole
-        // line.
+        // Wait for a short interval before refreshing again for the in-coming payload.
+        // We use a smaller interval (20ms) when rendering code blocks, so as to reduce the flashing when
+        // rewriting the whole line. Otherwise, we use the 50ms interval.
         Thread.Sleep(redoWholeLine ? 20 : 50);
     }
 
