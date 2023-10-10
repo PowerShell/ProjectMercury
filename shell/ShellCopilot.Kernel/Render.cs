@@ -310,10 +310,11 @@ internal partial class StreamingRender
 
         int newTextStartIndex = 0;
         var cursorStart = _initialCursor;
+        bool redoWholeLine = false;
 
         if (!string.IsNullOrEmpty(_currentText))
         {
-            int index = SameUpTo(newText);
+            int index = SameUpTo(newText, out redoWholeLine);
             newTextStartIndex = index + 1;
 
             // When the new text start exactly with the current text, we just continue to write.
@@ -366,7 +367,7 @@ internal partial class StreamingRender
         // rewrite a whole line when rendering updates in code blocks. Need to think about how to reduce
         // the flashing, maybe use a very small interval (or no interval at all) when rendering a whole
         // line.
-        Thread.Sleep(50);
+        Thread.Sleep(redoWholeLine ? 20 : 50);
     }
 
     /// <summary>
@@ -392,7 +393,7 @@ internal partial class StreamingRender
     /// Return the index up to which inclusively we consider the current text and the new text are the same.
     /// Note that, the return value can range from -1 (nothing is the same) to `cur_text.Length - 1` (all is the same).
     /// </summary>
-    private int SameUpTo(string newText)
+    private int SameUpTo(string newText, out bool redoWholeLine)
     {
         int i = 0;
         for (; i < _currentText.Length; i++)
@@ -404,38 +405,21 @@ internal partial class StreamingRender
         }
 
         int j = i - 1;
-        if (i < _currentText.Length && !char.IsWhiteSpace(_currentText[i]))
+        redoWholeLine = false;
+
+        if (i < _currentText.Length && _currentText.IndexOf("\x1b[0m", i, StringComparison.Ordinal) != -1)
         {
-            // When `i` points to a non-whitespace character, it could be in the middle of a VT escape sequence,
-            // which may happen when dealing with an incomplete code block -- VT decoration changes as new text
-            // received for the code block.
-            if (_currentText.IndexOf("\x1b[0m", i, StringComparison.Ordinal) != -1)
+            // When the portion to be re-written contains the 'RESET' sequence, it's safer to re-write the whole
+            // logical line because all existing color or font effect was already reset and so those decorations
+            // would be lost if we re-write from the middle of the logical line.
+            // Well, this assumes decorations always start fresh for a new logical line, which is truely the case
+            // for the code block syntax highlighting done by our Markdown VT render.
+            redoWholeLine = true;
+            for (; j >= 0; j--)
             {
-                // When the portion to be re-written contains the 'RESET' sequence, then it's safer to re-write
-                // the whole logical line because all existing color or font effect was already reset, so those
-                // decorations would be lost if we re-write at the middle of the logical line.
-                // Well, this assumes decorations always start fresh for a new logical line, which is truely the
-                // case for the code block syntax highlighting done by our Markdown VT render.
-                for (; j >= 0; j--)
+                if (_currentText[j] == '\n')
                 {
-                    if (_currentText[j] == '\n')
-                    {
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                // Otherwise, we will be less conservative -- we move backward to find the beginning of the word and
-                // then re-render that whole word.
-                // This is done by locating the first whitespace character going backward, and consider current text
-                // and the new text are the same up to that point.
-                for (; j >= 0; j--)
-                {
-                    if (char.IsWhiteSpace(_currentText[j]))
-                    {
-                        break;
-                    }
+                    break;
                 }
             }
         }
