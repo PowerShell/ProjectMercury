@@ -90,6 +90,11 @@ public class VTTableRenderer : VTObjectRenderer<Table>
 
         _myConsole.Profile.Width = consoleWidth - indentWidth;
         string result = _myConsole.ToAnsi(spectreTable);
+        if (OperatingSystem.IsWindows())
+        {
+            // Normalize line endings to be LF only.
+            result = result.Replace("\r\n", "\n", StringComparison.Ordinal);
+        }
 
         renderer.WriteLine();
         while (true)

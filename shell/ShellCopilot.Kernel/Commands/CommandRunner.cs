@@ -17,6 +17,7 @@ internal class CommandRunner
 
     internal void LoadBuiltInCommands(Shell shell)
     {
+        _commands.Add("cls", new ClearCommand());
         _commands.Add("code", new CodeCommand(shell));
         _commands.Add("help", new HelpCommand(shell));
         _commands.Add("exit", new ExitCommand(shell));

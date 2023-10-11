@@ -19,6 +19,9 @@ public sealed class VTRenderer : TextRendererBase<VTRenderer>
     private readonly List<int> _indentWidth;
     private readonly IVTRenderVisitor _visitor;
 
+    // The default indent is two space characters.
+    internal const string DefaultIndent = "  ";
+
     public VTRenderer(TextWriter writer, PSMarkdownOptionInfo optionInfo)
         : this(writer, optionInfo, visitor: null)
     {
@@ -57,6 +60,8 @@ public sealed class VTRenderer : TextRendererBase<VTRenderer>
         // Extension renderers
         ObjectRenderers.Add(new VTTableRenderer());
         // ObjectRenderers.Add(new LeafInlineRenderer());
+
+        PushIndentAndUpdateWidth(DefaultIndent);
     }
 
     /// <summary>

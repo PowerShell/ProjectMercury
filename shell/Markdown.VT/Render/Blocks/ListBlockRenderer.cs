@@ -22,7 +22,7 @@ internal class ListBlockRenderer : VTObjectRenderer<ListBlock>
         else
         {
             renderer.EnsureLine();
-            renderer.PushIndentAndUpdateWidth("  ");
+            renderer.PushIndentAndUpdateWidth(VTRenderer.DefaultIndent);
         }
 
         int index = 1;

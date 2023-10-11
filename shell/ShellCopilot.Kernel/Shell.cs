@@ -2,6 +2,7 @@ using Azure.AI.OpenAI;
 using Spectre.Console;
 using Microsoft.PowerShell;
 using ShellCopilot.Kernel.Commands;
+using System.Text;
 
 namespace ShellCopilot.Kernel;
 
@@ -79,7 +80,7 @@ internal class Shell
             (key, arg) =>
             {
                 PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert(":code copy");
+                PSConsoleReadLine.Insert("/code copy");
                 PSConsoleReadLine.AcceptLine();
             },
             "CopyCode",
@@ -99,17 +100,13 @@ internal class Shell
                 Console.Clear();
             }
 
-            // Write out the ASCII art text.
-            AnsiConsole.Write(new FigletText("Shell Copilot").LeftJustified().Color(Color.DarkGoldenrod));
-            AnsiConsole.Write(new Rule($"[yellow]AI for the command line[/]").RuleStyle("grey").LeftJustified());
-
             // Write out the active model information.
-            AnsiConsole.WriteLine();
+            AnsiConsole.WriteLine("\nShell Copilot (v0.1)");
             AnsiConsole.MarkupLine($"Using the model [green]{_config.ActiveModel}[/]:");
             _config.GetModelInUse().DisplayBackendInfo();
 
             // Write out help.
-            AnsiConsole.MarkupLine($"Type {ConsoleRender.FormatInlineCode(":help")} for instructions.");
+            AnsiConsole.MarkupLine($"Type {ConsoleRender.FormatInlineCode("/help")} for instructions.");
             AnsiConsole.WriteLine();
 
             // Set readline configuration.
@@ -161,8 +158,8 @@ internal class Shell
 
     private static void WriteChatDisabledWarning()
     {
-        string useCommand = ConsoleRender.FormatInlineCode($":{Utils.AppName} use");
-        string helpCommand = ConsoleRender.FormatInlineCode(":help");
+        string useCommand = ConsoleRender.FormatInlineCode($"/use");
+        string helpCommand = ConsoleRender.FormatInlineCode("/help");
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine(ConsoleRender.FormatWarning("Chat disabled due to the missing access key."));
@@ -199,6 +196,40 @@ internal class Shell
             AnsiConsole.MarkupLine(ConsoleRender.FormatWarning(warning));
             AnsiConsole.WriteLine();
         }
+    }
+
+    private async Task<string> PrintStreamingChatResponse(StreamingChatCompletions streamingChatCompletions)
+    {
+        var content = new StringBuilder();
+        var streamingRender = new StreamingRender();
+        using var response = streamingChatCompletions;
+
+        try
+        {
+            // Hide the cursor position when rendering the streaming response.
+            Console.CursorVisible = false;
+            await foreach (StreamingChatChoice choice in response.GetChoicesStreaming())
+            {
+                await foreach (ChatMessage message in choice.GetMessageStreaming())
+                {
+                    if (string.IsNullOrEmpty(message.Content))
+                    {
+                        continue;
+                    }
+
+                    content.Append(message.Content);
+                    string text = _mdRender.RenderText(content.ToString());
+                    streamingRender.Refresh(text);
+                }
+            }
+        }
+        finally
+        {
+            Console.CursorVisible = true;
+        }
+
+        Console.WriteLine();
+        return content.ToString();
     }
 
     internal void ExitShell()
@@ -238,6 +269,35 @@ internal class Shell
                 .StartAsync(
                     "[italic slowblink]Generating...[/]",
                     statusContext => _service.GetChatResponseAsync(prompt, insertToHistory, CancellationToken))
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            caps.Interactive = interactive;
+        }
+    }
+
+    internal async Task<StreamingChatCompletions> StreamingChatWithSnipperAsync(string prompt, bool insertToHistory, bool useStderr)
+    {
+        using var _ = useStderr ? ConsoleRender.UseErrorConsole() : null;
+        Capabilities caps = AnsiConsole.Profile.Capabilities;
+        bool interactive = caps.Interactive;
+
+        try
+        {
+            // When standard input is redirected, AnsiConsole's auto detection believes it's non-interactive,
+            // and thus doesn't render Status or Progress. However, redirected input should not affect the
+            // Status/Progress rendering as long as its output target, stderr or stdout, is not redirected.
+            caps.Interactive = true;
+
+            return await AnsiConsole
+                .Status()
+                .AutoRefresh(true)
+                .Spinner(AsciiLetterSpinner.Default)
+                .SpinnerStyle(new Style(Color.Olive))
+                .StartAsync(
+                    "[italic slowblink]Generating...[/]",
+                    statusContext => _service.GetStreamingChatResponseAsync(prompt, insertToHistory, CancellationToken))
                 .ConfigureAwait(false);
         }
         finally
@@ -312,7 +372,7 @@ internal class Shell
                 }
 
                 count++;
-                if (input.StartsWith(':'))
+                if (input.StartsWith('/'))
                 {
                     string commandLine = input[1..].Trim();
                     if (commandLine == string.Empty)
@@ -340,16 +400,12 @@ internal class Shell
                     continue;
                 }
 
-                ChatResponse response = await
-                    ChatWithSnipperAsync(
-                        input,
-                        insertToHistory: true,
-                        useStderr: false)
-                    .ConfigureAwait(false);
+                StreamingChatCompletions response = await
+                    StreamingChatWithSnipperAsync(input, insertToHistory: true, useStderr: false).ConfigureAwait(false);
 
                 if (response is not null)
                 {
-                    PrintChatResponse(response);
+                    await PrintStreamingChatResponse(response);
                 }
             }
             catch (ShellCopilotException e)

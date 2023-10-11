@@ -126,7 +126,7 @@ internal class ReadLine : IReadLineHelper
 
     public CommandCompletion CompleteInput(string input, int cursorIndex)
     {
-        if (!input.StartsWith(':') || cursorIndex is 0)
+        if (!input.StartsWith('/') || cursorIndex is 0)
         {
             return null;
         }
