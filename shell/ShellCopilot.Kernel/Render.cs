@@ -325,6 +325,35 @@ internal partial class StreamingRender
                 // Otherwise, calculate the cursor position for the next write.
                 string oldPlainText = GetPlainText(_currentText[..newTextStartIndex]);
                 cursorStart = ConvertOffsetToPoint(cursorStart, oldPlainText, oldPlainText.Length);
+
+                if (cursorStart.Y < 0)
+                {
+                    // This can only happen when we are streaming out a large table that spans over a buffer window.
+                    // Width of the columns for the table may change when new content arrives, so we sometimes need
+                    // to rewrite the whole table. When the beginning of the table already scrolls up off the window,
+                    // we will reach here in the code. In this case, we just pretend to write out rows of the new table
+                    // until we are at the first line of the terminal, and then we start to really write out the rest
+                    // of the new table.
+                    //
+                    // This is a simple implementation with the assumption that a row of the table always fits in a
+                    // single line on the terminal and always ends with a LF. It should be the case for our markdown
+                    // table VT render.
+                    int y = cursorStart.Y;
+                    for (int j = newTextStartIndex; j < newText.Length; j++)
+                    {
+                        if (newText[j] is '\n')
+                        {
+                            y += 1;
+                            if (y is 0)
+                            {
+                                newTextStartIndex = j + 1;
+                                break;
+                            }
+                        }
+                    }
+
+                    cursorStart = new Point(0, 0);
+                }
             }
 
             if (moveCursor)
