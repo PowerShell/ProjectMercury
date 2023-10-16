@@ -422,7 +422,11 @@ internal partial class StreamingRender
     private int SameUpTo(string newText, out bool redoWholeLine)
     {
         int i = 0;
-        for (; i < _currentText.Length; i++)
+
+        // Note that, `newText` is not necessarily longer than `_currentText`. After more chunks coming in, the trailing
+        // part of the raw text may now be considered a markdown structure and thus the new text may now be shorter than
+        // the current text.
+        for (; i < _currentText.Length && i < newText.Length; i++)
         {
             if (_currentText[i] != newText[i])
             {
