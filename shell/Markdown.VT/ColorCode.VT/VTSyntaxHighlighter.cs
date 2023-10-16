@@ -21,11 +21,10 @@ public class VTSyntaxHighlighter : CodeColorizerBase
     internal const string VTReset = "\x1b[0m";
     internal const string VTItalic = "\x1b[3m";
     internal const string VTBold = "\x1b[1m";
+    internal const string VTEraseRestOfLine = "\x1b[K";
 
-    private readonly string _plainTextForeground;
-    private readonly string _plainTextBackground;
-
-    private readonly ILanguage[] _loadedLanguages;
+    private readonly string _plainFgBgColors;
+    private readonly StringBuilder _buffer;
 
     /// <summary>
     /// Creates a <see cref="VTSyntaxHighlighter"/>, for creating VT decorated string to display Syntax Highlighted code.
@@ -35,36 +34,14 @@ public class VTSyntaxHighlighter : CodeColorizerBase
     public VTSyntaxHighlighter(StyleDictionary styles = null, ILanguageParser languageParser = null)
         : base(styles, languageParser)
     {
+        _buffer = new StringBuilder(capacity: 512);
+
         if (styles.TryGetValue(ScopeName.PlainText, out Style style))
         {
-            _plainTextForeground = style.Foreground.ToVTColor();
-            _plainTextBackground = style.Background.ToVTColor(isForeground: false);
+            string foreground = style.Foreground.ToVTColor();
+            string background = style.Background.ToVTColor(isForeground: false);
+            _plainFgBgColors = $"{foreground}{background}";
         }
-
-        _loadedLanguages = new ILanguage[0];
-    }
-
-    private TextWriter Writer { get; set; }
-
-    /// <summary>
-    /// Finds a loaded language by the specified identifier.
-    /// </summary>
-    public ILanguage FindLanguageById(string langId)
-    {
-        if (string.IsNullOrEmpty(langId))
-        {
-            return null;
-        }
-
-        foreach (ILanguage lang in _loadedLanguages)
-        {
-            if (lang.Id.ToLower() == langId.ToLower() || lang.HasAlias(langId))
-            {
-                return lang;
-            }
-        }
-
-        return Languages.FindById(langId);
     }
 
     /// <summary>
@@ -75,114 +52,147 @@ public class VTSyntaxHighlighter : CodeColorizerBase
     /// <returns>VT decorated string.</returns>
     public string GetVTString(string sourceCode, ILanguage language)
     {
-        var buffer = new StringBuilder(sourceCode.Length * 2);
-        buffer.Append(_plainTextForeground).Append(_plainTextBackground);
-
-        using (TextWriter writer = new StringWriter(buffer))
+        try
         {
-            Writer = writer;
-            languageParser.Parse(sourceCode, language, Write);
-            Writer.Flush();
-        }
+            // Normalize line endings to always be LF only.
+            sourceCode = sourceCode.Replace("\r\n", "\n");
+            _buffer.Append(_plainFgBgColors);
 
-        buffer.Append(VTReset);
-        return buffer.ToString();
-    }
-
-    protected override void Write(string parsedSourceCode, IList<Scope> scopes)
-    {
-        var styleInsertions = new List<TextInsertion>();
-
-        foreach (Scope scope in scopes)
-        {
-            GetStyleInsertionsForCapturedStyle(scope, styleInsertions);
-        }
-
-        styleInsertions.SortStable((x, y) => x.Index.CompareTo(y.Index));
-
-        int offset = 0;
-
-        foreach (TextInsertion styleInsertion in styleInsertions)
-        {
-            var text = parsedSourceCode.AsSpan(offset, styleInsertion.Index - offset);
-            Writer.Write(text);
-            if (string.IsNullOrEmpty(styleInsertion.Text))
+            // Only apply foreground and background colors when no language specified.
+            // Otherwise, render the code block based on the language.
+            if (language is null)
             {
-                BuildSpanForCapturedStyle(styleInsertion.Scope);
+                WriteText(sourceCode, inCapturedScope: false);
             }
             else
             {
-                Writer.Write(styleInsertion.Text);
+                languageParser.Parse(sourceCode, language, Write);
             }
-            offset = styleInsertion.Index;
-        }
 
-        Writer.Write(parsedSourceCode.AsSpan(offset));
+            return _buffer
+                .Append(VTEraseRestOfLine)
+                .Append(VTReset)
+                .ToString();
+        }
+        finally
+        {
+            _buffer.Clear();
+        }
     }
 
-    private void GetStyleInsertionsForCapturedStyle(Scope scope, ICollection<TextInsertion> styleInsertions)
+    protected override void Write(string sourceCode, IList<Scope> scopes)
     {
-        styleInsertions.Add(new TextInsertion
+        int offset = 0;
+        bool inCapturedScope = false;
+
+        if (scopes.Count > 0)
         {
-            Index = scope.Index,
-            Scope = scope
-        });
+            var styles = new List<TextInsertion>();
+            foreach (Scope scope in scopes)
+            {
+                GetStyleForCapturedScope(scope, styles, isChild: false);
+            }
+
+            styles.SortStable((x, y) => x.Index.CompareTo(y.Index));
+
+            foreach (TextInsertion style in styles)
+            {
+                var text = sourceCode.AsSpan(offset, style.Index - offset);
+                WriteText(text, inCapturedScope);
+
+                if (string.IsNullOrEmpty(style.Text))
+                {
+                    WriteCapturedStyle(style.Scope);
+                    inCapturedScope = true;
+                }
+                else
+                {
+                    _buffer.Append(style.Text);
+                    inCapturedScope = false;
+                }
+
+                offset = style.Index;
+            }
+        }
+
+        WriteText(sourceCode.AsSpan(offset), inCapturedScope);
+    }
+
+    private void WriteText(ReadOnlySpan<char> buffer, bool inCapturedScope)
+    {
+        if (buffer.IsEmpty)
+        {
+            return;
+        }
+
+        for (int i = 0; i < buffer.Length; i++)
+        {
+            char c = buffer[i];
+
+            if (c is '\n')
+            {
+                // Erase the rest of line so the rest of line can be redrawn with the default background color.
+                _buffer.Append(VTEraseRestOfLine);
+                _buffer.Append(c);
+
+                if (!inCapturedScope)
+                {
+                    // Write the default foreground and background colors right after a newline to make it possbile
+                    // to re-render part of the VT decorated code block from a newline character.
+                    // We only do this when we are not in a captured scope because the color settings should not be
+                    // interrupted within a captured scope.
+                    _buffer.Append(_plainFgBgColors);
+                }
+
+                continue;
+            }
+
+            _buffer.Append(c);
+        }
+    }
+
+    private void GetStyleForCapturedScope(Scope scope, ICollection<TextInsertion> styles, bool isChild)
+    {
+        styles.Add(new TextInsertion { Index = scope.Index, Scope = scope });
 
         foreach (Scope childScope in scope.Children)
         {
-            GetStyleInsertionsForCapturedStyle(childScope, styleInsertions);
+            GetStyleForCapturedScope(childScope, styles, isChild: true);
         }
 
-        styleInsertions.Add(new TextInsertion
+        if (!isChild)
         {
-            Index = scope.Index + scope.Length,
-            Text = $"{VTReset}{_plainTextForeground}{_plainTextBackground}"
-        });
+            styles.Add(new TextInsertion
+            {
+                Index = scope.Index + scope.Length,
+                Text = $"{VTReset}{_plainFgBgColors}"
+            });
+        }
     }
 
-    private void BuildSpanForCapturedStyle(Scope scope)
+    private void WriteCapturedStyle(Scope scope)
     {
-        string foreground = null;
-        string background = null;
-        bool italic = false;
-        bool bold = false;
-
-        if (Styles.Contains(scope.Name))
+        if (!Styles.TryGetValue(scope.Name, out Style style))
         {
-            Style style = Styles[scope.Name];
-
-            foreground = style.Foreground;
-            background = style.Background;
-            italic = style.Italic;
-            bold = style.Bold;
+            return;
         }
 
-        foreground ??= _plainTextForeground;
-        background ??= _plainTextBackground;
-
-        WriteVTDecoration(foreground, background, italic, bold);
-    }
-
-    private void WriteVTDecoration(string foreground = null, string background = null, bool italic = false, bool bold = false)
-    {
-        if (!string.IsNullOrWhiteSpace(foreground))
+        // To make the code block rendering have a consistent view, we should always use the same default background color.
+        // So, we do not use the background color definition here even if it's set. The syntax color setting should only
+        // cares about forground color and font effect.
+        if (!string.IsNullOrWhiteSpace(style.Foreground))
         {
-            Writer.Write(foreground.ToVTColor());
-        }
-        
-        if (!string.IsNullOrWhiteSpace(background))
-        {
-            Writer.Write(background.ToVTColor(isForeground: false));
+            _buffer.Append(style.Foreground.ToVTColor());
         }
 
-        if (italic)
+        if (style.Italic)
         {
-            Writer.Write(VTItalic);
+            _buffer.Append(VTItalic);
         }
 
-        if (bold)
+        if (style.Bold)
         {
-            Writer.Write(VTBold);
+            _buffer.Append(VTBold);
         }
     }
 }
