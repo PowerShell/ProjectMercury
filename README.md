@@ -11,7 +11,7 @@
 
 This is a repository of various A.I + Shell prototypes we have created to test out experiences and
 features. **ShellCopilot** is the latest and most finished prototype. It is a CLI tool that creates
-an interactive chat session with a registered Large Language Model. 
+an interactive chat session with a registered Large Language Model. Currently we are in a **Private Preview** state and everything is subject to change.
 
 ![GIF showing demo of ShellCopilot](./docs/media/ShellCopilotDemo.gif)
 
@@ -64,6 +64,12 @@ If you have separate Azure OpenAI endpoint you can use that instead of the one a
 To start a chat session with the LLM, simply run `aish` and it will open up a new session in your current window. You can also use `aish --use-alt-buffer` to open up a new chat session in the alternate screen buffer. 
 
 To explore the other options available to you, run `aish --help` to see all the subcommands.
+
+## Feedback
+
+We still in development and value any and all feedback! Please file an [issue in this repository](https://github.com/PowerShell/ShellCopilot/issues) for
+any bugs, suggestions and feedback. Any additional feedback can be sent to
+stevenbucher@microsoft.com.
 
 # PowerShell Copilot 
 
