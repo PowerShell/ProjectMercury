@@ -248,7 +248,7 @@ internal class Shell
         return model.Key is not null;
     }
 
-    internal async Task<ChatResponse> ChatWithSnipperAsync(string prompt, bool insertToHistory, bool useStderr)
+    internal async Task<ChatResponse> ChatWithSpinnerAsync(string prompt, bool insertToHistory, bool useStderr)
     {
         using var _ = useStderr ? ConsoleRender.UseErrorConsole() : null;
         Capabilities caps = AnsiConsole.Profile.Capabilities;
@@ -277,7 +277,7 @@ internal class Shell
         }
     }
 
-    internal async Task<StreamingChatCompletions> StreamingChatWithSnipperAsync(string prompt, bool insertToHistory, bool useStderr)
+    internal async Task<StreamingChatCompletions> StreamingChatWithSpinnerAsync(string prompt, bool insertToHistory, bool useStderr)
     {
         using var _ = useStderr ? ConsoleRender.UseErrorConsole() : null;
         Capabilities caps = AnsiConsole.Profile.Capabilities;
@@ -325,7 +325,7 @@ internal class Shell
         {
             ChatResponse response = Console.IsOutputRedirected && Console.IsErrorRedirected
                 ? await _service.GetChatResponseAsync(prompt, insertToHistory: false, CancellationToken).ConfigureAwait(false)
-                : await ChatWithSnipperAsync(prompt, insertToHistory: false, Console.IsOutputRedirected).ConfigureAwait(false);
+                : await ChatWithSpinnerAsync(prompt, insertToHistory: false, Console.IsOutputRedirected).ConfigureAwait(false);
 
             if (response is not null)
             {
@@ -401,7 +401,7 @@ internal class Shell
                 }
 
                 StreamingChatCompletions response = await
-                    StreamingChatWithSnipperAsync(input, insertToHistory: true, useStderr: false).ConfigureAwait(false);
+                    StreamingChatWithSpinnerAsync(input, insertToHistory: true, useStderr: false).ConfigureAwait(false);
 
                 if (response is not null)
                 {
