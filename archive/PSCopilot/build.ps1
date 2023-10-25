@@ -13,10 +13,9 @@ param (
 )
 
 try {
-    Write-Host "Building ShellCopilot..."
-    Push-Location "$PSScriptRoot/shell/ShellCopilot.App"
+    Push-Location "$PSScriptRoot/src/code"
 
-    $outPath = "$PSScriptRoot/out/ShellCopilot.App"
+    $outPath = "$PSScriptRoot/out/Microsoft.PowerShell.Copilot"
 
     if ($Clean) {
         if (Test-Path $outPath) {
@@ -28,8 +27,6 @@ try {
     }
 
     dotnet publish --output $outPath --configuration $Configuration
-    Write-Host "ShellCopilot built successfully, output path: $outPath"
-    
 }
 finally {
     Pop-Location
