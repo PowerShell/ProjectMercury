@@ -202,7 +202,7 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
             Utils.SetFilePermissions(ConfigFilePath, isDirectory: false);
         }
 
-        using var stream = new FileStream(ConfigFilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+        using var stream = new FileStream(ConfigFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
         var options = new JsonSerializerOptions
         {
             WriteIndented = true,
