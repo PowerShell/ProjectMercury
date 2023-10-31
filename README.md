@@ -1,14 +1,14 @@
-# ShellCopilot
+# Shell Copilot
 
 This is a repository of various A.I + Shell prototypes we have created to test out experiences and
-features. **ShellCopilot** is the latest and most finished prototype. It is a CLI tool that creates
+features. **Shell Copilot** is the latest and most finished prototype. It is a CLI tool that creates
 an interactive chat session with a registered Large Language Model. Currently we are in a **Private Preview** state and everything is subject to change.
 
-![GIF showing demo of ShellCopilot](./docs/media/ShellCopilotDemo.gif)
+![GIF showing demo of Shell Copilot](./docs/media/ShellCopilotDemo.gif)
 
-## Installing and Using ShellCopilot
+## Installing and Using Shell Copilot
 
-Here are the steps to install and use ShellCopilot.
+Here are the steps to install and use Shell Copilot.
 1. Clone this repository
 2. To build run `./build.ps1 -ShellCopilot` in the project's directory
 3. Add the `<path to project>/out/ShellCopilot.App` directory to your `$PATH` with `$env:PATH += <path to project>\out\ShellCopilot.App`
@@ -50,7 +50,7 @@ For the private preview we are letting users use a GPT-4 model at the
 If you have separate Azure OpenAI endpoint you can use that instead of the one above. Read more at
 [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=ps).
 
-## Using ShellCopilot
+## Using Shell Copilot
 
 To start a chat session with the LLM, simply run `aish` and it will open up a new session in your current window. You can also use `aish --use-alt-buffer` to open up a new chat session in the alternate screen buffer. 
 
