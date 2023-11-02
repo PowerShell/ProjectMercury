@@ -12,7 +12,13 @@ the input and output of LLMs.
 We hypothesize that in the far far future, users can be able to use A.I to use natural language as
 the new language for doing work on a computer. Although this may be an ambitious idea, if we can give
 enough capabilities for users to _stay_ in the interactive chat session of ShellCopilot and be
-able to get all their work done, that is an indicator of such a hypothesis.
+able to get all their work done, that is an indicator of such a hypothesis being correct.
+
+## Goals
+- Enable common shell interactions in the interactive chat of Shell Copilot
+- Enable common non-interactive scenarios for Shell Copilot
+- Give users enough capabilities for them to get all the work they need done in the interactive chat
+  session of Shell Copilot
 
 ## Interactions/Scenarios
 
@@ -24,6 +30,8 @@ able to use typical hotkeys and highlighting to copy and paste code responses fr
 Since responses may be giving more than one code block response, we need a way for users to choose
 which one to copy via hotkey or command.
 
+![Mock up showing copying code blocks for multiple code blocks](./media/ShellInteractions/CopyingHotkeyMockUp.png)
+
 Additionally since we also support commands run in the interactive chat, we can indicate which code
 block to copy via a parameter for indicating which one to dd
 ```
@@ -32,8 +40,6 @@ Code snippet 1 copied to clipboard.
 aish:2>/code copy 2
 Code snippet 2 copied to clipboard.
 ```
-
-![Mock up showing copying code blocks for multiple code blocks](./media/ShellInteractions/CopyingHotkeyMockUp.png)
 
 ### Command History
 
@@ -82,7 +88,7 @@ Using the model testendpoint:
 Type  /help  for instructions.
 aish:1>Can you translate these files to python versions of them?
 ```
-> Note for discussion: does it make sense for directory navigation to happen in this shell? Meaning we can `cd` and `ls` as expected in normal shell?
+> Note for discussion: does it make sense for directory navigation to happen in this shell? Meaning we can `cd` and `ls` work as expected in normal shell?
 
 ### Executing Response Code 
 
@@ -135,6 +141,12 @@ aish1:>/code edit 1
 Specify editor you want to use [code, vim, nano, emacs, notepad, etc]: code
 <opens in vscode>
 ```
+
+#### Editing in the Interactive Chat
+
+For an easier user experience it may make sense to allow users to edit code in the interactive chat
+instead of switching context to a different code editor. When users would hit the hotkey or command
+to edit code, we can open up a cli code editor in their shell with the code block already inserted.
 
 ### Redirection
 
