@@ -33,7 +33,8 @@ which one to copy via hotkey or command.
 ![Mock up showing copying code blocks for multiple code blocks](./media/ShellInteractions/CopyingHotkeyMockUp.png)
 
 Additionally since we also support commands run in the interactive chat, we can indicate which code
-block to copy via a parameter for indicating which one to dd
+block to copy via a parameter for indicating which one to copy.
+
 ```
 aish:2>/code copy 1
 Code snippet 1 copied to clipboard.
@@ -62,11 +63,15 @@ Non-interactive:
 PS>cat file.py | aish "explain what this file is doing"
 ```
 
-If we are to treat the `aish`` interactive chat similar to a normal shell, we need to give it a level
+- Allow users to use stdin as input for files
+- Allow users to be able to save output via stdout to files
+
+Interactive:
+
+If we are to treat the `aish` interactive chat similar to a normal shell, we need to give it a level
 of **directory awareness** so it can interact with the files in an easier natural language way. For
 example
 
-Interactive:
 ```powershell
 PS>Get-ChildItem
     Directory: /Users/stevenbucher/Documents/Testing/adapters
@@ -89,6 +94,57 @@ Type  /help  for instructions.
 aish:1>Can you translate these files to python versions of them?
 ```
 > Note for discussion: does it make sense for directory navigation to happen in this shell? Meaning we can `cd` and `ls` work as expected in normal shell?
+
+- Allow users to easily interact with files in current directory while in the interactive chat by specifying name
+- Have code save command for users to save results to files and specify the specific code block.
+
+```powershell
+aish:1> how do I sort objects from a list in powershell
+
+  In PowerShell, you can sort objects in a list using the  Sort-Object  cmdlet. Here's an example of how to do this:
+
+    # Create an array of objects
+    $exampleList = @(
+        [PSCustomObject]@{ Name = 'John'; Age = 25; City = 'New York' },
+        [PSCustomObject]@{ Name = 'Jane'; Age = 30; City = 'Los Angeles' },
+        [PSCustomObject]@{ Name = 'David'; Age = 35; City = 'Chicago' }
+    )
+
+    # Sort the list by the 'Age' property
+    $sortedList = $exampleList | Sort-Object -Property Age
+
+    # Output the sorted list
+    $sortedList
+
+  In this example, the  $exampleList  array contains three custom objects representing people with their names, ages, and
+ cities. We then use the  Sort-Object  cmdlet to sort the list by the 'Age' property and store the sorted list in the  $sortedList  variable. Finally, we output the sorted list to the console.
+
+  You can also sort by multiple properties:
+
+    # Sort the list by 'City' property first and then by 'Name' property
+    $sortedList = $exampleList | Sort-Object -Property City, Name
+
+  To sort in descending order, use the  -Descending  switch:
+
+    # Sort the list by 'Age' property in descending order
+    $sortedList = $exampleList | Sort-Object -Property Age -Descending
+
+aish:2>/code save 1 sort-object.ps1
+aish:3>/exit
+PS>cat sort-object.ps1
+# Create an array of objects
+$exampleList = @(
+    [PSCustomObject]@{ Name = 'John'; Age = 25; City = 'New York' },
+    [PSCustomObject]@{ Name = 'Jane'; Age = 30; City = 'Los Angeles' },
+    [PSCustomObject]@{ Name = 'David'; Age = 35; City = 'Chicago' }
+)
+
+# Sort the list by the 'Age' property
+$sortedList = $exampleList | Sort-Object -Property Age
+
+# Output the sorted list
+$sortedList
+```
 
 ### Executing Response Code 
 
