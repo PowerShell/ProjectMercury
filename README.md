@@ -44,7 +44,7 @@ To register an endpoint you can use the `aish register` subcommand.
 aish register --name <Name Of Model> --endpoint https://pscopilot.azure-api.net --key <Insert Key From Above Steps> --deployment gpt4 --openai-model gpt-4-0314 --system-prompt <Add Whatever System Prompt you want to guide the LLM>
 ```
 Here are better descriptions for the arguments for this command:
-- `--name` is your specific name of this model registration, we suggest using something that is easily identifiable. 
+- `--name` is your choice of name for the model registration, we suggest using something that is easily identifiable. Something like `default-model` could work or if you tailor the model to be a pro in python a name could be `python-model` etc. 
 - `--endpoint` currently we only support Azure OpenAI service endpoints but for the sake of the early private preview you can use `https://pscopilot.azure-api.net` and get the key from instructions above.
 - `--key` is the key you get from [steps above](#Getting-an-Azure-OpenAI-Endpoint-key)
 - `--deployment` is the name of the model being used in the backend, if you are using the private preview endpoint, be sure its value is `gpt4`
