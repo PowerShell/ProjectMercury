@@ -16,7 +16,7 @@ Here are the steps to install and use Shell Copilot.
 
 > Note: Depending on your OS directory paths may be `\` on Windows or `/` on Mac.
 
-## Getting an Azure OpenAI Endpoint
+## Getting an Azure OpenAI Endpoint Key
 
 Currently we only support Azure OpenAI LLM endpoints. We are currently hosting a internal only Azure
 OpenAI endpoint that you can get and use without getting your Azure OpenAI instance. This is for private preview purposes only.
@@ -43,9 +43,21 @@ To register an endpoint you can use the `aish register` subcommand.
 ```console
 aish register --name <Name Of Model> --endpoint https://pscopilot.azure-api.net --key <Insert Key From Above Steps> --deployment gpt4 --openai-model gpt-4-0314 --system-prompt <Add Whatever System Prompt you want to guide the LLM>
 ```
+Here are better descriptions for the arguments for this command:
+- `--name` is your choice of name for the model registration, we suggest using something that is easily identifiable. Something like `default-model` could work or if you tailor the model to be a pro in python a name could be `python-model` etc. 
+- `--endpoint` currently we only support Azure OpenAI service endpoints but for the sake of the early private preview you can use `https://pscopilot.azure-api.net` and get the key from instructions above.
+- `--key` is the key you get from [steps above](#Getting-an-Azure-OpenAI-Endpoint-key)
+- `--deployment` is the name of the model being used in the backend, if you are using the private preview endpoint, be sure its value is `gpt4`
+- `--openai-model` is the name of openai endpoint and version of it,  if you are using the private preview endpoint, the correct version is `gpt-4-0314`
+- `--SystemPrompt` is a simple system prompt or grounding mechanism for the calls to the endpoint, it can help guide the model to be specific to an area. We suggest doing something like:
 
-For the private preview we are letting users use a GPT-4 model at the
-`https://pscopilot.azure-api.net` with the above configurations.
+```
+You are an AI assistant with expertise in PowerShell, Azure, and the command line. Assume user is using the operating system "<INSERT OS>" unless otherwise specified. You are helpful, creative, clever, and very friendly. You always respond in the markdown format. You use the "code blocks" syntax from markdown to encapsulate any part in responses that's longer-format content such as code, poem, lyrics, etc
+```
+
+There are two other non-required flags you can use:
+- `--description` is a description of the custom AI model
+- `--trust-level` can be either `Public` or `Private`, current there is no difference between the two but eventually we see this being useful for models that are public models or models that are private to an enterprise customer.
 
 If you have separate Azure OpenAI endpoint you can use that instead of the one above. Read more at
 [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=ps).
