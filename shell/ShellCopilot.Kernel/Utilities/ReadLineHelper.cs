@@ -8,7 +8,7 @@ using ShellCopilot.Kernel.Commands;
 
 namespace ShellCopilot.Kernel;
 
-internal class ReadLine : IReadLineHelper
+internal class ReadLineHelper : IReadLineHelper
 {
     private readonly CommandRunner _cmdRunner;
     private readonly Comparison<CompletionResult> _comparison;
@@ -18,7 +18,7 @@ internal class ReadLine : IReadLineHelper
     private readonly Guid _predictorId;
     private readonly EnumerationOptions _enumerationOptions;
 
-    internal ReadLine(CommandRunner commandRunner)
+    internal ReadLineHelper(CommandRunner commandRunner)
     {
         _cmdRunner = commandRunner;
         _comparison = new(Compare);

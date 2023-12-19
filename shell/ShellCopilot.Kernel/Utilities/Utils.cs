@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using static ShellCopilot.Kernel.Interop;
 
 namespace ShellCopilot.Kernel;
 

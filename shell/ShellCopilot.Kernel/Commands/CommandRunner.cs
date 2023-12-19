@@ -8,14 +8,14 @@ internal class CommandRunner
 {
     private readonly Dictionary<string, CommandBase> _commands;
 
-    internal CommandRunner()
+    internal CommandRunner(Shell shell)
     {
         _commands = new(StringComparer.OrdinalIgnoreCase);
     }
 
     internal Dictionary<string, CommandBase> Commands => _commands;
 
-    internal void LoadBuiltInCommands(Shell shell)
+    private void LoadBuiltInCommands(Shell shell)
     {
         _commands.Add("cls", new ClearCommand());
         _commands.Add("code", new CodeCommand(shell));

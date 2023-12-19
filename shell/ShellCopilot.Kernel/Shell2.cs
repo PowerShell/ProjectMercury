@@ -1,134 +1,56 @@
-using System.Text;
-using System.Reflection;
-using Azure.AI.OpenAI;
-using Microsoft.PowerShell;
-using ShellCopilot.Abstraction;
-using ShellCopilot.Kernel.Commands;
+﻿using Azure.AI.OpenAI;
 using Spectre.Console;
+using Microsoft.PowerShell;
+using ShellCopilot.Kernel.Commands;
+using System.Text;
 
 namespace ShellCopilot.Kernel;
 
-internal class Shell
+/// <summary>
+/// This is a backup of the original implementation of Shell.
+/// </summary>
+internal class Shell2
 {
+    private const string ALTERNATE_SCREEN_BUFFER = "\x1b[?1049h";
+    private const string MAIN_SCREEN_BUFFER = "\x1b[?1049l";
+
     private readonly bool _interactive;
-    private readonly string _agentHome;
-    private readonly string _agentConfigHome;
-    private readonly List<ILLMAgent> _agents;
-    private readonly Stack<ILLMAgent> _stack;
-    private readonly Host _host;
-    private readonly MarkdownRender _markdownRender;
-    private readonly CommandRunner _commandRunner;
+    private readonly bool _useAlternateBuffer;
 
-    private bool _hasExited;
+    private readonly Pager _pager;
+    private readonly Configuration _config;
+    private readonly BackendService _service;
+    private readonly MarkdownRender _mdRender;
+    private readonly CommandRunner _cmdRunner;
+
+    private readonly Func<int, bool, string> _rlPrompt;
     private CancellationTokenSource _cancellationSource;
+    private bool _hasExited;
 
-    private bool ChatDisabled { get; set; }
-    private ILLMAgent ActiveAgent => _stack.TryPeek(out var agent) ? agent : null;
-
-    internal Host Host => _host;
-    internal MarkdownRender MarkdownRender => _markdownRender;
-    internal CommandRunner CommandRunner => _commandRunner;
-    internal CancellationToken CancellationToken => _cancellationSource.Token;
-
-    internal Shell(bool interactive, bool useAlternateBuffer = false, string historyFileNamePrefix = null)
+    internal Shell2(bool interactive, bool useAlternateBuffer = false, string historyFileNamePrefix = null)
     {
-        _agentHome = Path.Join(Utils.AppConfigHome, "agents");
-        _agentConfigHome = Path.Join(Utils.AppConfigHome, "agent-config");
+        _interactive = interactive;
+        _useAlternateBuffer = useAlternateBuffer;
 
-        _agents = new List<ILLMAgent>();
-        _stack = new Stack<ILLMAgent>();
-        _host = new Host();
-        _markdownRender = new MarkdownRender();
+        _pager = new Pager(interactive && useAlternateBuffer);
+        _config = Configuration.ReadFromConfigFile();
+        _service = new BackendService(_config, historyFileNamePrefix);
+        _mdRender = new MarkdownRender();
+        _cmdRunner = new CommandRunner();
+
+        _rlPrompt = ReadLinePrompt;
         _cancellationSource = new CancellationTokenSource();
 
-        ChatDisabled = false;
-        LoadAvailableAgents();
-        Console.CancelKeyPress += OnCancelKeyPress;
-
-        if (interactive)
-        {
-            _commandRunner = new CommandRunner(this);
-
-            // Write out the active model information.
-            AnsiConsole.WriteLine("\nShell Copilot (v0.1)");
-            if (ActiveAgent is not null)
-            {
-                AnsiConsole.MarkupLine($"Using the agent [green]{ActiveAgent.Name}[/]:");
-            }
-
-            // Write out help.
-            AnsiConsole.MarkupLine($"Type {ConsoleRender.FormatInlineCode("/help")} for instructions.");
-            AnsiConsole.WriteLine();
-
-            // Set readline configuration.
-            SetReadLineExperience();
-        }
+        InitializeShell();
     }
 
-    internal void LoadOneAgent(string pluginFile)
-    {
-        Assembly plugin = Assembly.LoadFrom(pluginFile);
-        foreach (Type type in plugin.ExportedTypes)
-        {
-            if (!typeof(ILLMAgent).IsAssignableFrom(type))
-            {
-                continue;
-            }
+    private bool ChatDisabled { get; set; }
 
-            var agent = (ILLMAgent)Activator.CreateInstance(type);
-            var agentHome = Path.Join(_agentConfigHome, agent.Name);
-            var config = new AgentConfig
-            {
-                ConfigurationRoot = Directory.CreateDirectory(agentHome).FullName,
-                RenderingStyle = Console.IsOutputRedirected
-                    ? RenderingStyle.FullResponsePreferred
-                    : RenderingStyle.StreamingResponsePreferred
-            };
-
-            agent.Initialize(config);
-            _agents.Add(agent);
-        }
-    }
-
-    private void LoadAvailableAgents()
-    {
-        // Create the folders if they don't exist.
-        Directory.CreateDirectory(_agentHome);
-        Directory.CreateDirectory(_agentConfigHome);
-
-        // Load all available agents.
-        foreach (string dir in Directory.EnumerateDirectories(_agentHome))
-        {
-            string name = Path.GetFileName(dir);
-            string file = Path.Join(dir, $"{name}.dll");
-
-            try
-            {
-                if (File.Exists(file))
-                {
-                    LoadOneAgent(file);
-                }
-            }
-            catch (Exception ex)
-            {
-                AnsiConsole.MarkupLine(ConsoleRender.FormatError($"Failed to load the agent '{name}': {ex.Message}"));
-            }
-        }
-
-        if (_agents.Count is 0)
-        {
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError($"No agent available."));
-        }
-        else
-        {
-            var chosenAgent = _host.PromptForSelection(
-                title: "Select the agent [green]to use[/]:",
-                choices: _agents,
-                converter: static a => a.Name);
-
-            _stack.Push(chosenAgent);
-        }
-    }
+    internal Configuration Configuration => _config;
+    internal BackendService BackendService => _service;
+    internal MarkdownRender MarkdownRender => _mdRender;
+    internal CommandRunner CommandRunner => _cmdRunner;
+    internal CancellationToken CancellationToken => _cancellationSource.Token;
 
     /// <summary>
     /// For reference:
@@ -151,10 +73,10 @@ internal class Shell
         }
     }
 
-    private void SetReadLineExperience()
+    private void ReadLineInitialization()
     {
         PSConsoleReadLineOptions options = PSConsoleReadLine.GetOptions();
-        options.RenderHelper = new ReadLineHelper(_commandRunner);
+        options.RenderHelper = new ReadLineHelper(_cmdRunner);
 
         PSConsoleReadLine.SetKeyHandler(
             new[] { "Ctrl+d,Ctrl+c" },
@@ -166,6 +88,54 @@ internal class Shell
             },
             "CopyCode",
             "Copy the code snippet from the last response to clipboard.");
+    }
+
+    private void InitializeShell()
+    {
+        ChatDisabled = false;
+        Console.CancelKeyPress += OnCancelKeyPress;
+
+        if (_interactive)
+        {
+            if (_useAlternateBuffer)
+            {
+                Console.Write(ALTERNATE_SCREEN_BUFFER);
+                Console.Clear();
+            }
+
+            // Write out the active model information.
+            AnsiConsole.WriteLine("\nShell Copilot (v0.1)");
+            AnsiConsole.MarkupLine($"Using the model [green]{_config.ActiveModel}[/]:");
+            _config.GetModelInUse().DisplayBackendInfo();
+
+            // Write out help.
+            AnsiConsole.MarkupLine($"Type {ConsoleRender.FormatInlineCode("/help")} for instructions.");
+            AnsiConsole.WriteLine();
+
+            // Set readline configuration.
+            ReadLineInitialization();
+
+            // Write out error or warning if pager cannot be resolved while using alternate buffer.
+            _pager.ReportAnyResolutionFailure();
+            _cmdRunner.LoadBuiltInCommands(null); // NOTE: was "LoadBuiltInCommands(this);"
+        }
+    }
+
+    private void CleanupShell(bool hadError = false)
+    {
+        if (_interactive && _useAlternateBuffer)
+        {
+            if (hadError)
+            {
+                string message = "Press any key to return to the main screen buffer ...";
+                AnsiConsole.Markup(ConsoleRender.FormatError(message, usePrefix: false));
+                AnsiConsole.Console.Input.ReadKey(intercept: true);
+            }
+
+            Console.Write(MAIN_SCREEN_BUFFER);
+        }
+
+        Console.CancelKeyPress -= OnCancelKeyPress;
     }
 
     private static string ReadLinePrompt(int count, bool chatDisabled)
@@ -214,13 +184,13 @@ internal class Shell
         else
         {
             // Render the markdown only if standard output is not redirected.
-            string text = _markdownRender.RenderText(response);
+            string text = _mdRender.RenderText(response);
             if (!Utils.LeadingWhiteSpaceHasNewLine(text))
             {
                 Console.WriteLine();
             }
 
-            Console.WriteLine(text);
+            _pager.WriteOutput(text);
         }
     }
 
@@ -256,7 +226,7 @@ internal class Shell
                     }
 
                     content.Append(message.Content);
-                    string text = _markdownRender.RenderText(content.ToString());
+                    string text = _mdRender.RenderText(content.ToString());
                     streamingRender.Refresh(text);
                 }
             }
@@ -286,6 +256,42 @@ internal class Shell
         return model.Key is not null;
     }
 
+    internal static async Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status = null)
+    {
+        if (Console.IsOutputRedirected && Console.IsErrorRedirected)
+        {
+            // Since both stdout and stderr are redirected, no need to use a spinner for the async call.
+            return await func().ConfigureAwait(false);
+        }
+
+        using var _ = Console.IsOutputRedirected ? ConsoleRender.UseErrorConsole() : null;
+        Capabilities caps = AnsiConsole.Profile.Capabilities;
+        bool interactive = caps.Interactive;
+
+        try
+        {
+            // When standard input is redirected, AnsiConsole's auto detection believes it's non-interactive,
+            // and thus doesn't render Status or Progress. However, redirected input should not affect the
+            // Status/Progress rendering as long as its output target, stderr or stdout, is not redirected.
+            caps.Interactive = true;
+            status ??= "Generating...";
+
+            return await AnsiConsole
+                .Status()
+                .AutoRefresh(true)
+                .Spinner(AsciiLetterSpinner.Default)
+                .SpinnerStyle(new Style(Color.Olive))
+                .StartAsync(
+                    $"[italic slowblink]{status.EscapeMarkup()}[/]",
+                    statusContext => func())
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            caps.Interactive = interactive;
+        }
+    }
+
     internal async Task RunOnceAsync(string prompt)
     {
         AiModel model = _config.GetModelInUse();
@@ -304,7 +310,7 @@ internal class Shell
         try
         {
             Task<ChatResponse> func() => _service.GetChatResponseAsync(prompt, insertToHistory: false, CancellationToken);
-            ChatResponse response = await _host.RunWithSpinnerAsync(func).ConfigureAwait(false);
+            ChatResponse response = await RunWithSpinnerAsync(func).ConfigureAwait(false);
 
             if (response is not null)
             {
@@ -319,6 +325,10 @@ internal class Shell
         {
             AnsiConsole.MarkupLine(ConsoleRender.FormatError(exception.Message));
         }
+        finally
+        {
+            CleanupShell();
+        }
     }
 
     internal async Task RunREPLAsync()
@@ -330,9 +340,12 @@ internal class Shell
         }
 
         int count = 1;
+        bool hadError = false;
+
         while (!_hasExited)
         {
-            string rlPrompt = ReadLinePrompt(count, ChatDisabled);
+            hadError = false;
+            string rlPrompt = _rlPrompt(count, ChatDisabled);
             AnsiConsole.Markup(rlPrompt);
 
             try
@@ -355,7 +368,7 @@ internal class Shell
 
                     try
                     {
-                        _commandRunner.InvokeCommand(commandLine);
+                        _cmdRunner.InvokeCommand(commandLine);
                     }
                     catch (Exception e)
                     {
@@ -373,7 +386,7 @@ internal class Shell
                 }
 
                 Task<StreamingChatCompletions> func() => _service.GetStreamingChatResponseAsync(input, insertToHistory: true, CancellationToken);
-                StreamingChatCompletions response = await _host.RunWithSpinnerAsync(func).ConfigureAwait(false);
+                StreamingChatCompletions response = await RunWithSpinnerAsync(func).ConfigureAwait(false);
 
                 if (response is not null)
                 {
@@ -385,9 +398,12 @@ internal class Shell
                 AnsiConsole.MarkupLine(ConsoleRender.FormatError(e.Message));
                 if (e.HandlerAction is ExceptionHandlerAction.Stop)
                 {
+                    hadError = true;
                     break;
                 }
             }
         }
+
+        CleanupShell(hadError);
     }
 }
