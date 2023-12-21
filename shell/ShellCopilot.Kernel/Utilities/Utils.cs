@@ -1,11 +1,11 @@
 using Markdig.Helpers;
+using ShellCopilot.Abstraction;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using static ShellCopilot.Kernel.Interop;
 
 namespace ShellCopilot.Kernel;
 
@@ -21,8 +21,11 @@ internal static class Utils
     internal const string ShellCopilotEndpoint = "https://pscopilot.azure-api.net";
     internal const string KeyApplicationHelpLink = "https://github.com/PowerShell/ShellCopilot#readme";
 
+    internal static readonly bool IsWindows;
     internal static readonly string OS;
-    internal static readonly string AppConfigHome;
+    internal static readonly string ShellConfigHome;
+    internal static readonly string AgentHome;
+    internal static readonly string AgentConfigHome;
 
     private static int? s_parentProcessId;
 
@@ -32,23 +35,36 @@ internal static class Utils
         int index = rid.IndexOf('-');
         OS = index is -1 ? rid : rid[..index];
 
-        bool isWindows = OperatingSystem.IsWindows();
-        string locationPath = isWindows
+        IsWindows = OperatingSystem.IsWindows();
+        string locationPath = IsWindows
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
             : Environment.GetEnvironmentVariable("HOME");
-        AppConfigHome = Path.Combine(locationPath, AppName);
 
-        if (!Directory.Exists(AppConfigHome))
+        ShellConfigHome = Path.Combine(locationPath, AppName);
+        AgentHome = Path.Join(ShellConfigHome, "agents");
+        AgentConfigHome = Path.Join(ShellConfigHome, "agent-config");
+
+        // Create the folders if they don't exist.
+        CreateFolderAndSetPermission(ShellConfigHome);
+        Directory.CreateDirectory(AgentHome);
+        Directory.CreateDirectory(AgentConfigHome);
+    }
+
+    private static void CreateFolderAndSetPermission(string dirPath)
+    {
+        if (Directory.Exists(dirPath))
         {
-            Directory.CreateDirectory(AppConfigHome);
-            if (isWindows)
-            {
-                SetDirectoryACLs(AppConfigHome);
-            }
-            else
-            {
-                SetFilePermissions(AppConfigHome, isDirectory: true);
-            }
+            return;
+        }
+
+        Directory.CreateDirectory(dirPath);
+        if (IsWindows)
+        {
+            SetDirectoryACLs(dirPath);
+        }
+        else
+        {
+            SetPermissions(dirPath, isDirectory: true);
         }
     }
 
@@ -144,7 +160,7 @@ internal static class Utils
             directorySecurity: dirSecurity);
     }
 
-    internal static void SetFilePermissions(string path, bool isDirectory)
+    internal static void SetPermissions(string path, bool isDirectory)
     {
         // Non-Windows platforms.
 

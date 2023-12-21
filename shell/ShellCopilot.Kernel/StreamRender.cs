@@ -31,19 +31,19 @@ internal partial class StreamRender : IStreamRender
         _accumulatedContent = string.Empty;
     }
 
-    string IStreamRender.AccumulatedContent => _accumulatedContent;
+    public string AccumulatedContent => _accumulatedContent;
 
-    void IStreamRender.Refresh(string newChunk)
+    public void Refresh(string newChunk)
     {
         // Stop rendering up on cancellation.
         _cancellationToken.ThrowIfCancellationRequested();
 
         _buffer.Append(newChunk);
         _accumulatedContent = _buffer.ToString();
-        Refresh(_markdownRender.RenderText(_accumulatedContent));
+        RefreshImpl(_markdownRender.RenderText(_accumulatedContent));
     }
 
-    private void Refresh(string newText)
+    private void RefreshImpl(string newText)
     {
         // Stop rendering up on cancellation.
         _cancellationToken.ThrowIfCancellationRequested();

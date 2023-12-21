@@ -16,9 +16,9 @@ internal class ShellProxy : IShellContext
 
     CancellationToken IShellContext.CancellationToken => _shell.CancellationToken;
 
-    void IShellContext.RenderFullResponse(string response) => _shell.RenderFullResponse(response);
+    void IShellContext.RenderFullResponse(string response) => _host.RenderFullResponse(response);
 
-    IStreamRender IShellContext.CreateStreamRender() => new StreamRender(_shell.MarkdownRender, _shell.CancellationToken);
+    IStreamRender IShellContext.CreateStreamRender() => _host.NewStreamRender(_shell.CancellationToken);
 
     Task<T> IShellContext.RunWithSpinnerAsync<T>(Func<Task<T>> func, string status) => _host.RunWithSpinnerAsync(func, status);
 }

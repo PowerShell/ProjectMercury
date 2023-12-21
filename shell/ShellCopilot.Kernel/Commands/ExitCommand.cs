@@ -15,7 +15,7 @@ namespace ShellCopilot.Kernel.Commands
 
         private void ExitAction()
         {
-            _shell.ExitShell();
+            _shell.Exit = true;
         }
     }
 }

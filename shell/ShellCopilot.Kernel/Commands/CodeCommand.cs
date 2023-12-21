@@ -30,7 +30,7 @@ namespace ShellCopilot.Kernel.Commands
 
         private string GetCodeText()
         {
-            List<string> code = _shell.MarkdownRender.GetAllCodeBlocks();
+            List<string> code = _shell.Host.MarkdownRender.GetAllCodeBlocks();
             if (code is not null && code.Count > 0)
             {
                 // Use LF as line ending to be consistent with the response from LLM.

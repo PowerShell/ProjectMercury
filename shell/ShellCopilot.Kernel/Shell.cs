@@ -1,4 +1,3 @@
-using System.Text;
 using System.Reflection;
 using Azure.AI.OpenAI;
 using Microsoft.PowerShell;
@@ -10,62 +9,56 @@ namespace ShellCopilot.Kernel;
 
 internal class Shell
 {
-    private readonly bool _interactive;
-    private readonly string _agentHome;
-    private readonly string _agentConfigHome;
-    private readonly List<ILLMAgent> _agents;
-    private readonly Stack<ILLMAgent> _stack;
-    private readonly Host _host;
-    private readonly MarkdownRender _markdownRender;
-    private readonly CommandRunner _commandRunner;
+    private readonly bool _isInteractive;
+    private readonly List<LLMAgent> _agents;
+    private readonly Stack<LLMAgent> _activeAgentStack;
 
-    private bool _hasExited;
     private CancellationTokenSource _cancellationSource;
+    private LLMAgent ActiveAgent => _activeAgentStack.TryPeek(out var agent) ? agent : null;
 
-    private bool ChatDisabled { get; set; }
-    private ILLMAgent ActiveAgent => _stack.TryPeek(out var agent) ? agent : null;
-
-    internal Host Host => _host;
-    internal MarkdownRender MarkdownRender => _markdownRender;
-    internal CommandRunner CommandRunner => _commandRunner;
+    internal bool Exit { set; get; }
+    internal Host Host { get; }
+    internal CommandRunner CommandRunner { get; }
     internal CancellationToken CancellationToken => _cancellationSource.Token;
 
     internal Shell(bool interactive, bool useAlternateBuffer = false, string historyFileNamePrefix = null)
     {
-        _agentHome = Path.Join(Utils.AppConfigHome, "agents");
-        _agentConfigHome = Path.Join(Utils.AppConfigHome, "agent-config");
-
-        _agents = new List<ILLMAgent>();
-        _stack = new Stack<ILLMAgent>();
-        _host = new Host();
-        _markdownRender = new MarkdownRender();
+        _isInteractive = interactive;
+        _agents = new List<LLMAgent>();
+        _activeAgentStack = new Stack<LLMAgent>();
         _cancellationSource = new CancellationTokenSource();
 
-        ChatDisabled = false;
+        Exit = false;
+        Host = new Host();
+
+        if (interactive)
+        {
+            Host.WriteLine("Shell Copilot (v0.1)");
+        }
+
         LoadAvailableAgents();
         Console.CancelKeyPress += OnCancelKeyPress;
 
         if (interactive)
         {
-            _commandRunner = new CommandRunner(this);
+            CommandRunner = new CommandRunner(this);
+            SetReadLineExperience();
 
-            // Write out the active model information.
-            AnsiConsole.WriteLine("\nShell Copilot (v0.1)");
-            if (ActiveAgent is not null)
-            {
-                AnsiConsole.MarkupLine($"Using the agent [green]{ActiveAgent.Name}[/]:");
-            }
+            // Write out information about the active agent.
+            Host.WriteMarkupLine(ActiveAgent is null
+                ? string.Empty
+                : $"\nUsing the agent [green]{ActiveAgent.Impl.Name}[/]:");
 
             // Write out help.
-            AnsiConsole.MarkupLine($"Type {ConsoleRender.FormatInlineCode("/help")} for instructions.");
-            AnsiConsole.WriteLine();
-
-            // Set readline configuration.
-            SetReadLineExperience();
+            Host.WriteMarkupLine($"Type {ConsoleRender.FormatInlineCode("/help")} for instructions.")
+                .WriteLine();
         }
     }
 
-    internal void LoadOneAgent(string pluginFile)
+    /// <summary>
+    /// Load a plugin assembly file and process the agents defined in it.
+    /// </summary>
+    internal void ProcessAgentPlugin(string pluginFile)
     {
         Assembly plugin = Assembly.LoadFrom(pluginFile);
         foreach (Type type in plugin.ExportedTypes)
@@ -76,9 +69,10 @@ internal class Shell
             }
 
             var agent = (ILLMAgent)Activator.CreateInstance(type);
-            var agentHome = Path.Join(_agentConfigHome, agent.Name);
+            var agentHome = Path.Join(Utils.AgentConfigHome, agent.Name);
             var config = new AgentConfig
             {
+                IsInteractive = _isInteractive,
                 ConfigurationRoot = Directory.CreateDirectory(agentHome).FullName,
                 RenderingStyle = Console.IsOutputRedirected
                     ? RenderingStyle.FullResponsePreferred
@@ -86,47 +80,54 @@ internal class Shell
             };
 
             agent.Initialize(config);
-            _agents.Add(agent);
+            _agents.Add(new LLMAgent(agent));
         }
     }
 
+    /// <summary>
+    /// Load all available agents.
+    /// </summary>
     private void LoadAvailableAgents()
     {
-        // Create the folders if they don't exist.
-        Directory.CreateDirectory(_agentHome);
-        Directory.CreateDirectory(_agentConfigHome);
-
-        // Load all available agents.
-        foreach (string dir in Directory.EnumerateDirectories(_agentHome))
+        foreach (string dir in Directory.EnumerateDirectories(Utils.AgentHome))
         {
             string name = Path.GetFileName(dir);
             string file = Path.Join(dir, $"{name}.dll");
 
+            if (!File.Exists(file))
+            {
+                continue;
+            }
+
             try
             {
-                if (File.Exists(file))
-                {
-                    LoadOneAgent(file);
-                }
+                ProcessAgentPlugin(file);
             }
             catch (Exception ex)
             {
-                AnsiConsole.MarkupLine(ConsoleRender.FormatError($"Failed to load the agent '{name}': {ex.Message}"));
+                Host.WriteErrorLine()
+                    .WriteErrorMarkupLine($"Failed to load the agent '{name}': {ex.Message}");
             }
         }
 
         if (_agents.Count is 0)
         {
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError($"No agent available."));
+            Host.WriteLine()
+                .WriteMarkupLine(ConsoleRender.FormatWarning($"No agent available."));
+            return;
         }
-        else
+
+        try
         {
-            var chosenAgent = _host.PromptForSelection(
+            LLMAgent chosenAgent = Host.PromptForSelection(
                 title: "Select the agent [green]to use[/]:",
                 choices: _agents,
-                converter: static a => a.Name);
-
-            _stack.Push(chosenAgent);
+                converter: static a => a.Impl.Name);
+            _activeAgentStack.Push(chosenAgent);
+        }
+        catch (Exception)
+        {
+            // Ignore failure from showing the confirmation prompt.
         }
     }
 
@@ -151,10 +152,13 @@ internal class Shell
         }
     }
 
+    /// <summary>
+    /// Configure the read-line experience.
+    /// </summary>
     private void SetReadLineExperience()
     {
         PSConsoleReadLineOptions options = PSConsoleReadLine.GetOptions();
-        options.RenderHelper = new ReadLineHelper(_commandRunner);
+        options.RenderHelper = new ReadLineHelper(CommandRunner);
 
         PSConsoleReadLine.SetKeyHandler(
             new[] { "Ctrl+d,Ctrl+c" },
@@ -168,172 +172,34 @@ internal class Shell
             "Copy the code snippet from the last response to clipboard.");
     }
 
-    private static string ReadLinePrompt(int count, bool chatDisabled)
+    private void RunCommand(string input)
     {
-        var indicator = chatDisabled ? ConsoleRender.FormatWarning(" ! ", usePrefix: false) : null;
-        return $"[bold green]aish[/]:{count}{indicator}> ";
-    }
-
-    private static string GetWarningBasedOnFinishReason(CompletionsFinishReason reason)
-    {
-        if (reason.Equals(CompletionsFinishReason.TokenLimitReached))
+        string commandLine = input[1..].Trim();
+        if (commandLine == string.Empty)
         {
-            return "The response may not be complete as the max token limit was exhausted.";
-        }
-
-        if (reason.Equals(CompletionsFinishReason.ContentFiltered))
-        {
-            return "The response is not complete as it was identified as potentially sensitive per content moderation policies.";
-        }
-
-        return null;
-    }
-
-    private static void WriteChatDisabledWarning()
-    {
-        string useCommand = ConsoleRender.FormatInlineCode($"/use");
-        string helpCommand = ConsoleRender.FormatInlineCode("/help");
-
-        AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine(ConsoleRender.FormatWarning("Chat disabled due to the missing access key."));
-        AnsiConsole.MarkupLine(ConsoleRender.FormatWarning($"Run {useCommand} to switch to a different model. Type {helpCommand} for more instructions."));
-        AnsiConsole.WriteLine();
-    }
-
-    internal void RenderFullResponse(string response)
-    {
-        if (string.IsNullOrWhiteSpace(response))
-        {
-            AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine(ConsoleRender.FormatNote("Received response is empty or contains whitespace only."));
-        }
-        else if (Console.IsOutputRedirected)
-        {
-            Console.WriteLine(response);
-        }
-        else
-        {
-            // Render the markdown only if standard output is not redirected.
-            string text = _markdownRender.RenderText(response);
-            if (!Utils.LeadingWhiteSpaceHasNewLine(text))
-            {
-                Console.WriteLine();
-            }
-
-            Console.WriteLine(text);
-        }
-    }
-
-    private void PrintChatResponse(ChatResponse response)
-    {
-        RenderFullResponse(response.Content);
-
-        string warning = GetWarningBasedOnFinishReason(response.FinishReason);
-        if (warning is not null)
-        {
-            AnsiConsole.MarkupLine(ConsoleRender.FormatWarning(warning));
-            AnsiConsole.WriteLine();
-        }
-    }
-
-    private async Task<string> PrintStreamingChatResponse(StreamingChatCompletions streamingChatCompletions)
-    {
-        var content = new StringBuilder();
-        var streamingRender = new StreamingRender();
-        using var response = streamingChatCompletions;
-
-        try
-        {
-            // Hide the cursor position when rendering the streaming response.
-            Console.CursorVisible = false;
-            await foreach (StreamingChatChoice choice in response.GetChoicesStreaming())
-            {
-                await foreach (ChatMessage message in choice.GetMessageStreaming())
-                {
-                    if (string.IsNullOrEmpty(message.Content))
-                    {
-                        continue;
-                    }
-
-                    content.Append(message.Content);
-                    string text = _markdownRender.RenderText(content.ToString());
-                    streamingRender.Refresh(text);
-                }
-            }
-        }
-        finally
-        {
-            Console.CursorVisible = true;
-        }
-
-        Console.WriteLine();
-        return content.ToString();
-    }
-
-    internal void ExitShell()
-    {
-        _hasExited = true;
-    }
-
-    internal bool EnsureKeyPresentForActiveModel()
-    {
-        AiModel model = _config.GetModelInUse();
-        if (model.Key is null && model.RequestForKey(mandatory: true, CancellationToken, showBackendInfo: false))
-        {
-            Configuration.WriteToConfigFile(_config);
-        }
-
-        return model.Key is not null;
-    }
-
-    internal async Task RunOnceAsync(string prompt)
-    {
-        AiModel model = _config.GetModelInUse();
-        if (model.Key is null)
-        {
-            string setCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} set");
-            string helpCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} set -h");
-
-            using var _ = ConsoleRender.UseErrorConsole();
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError($"Access key is missing for the active model '{model.Name}'."));
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError($"You can set the key by {setCommand}. Run {helpCommand} for details."));
-
+            Host.WriteMarkupLine(ConsoleRender.FormatError("Command is missing."));
             return;
         }
 
         try
         {
-            Task<ChatResponse> func() => _service.GetChatResponseAsync(prompt, insertToHistory: false, CancellationToken);
-            ChatResponse response = await _host.RunWithSpinnerAsync(func).ConfigureAwait(false);
-
-            if (response is not null)
-            {
-                PrintChatResponse(response);
-            }
+            CommandRunner.InvokeCommand(commandLine);
         }
-        catch (OperationCanceledException)
+        catch (Exception e)
         {
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError("Operation was aborted."));
-        }
-        catch (ShellCopilotException exception)
-        {
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError(exception.Message));
+            Host.WriteMarkupLine(ConsoleRender.FormatError(e.Message));
         }
     }
 
     internal async Task RunREPLAsync()
     {
-        if (!EnsureKeyPresentForActiveModel())
-        {
-            ChatDisabled = true;
-            WriteChatDisabledWarning();
-        }
-
         int count = 1;
-        while (!_hasExited)
+        while (!Exit)
         {
-            string rlPrompt = ReadLinePrompt(count, ChatDisabled);
-            AnsiConsole.Markup(rlPrompt);
+            LLMAgent agent = ActiveAgent;
+            string indicator = agent is null ? ConsoleRender.FormatWarning(" ! ", usePrefix: false) : null;
+            string prompt = $"[bold green]aish[/]:{count}{indicator}> ";
+            Host.WriteMarkupLine(prompt);
 
             try
             {
@@ -346,38 +212,114 @@ internal class Shell
                 count++;
                 if (input.StartsWith('/'))
                 {
-                    string commandLine = input[1..].Trim();
-                    if (commandLine == string.Empty)
+                    RunCommand(input);
+                    continue;
+                }
+
+                // Now it's a query to the LLM.
+                if (agent is null)
+                {
+                    // No agent to serve the query. Print the warning and go back to read-line prompt.
+                    string agentCommand = ConsoleRender.FormatInlineCode($"/agent use");
+                    string helpCommand = ConsoleRender.FormatInlineCode("/help");
+
+                    Host.WriteLine()
+                        .WriteMarkupLine(ConsoleRender.FormatWarning("No active agent selected, chat is disabled."))
+                        .WriteMarkupLine(ConsoleRender.FormatWarning($"Run {agentCommand} to select an agent. Type {helpCommand} for more instructions."))
+                        .WriteLine();
+                    continue;
+                }
+
+                if (agent.IsOrchestrator(out IOrchestrator orchestrator)
+                    && _activeAgentStack.Count is 1
+                    && !agent.OrchestratorRoleDisabled
+                    && _agents.Count > 1)
+                {
+                    Host.WriteMarkupLine($"The active agent [green]{agent.Impl.Name}[/] can act as an orchestrator and there are multiple agents available.");
+                    if (Host.PromptForConfirmation($"Do you want it to find the most suitable agent for your query?", defaultValue: false))
                     {
-                        AnsiConsole.MarkupLine(ConsoleRender.FormatError("Command is missing."));
+                        List<string> descriptions = new(capacity: _agents.Count);
+                        foreach (LLMAgent item in _agents)
+                        {
+                            descriptions.Add(item.Impl.Description);
+                        }
+
+                        try
+                        {
+                            Task<int> find_agent_op() => orchestrator.FindAgentForPrompt(
+                                prompt: input,
+                                agents: descriptions,
+                                token: CancellationToken).WaitAsync(CancellationToken);
+
+                            int selected = await Host.RunWithSpinnerAsync(find_agent_op, status: "Thinking...");
+                            string agentCommand = ConsoleRender.FormatInlineCode($"/agent pop");
+
+                            if (selected >= 0)
+                            {
+                                var selectedAgent = _agents[selected];
+                                _activeAgentStack.Push(selectedAgent);
+                                Host.WriteMarkupLine(ConsoleRender.FormatNote($"Selected agent: [green]{selectedAgent.Impl.Name}[/]"))
+                                    .WriteMarkupLine(ConsoleRender.FormatNote($"It's now active for your query. When you are done with the topic, run {agentCommand} to return to the orchestrator."));
+                            }
+                            else
+                            {
+                                _activeAgentStack.Push(agent);
+                                Host.WriteMarkupLine(ConsoleRender.FormatNote($"No suitable agent was found. The active agent [green]{agent.Impl.Name}[/] will be used for the topic."))
+                                    .WriteMarkupLine(ConsoleRender.FormatNote($"When you are done with the topic, run {agentCommand} to return to the orchestrator."));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            if (ex is OperationCanceledException)
+                            {
+                                // User cancelled the operation, so we return to the read-line prompt.
+                                continue;
+                            }
+
+                            agent.OrchestratorRoleDisabled = true;
+                            Host.WriteLine()
+                                .WriteMarkupLine(ConsoleRender.FormatError($"Operation failed: {ex.Message}"))
+                                .WriteLine()
+                                .WriteMarkupLine(ConsoleRender.FormatNote($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Name}[/] for the query."));
+                        }
+                    }
+                }
+
+                // Use the current active agent for the query.
+                agent = ActiveAgent;
+                ShellProxy shellProxy = new(this);
+
+                try
+                {
+                    if (!agent.SelfCheckSucceeded)
+                    {
+                        // Let the agent self check before using it. It's a chance for the agent to validate its
+                        // mandatory settings and maybe even configure the settings interactively with the user.
+                        agent.SelfCheckSucceeded = agent.Impl.SelfCheck(shellProxy);
+                    }
+
+                    if (agent.SelfCheckSucceeded)
+                    {
+                        await ActiveAgent.Impl.Chat(input, shellProxy).WaitAsync(CancellationToken);
+                    }
+                    else
+                    {
+                        Host.WriteLine()
+                            .WriteMarkupLine(ConsoleRender.FormatWarning("Agent self-check failed. Please resolve the issue as instructed and try again."))
+                            .WriteLine();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (ex is OperationCanceledException)
+                    {
+                        // User cancelled the operation, so we return to the read-line prompt.
                         continue;
                     }
 
-                    try
-                    {
-                        _commandRunner.InvokeCommand(commandLine);
-                    }
-                    catch (Exception e)
-                    {
-                        AnsiConsole.MarkupLine(ConsoleRender.FormatError(e.Message));
-                    }
-
-                    continue;
-                }
-
-                // Chat to the AI endpoint.
-                if (ChatDisabled)
-                {
-                    WriteChatDisabledWarning();
-                    continue;
-                }
-
-                Task<StreamingChatCompletions> func() => _service.GetStreamingChatResponseAsync(input, insertToHistory: true, CancellationToken);
-                StreamingChatCompletions response = await _host.RunWithSpinnerAsync(func).ConfigureAwait(false);
-
-                if (response is not null)
-                {
-                    await PrintStreamingChatResponse(response);
+                    Host.WriteErrorLine()
+                        .WriteErrorMarkupLine($"Agent failed to generate a response: {ex.Message}")
+                        .WriteErrorLine();
                 }
             }
             catch (ShellCopilotException e)
@@ -388,6 +330,34 @@ internal class Shell
                     break;
                 }
             }
+        }
+    }
+
+    internal async Task RunOnceAsync(string prompt)
+    {
+        if (ActiveAgent is null)
+        {
+            string settingCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} --settings");
+            string helpCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} --help");
+
+            Host.WriteErrorMarkupLine($"No active agent was configured.");
+            Host.WriteErrorMarkupLine($"Run {settingCommand} to configure the active agent. Run {helpCommand} for details.");
+
+            return;
+        }
+
+        try
+        {
+            ShellProxy shellProxy = new(this);
+            await ActiveAgent.Impl.Chat(prompt, shellProxy).WaitAsync(CancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            Host.WriteErrorMarkupLine("Operation was aborted.");
+        }
+        catch (ShellCopilotException exception)
+        {
+            Host.WriteErrorMarkupLine(exception.Message.EscapeMarkup());
         }
     }
 }

@@ -22,7 +22,7 @@ You are helpful, creative, clever, and very friendly.
 You always respond in the markdown format.
 You use the ""code blocks"" syntax from markdown to encapsulate any part in responses that's longer-format content such as code, poem, lyrics, etc.";
 
-        ConfigFilePath = Path.Combine(Utils.AppConfigHome, $"{Utils.AppName}.config.json");
+        ConfigFilePath = Path.Combine(Utils.ShellConfigHome, $"{Utils.AppName}.config.json");
     }
 
     public Configuration(List<AiModel> models, string activeModel)
@@ -199,7 +199,7 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
             // Non-Windows platform file permissions must be set individually.
             // Windows platform file ACLs are inherited from containing directory.
             using (File.Create(ConfigFilePath)) { }
-            Utils.SetFilePermissions(ConfigFilePath, isDirectory: false);
+            Utils.SetPermissions(ConfigFilePath, isDirectory: false);
         }
 
         using var stream = new FileStream(ConfigFilePath, FileMode.Create, FileAccess.Write, FileShare.None);

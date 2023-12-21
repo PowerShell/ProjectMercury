@@ -11,6 +11,7 @@ internal class CommandRunner
     internal CommandRunner(Shell shell)
     {
         _commands = new(StringComparer.OrdinalIgnoreCase);
+        LoadBuiltInCommands(shell);
     }
 
     internal Dictionary<string, CommandBase> Commands => _commands;

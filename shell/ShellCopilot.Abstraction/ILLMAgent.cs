@@ -9,6 +9,7 @@ public enum RenderingStyle
 
 public class AgentConfig
 {
+    public bool IsInteractive { set; get; }
     public string ConfigurationRoot { set; get; }
     public RenderingStyle RenderingStyle { set; get; }
 }
@@ -20,40 +21,22 @@ public interface ILLMAgent
     string SettingFile { get; }
 
     void Initialize(AgentConfig config);
+    bool SelfCheck(IShellContext shell);
     Task Chat(string input, IShellContext shell);
 }
 
 public interface IOrchestrator : ILLMAgent
 {
-    int FindAgentForPrompt(string prompt, List<string> agents);
+    /// <summary>
+    /// Find the most suitable agent to serve the prompt.
+    /// </summary>
+    /// <param name="prompt">User prompt to be send to the agent.</param>
+    /// <param name="agents">List of descriptions for each of the agents</param>
+    /// <returns>The index of the selected agent. Or -1 if none are suitable.</returns>
+    Task<int> FindAgentForPrompt(string prompt, List<string> agents, CancellationToken token);
 }
 
 public interface ICodeAnalyzer : ILLMAgent
 {
-    bool AnalyzeCode(List<string> codeBlocks, IShellContext shell, out string explanation);
-}
-
-internal static class LLMAgentExtension
-{
-    private static bool Is<T>(ILLMAgent obj, out T result) where T : ILLMAgent
-    {
-        if (obj is T value)
-        {
-            result = value;
-            return true;
-        }
-
-        result = default;
-        return false;
-    }
-
-    internal static bool IsOrchestrator(this ILLMAgent agent, out IOrchestrator orchestrator)
-    {
-        return Is<IOrchestrator>(agent, out orchestrator);
-    }
-
-    internal static bool IsCodeAnalyzer(this ILLMAgent agent, out ICodeAnalyzer analyzer)
-    {
-        return Is<ICodeAnalyzer>(agent, out analyzer);
-    }
+    Task<bool> AnalyzeCode(List<string> codeBlocks, IShellContext shell);
 }
