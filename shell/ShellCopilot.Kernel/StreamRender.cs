@@ -5,7 +5,30 @@ using System.Text.RegularExpressions;
 
 namespace ShellCopilot.Kernel;
 
-internal partial class StreamRender : IStreamRender
+internal partial class DummyStreamRender : IStreamRender
+{
+    private StringBuilder _buffer;
+    private CancellationToken _cancellationToken;
+
+    internal DummyStreamRender(CancellationToken token)
+    {
+        _buffer = new StringBuilder();
+        _cancellationToken = token;
+    }
+
+    public string AccumulatedContent => _buffer.ToString();
+
+    public void Refresh(string newChunk)
+    {
+        // Stop rendering up on cancellation.
+        _cancellationToken.ThrowIfCancellationRequested();
+
+        Console.Write(newChunk);
+        _buffer.Append(newChunk);
+    }
+}
+
+internal partial class FancyStreamRender : IStreamRender
 {
     internal const char ESC = '\x1b';
     internal static readonly Regex AnsiRegex = CreateAnsiRegex();
@@ -18,7 +41,7 @@ internal partial class StreamRender : IStreamRender
     private string _accumulatedContent;
     private CancellationToken _cancellationToken;
 
-    internal StreamRender(MarkdownRender markdownRender, CancellationToken token)
+    internal FancyStreamRender(MarkdownRender markdownRender, CancellationToken token)
     {
         _currentText = string.Empty;
         _bufferWidth = Console.BufferWidth;

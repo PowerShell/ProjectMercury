@@ -31,7 +31,7 @@ internal class ModelDetail
     internal static ModelDetail GPT4_32K = new(tokenLimit: 32_768, tokensPerMessage: 3, tokensPerName: 1);
     internal static ModelDetail GPT35_0301 = new(tokenLimit: 4_096, tokensPerMessage: 4, tokensPerName: -1);
     internal static ModelDetail GPT35_0613 = new(tokenLimit: 4_096, tokensPerMessage: 3, tokensPerName: 1);
-    internal static ModelDetail GPT35_16K = new(tokenLimit: 16_384, tokensPerMessage: 3, tokensPerName: 1);
+    internal static ModelDetail GPT35_16K = new(tokenLimit: 16_385, tokensPerMessage: 3, tokensPerName: 1);
 
     internal int TokenLimit { get; }
     internal int TokensPerMessage { get; }

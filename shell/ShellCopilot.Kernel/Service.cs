@@ -180,13 +180,6 @@ internal class BackendService
         return chatOptions;
     }
 
-    public ChatResponse GetChatResponse(string input, bool insertToHistory = true)
-    {
-        ChatCompletionsOptions chatOptions = PrepareForChatCompletion(input, insertToHistory);
-        Response<ChatCompletions> response = _client.GetChatCompletions(_activeModel.Deployment, chatOptions);
-        return new ChatResponse(response.Value.Choices[0]);
-    }
-
     public async Task<ChatResponse> GetChatResponseAsync(string input, bool insertToHistory = true, CancellationToken cancellationToken = default)
     {
         try

@@ -3,6 +3,20 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+
+	<PackageId>ShellCopilot.Abstraction</PackageId>
+	<Version>0.1.0</Version>
+	<Authors>Microsoft</Authors>
+	<Company>Your Company</Company>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
+	<Description>The abstraction layer SDK for building a plugin agent for Shell Copilot.</Description>
+	<PackageReadmeFile>readme.md</PackageReadmeFile>
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
+
+  <ItemGroup>
+	<None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
 </Project>

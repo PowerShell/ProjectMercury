@@ -119,10 +119,14 @@ internal class Shell
 
         try
         {
-            LLMAgent chosenAgent = Host.PromptForSelection(
-                title: "Select the agent [green]to use[/]:",
-                choices: _agents,
-                converter: static a => a.Impl.Name);
+            LLMAgent chosenAgent = Host
+                .PromptForSelectionAsync(
+                    title: "Select the agent [green]to use[/]:",
+                    choices: _agents,
+                    cancellationToken: default,
+                    converter: static a => a.Impl.Name)
+                .GetAwaiter().GetResult();
+
             _activeAgentStack.Push(chosenAgent);
         }
         catch (Exception)
@@ -236,7 +240,12 @@ internal class Shell
                     && _agents.Count > 1)
                 {
                     Host.WriteMarkupLine($"The active agent [green]{agent.Impl.Name}[/] can act as an orchestrator and there are multiple agents available.");
-                    if (Host.PromptForConfirmation($"Do you want it to find the most suitable agent for your query?", defaultValue: false))
+                    bool confirmed = await Host.PromptForConfirmationAsync(
+                        prompt: $"Do you want it to find the most suitable agent for your query?",
+                        cancellationToken: default,
+                        defaultValue: false);
+
+                    if (confirmed)
                     {
                         List<string> descriptions = new(capacity: _agents.Count);
                         foreach (LLMAgent item in _agents)
@@ -280,7 +289,7 @@ internal class Shell
                             Host.WriteLine()
                                 .WriteMarkupLine(ConsoleRender.FormatError($"Operation failed: {ex.Message}"))
                                 .WriteLine()
-                                .WriteMarkupLine(ConsoleRender.FormatNote($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Name}[/] for the query."));
+                                .WriteMarkupLine(ConsoleRender.FormatNote($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Impl.Name}[/] for the query."));
                         }
                     }
                 }
@@ -295,12 +304,12 @@ internal class Shell
                     {
                         // Let the agent self check before using it. It's a chance for the agent to validate its
                         // mandatory settings and maybe even configure the settings interactively with the user.
-                        agent.SelfCheckSucceeded = agent.Impl.SelfCheck(shellProxy);
+                        agent.SelfCheckSucceeded = await agent.Impl.SelfCheck(shellProxy);
                     }
 
                     if (agent.SelfCheckSucceeded)
                     {
-                        await ActiveAgent.Impl.Chat(input, shellProxy).WaitAsync(CancellationToken);
+                        await agent.Impl.Chat(input, shellProxy).WaitAsync(CancellationToken);
                     }
                     else
                     {

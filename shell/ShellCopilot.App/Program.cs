@@ -78,11 +78,9 @@ internal class Program
 
         if (Console.IsInputRedirected || Console.IsOutputRedirected || Console.IsErrorRedirected)
         {
-            using var _ = ConsoleRender.UseErrorConsole();
-
-            AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError("Cannot run interactively when the stdin, stdout, or stderr is redirected."));
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError("To run non-interactively, specify the <query> argument and try again."));
+            Console.Error.WriteLine();
+            Console.Error.WriteLine("Cannot run interactively when the stdin, stdout, or stderr is redirected.");
+            Console.Error.WriteLine("To run non-interactively, specify the <query> argument and try again.");
             return;
         }
 

@@ -1,5 +1,6 @@
 ﻿
 using SharpToken;
+using ShellCopilot.Abstraction;
 using Spectre.Console;
 
 namespace ShellCopilot.Kernel;
@@ -9,6 +10,7 @@ internal class Host
     private readonly bool _inputRedirected;
     private readonly bool _outputRedirected;
     private readonly bool _errorRedirected;
+    private readonly IAnsiConsole _stderrConsole;
 
     internal MarkdownRender MarkdownRender { get; }
 
@@ -17,8 +19,16 @@ internal class Host
         _inputRedirected = Console.IsInputRedirected;
         _outputRedirected = Console.IsOutputRedirected;
         _errorRedirected = Console.IsErrorRedirected;
+        _stderrConsole = AnsiConsole.Create(
+            new AnsiConsoleSettings
+            {
+                Ansi = AnsiSupport.Detect,
+                ColorSystem = ColorSystemSupport.Detect,
+                Out = new AnsiConsoleOutput(Console.Error),
+            }
+        );
 
-        MarkdownRender = new MarkdownRender();
+        MarkdownRender = new MarkdownRender();   
     }
 
     /// <summary>
@@ -53,26 +63,43 @@ internal class Host
     /// </summary>
     internal Host WriteErrorMarkupLine(string value)
     {
-        using var _ = ConsoleRender.UseErrorConsole();
-        AnsiConsole.MarkupLine($"[bold red]ERROR: {value}[/]");
+        if (string.IsNullOrEmpty(value))
+        {
+            Console.Error.WriteLine();
+        }
+        else
+        {
+            _stderrConsole.MarkupLine($"[bold red]ERROR: {value}[/]");
+        }
+
         return this;
     }
 
-    internal StreamRender NewStreamRender(CancellationToken cancellationToken)
+    /// <summary>
+    /// Create a new instance of the <see cref="IStreamRender"/>.
+    /// If the stdout is redirected, the returned render will simply write the raw chunks out.
+    /// </summary>
+    internal IStreamRender NewStreamRender(CancellationToken cancellationToken)
     {
-        return new StreamRender(MarkdownRender, cancellationToken);
+        return _outputRedirected
+            ? new DummyStreamRender(cancellationToken)
+            : new FancyStreamRender(MarkdownRender, cancellationToken);
     }
 
+    /// <summary>
+    /// Render the response as markdown and write to the standard output.
+    /// If the stdout is redirected, the raw response will be written out as is.
+    /// </summary>
     internal void RenderFullResponse(string response)
     {
         if (string.IsNullOrWhiteSpace(response))
         {
-            AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine(ConsoleRender.FormatNote("Received response is empty or contains whitespace only."));
+            WriteLine();
+            WriteMarkupLine(ConsoleRender.FormatNote("Received response is empty or contains whitespace only."));
         }
-        else if (Console.IsOutputRedirected)
+        else if (_outputRedirected)
         {
-            Console.WriteLine(response);
+            WriteLine(response);
         }
         else
         {
@@ -80,50 +107,16 @@ internal class Host
             string text = MarkdownRender.RenderText(response);
             if (!Utils.LeadingWhiteSpaceHasNewLine(text))
             {
-                Console.WriteLine();
+                WriteLine();
             }
 
-            Console.WriteLine(text);
+            WriteLine(text);
         }
     }
 
-    internal async Task RunWithSpinnerAsync(Func<Task> func, string status = null)
-    {
-        if (_outputRedirected && _errorRedirected)
-        {
-            // Since both stdout and stderr are redirected, no need to use a spinner for the async call.
-            await func().ConfigureAwait(false);
-            return;
-        }
-
-        using var _ = _outputRedirected ? ConsoleRender.UseErrorConsole() : null;
-        Capabilities caps = AnsiConsole.Profile.Capabilities;
-        bool interactive = caps.Interactive;
-
-        try
-        {
-            // When standard input is redirected, AnsiConsole's auto detection believes it's non-interactive,
-            // and thus doesn't render Status or Progress. However, redirected input should not affect the
-            // Status/Progress rendering as long as its output target, stderr or stdout, is not redirected.
-            caps.Interactive = true;
-            status ??= "Generating...";
-
-            await AnsiConsole
-                .Status()
-                .AutoRefresh(true)
-                .Spinner(AsciiLetterSpinner.Default)
-                .SpinnerStyle(new Style(Color.Olive))
-                .StartAsync(
-                    $"[italic slowblink]{status.EscapeMarkup()}[/]",
-                    statusContext => func())
-                .ConfigureAwait(false);
-        }
-        finally
-        {
-            caps.Interactive = interactive;
-        }
-    }
-
+    /// <summary>
+    /// Run the given task <paramref name="func"/> while showing a spinner.
+    /// </summary>
     internal async Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status = null)
     {
         if (_outputRedirected && _errorRedirected)
@@ -132,8 +125,8 @@ internal class Host
             return await func().ConfigureAwait(false);
         }
 
-        using var _ = _outputRedirected ? ConsoleRender.UseErrorConsole() : null;
-        Capabilities caps = AnsiConsole.Profile.Capabilities;
+        IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
+        Capabilities caps = ansiConsole.Profile.Capabilities;
         bool interactive = caps.Interactive;
 
         try
@@ -144,7 +137,7 @@ internal class Host
             caps.Interactive = true;
             status ??= "Generating...";
 
-            return await AnsiConsole
+            return await ansiConsole
                 .Status()
                 .AutoRefresh(true)
                 .Spinner(AsciiLetterSpinner.Default)
@@ -160,45 +153,9 @@ internal class Host
         }
     }
 
-    internal T PromptForSelection<T>(string title, IEnumerable<T> choices, Func<T, string> converter = null)
-    {
-        string operation = "prompt for selection";
-        RequireStdin(operation);
-        RequireStdoutOrStderr(operation);
-
-        if (choices is null || !choices.Any())
-        {
-            throw new ArgumentException("No choice was specified.", nameof(choices));
-        }
-
-        using var _ = _outputRedirected ? ConsoleRender.UseErrorConsole() : null;
-        title ??= "Please select from the below list:";
-        converter ??= static t => t is string str ? str : t.ToString();
-
-        return AnsiConsole.Prompt(
-            new SelectionPrompt<T>()
-                .Title(title)
-                .PageSize(10)
-                .UseConverter(converter)
-                .MoreChoicesText("[grey](Move up and down to see more choices)[/]")
-                .AddChoices(choices));
-    }
-
-    internal bool PromptForConfirmation(string prompt, bool defaultValue)
-    {
-        string operation = "prompt for confirmation";
-        RequireStdin(operation);
-        RequireStdoutOrStderr(operation);
-
-        if (string.IsNullOrEmpty(prompt))
-        {
-            throw new ArgumentException("A prompt string is required.", nameof(prompt));
-        }
-
-        using var _ = _outputRedirected ? ConsoleRender.UseErrorConsole() : null;
-        return AnsiConsole.Confirm(prompt, defaultValue);
-    }
-
+    /// <summary>
+    /// Prompt for selection asynchronously.
+    /// </summary>
     internal async Task<T> PromptForSelectionAsync<T>(string title, IEnumerable<T> choices, CancellationToken cancellationToken, Func<T, string> converter = null)
     {
         string operation = "prompt for selection";
@@ -210,7 +167,7 @@ internal class Host
             throw new ArgumentException("No choice was specified.", nameof(choices));
         }
 
-        using var _ = _outputRedirected ? ConsoleRender.UseErrorConsole() : null;
+        IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
         title ??= "Please select from the below list:";
         converter ??= static t => t is string str ? str : t.ToString();
 
@@ -221,47 +178,50 @@ internal class Host
             .MoreChoicesText("[grey](Move up and down to see more choices)[/]")
             .AddChoices(choices);
 
-        return await selection.ShowAsync(AnsiConsole.Console, cancellationToken).ConfigureAwait(false);
+        return await selection.ShowAsync(ansiConsole, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Prompt for confirmation asynchronously.
+    /// </summary>
     internal async Task<bool> PromptForConfirmationAsync(string prompt, CancellationToken cancellationToken, bool defaultValue = true)
     {
+        ArgumentException.ThrowIfNullOrEmpty(prompt);
         string operation = "prompt for confirmation";
+
         RequireStdin(operation);
         RequireStdoutOrStderr(operation);
 
-        if (string.IsNullOrEmpty(prompt))
-        {
-            throw new ArgumentException("A prompt string is required.", nameof(prompt));
-        }
+        IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
+        var confirmation = new ConfirmationPrompt(prompt) { DefaultValue = defaultValue };
 
-        using var _ = _outputRedirected ? ConsoleRender.UseErrorConsole() : null;
-        var confirmation = new ConfirmationPrompt(prompt)
-        {
-            DefaultValue = defaultValue
-        };
-
-        return await confirmation.ShowAsync(AnsiConsole.Console, cancellationToken).ConfigureAwait(false);
+        return await confirmation.ShowAsync(ansiConsole, cancellationToken).ConfigureAwait(false);
     }
 
-    internal async Task<string> PromptForSecret(string prompt, CancellationToken cancellationToken)
+    /// <summary>
+    /// Prompt for secret asynchronously.
+    /// </summary>
+    internal async Task<string> PromptForSecretAsync(string prompt, CancellationToken cancellationToken)
     {
+        ArgumentException.ThrowIfNullOrEmpty(prompt);
         string operation = "prompt for secret";
+
         RequireStdin(operation);
         RequireStdoutOrStderr(operation);
 
-        if (string.IsNullOrEmpty(prompt))
-        {
-            throw new ArgumentException("A prompt string is required.", nameof(prompt));
-        }
-
+        IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
         return await new TextPrompt<string>(prompt)
             .PromptStyle(Color.Red)
             .Secret()
-            .ShowAsync(AnsiConsole.Console, cancellationToken)
+            .ShowAsync(ansiConsole, cancellationToken)
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Throw exception if standard input is redirected.
+    /// </summary>
+    /// <param name="operation">The intended operation.</param>
+    /// <exception cref="InvalidOperationException">Throw the exception if stdin is redirected.</exception>
     private void RequireStdin(string operation)
     {
         if (_inputRedirected)
@@ -270,6 +230,11 @@ internal class Host
         }
     }
 
+    /// <summary>
+    /// Throw exception if both standard output and error are redirected.
+    /// </summary>
+    /// <param name="operation">The intended operation.</param>
+    /// <exception cref="InvalidOperationException">Throw the exception if stdout and stderr are both redirected.</exception>
     private void RequireStdoutOrStderr(string operation)
     {
         if (_outputRedirected && _errorRedirected)

@@ -21,7 +21,7 @@ public interface ILLMAgent
     string SettingFile { get; }
 
     void Initialize(AgentConfig config);
-    bool SelfCheck(IShellContext shell);
+    Task<bool> SelfCheck(IShellContext shell);
     Task Chat(string input, IShellContext shell);
 }
 
