@@ -1,5 +1,4 @@
 using System.Reflection;
-using Azure.AI.OpenAI;
 using Microsoft.PowerShell;
 using ShellCopilot.Abstraction;
 using ShellCopilot.Kernel.Commands;
@@ -7,20 +6,29 @@ using Spectre.Console;
 
 namespace ShellCopilot.Kernel;
 
-internal class Shell
+internal sealed class Shell : IShell
 {
     private readonly bool _isInteractive;
     private readonly List<LLMAgent> _agents;
     private readonly Stack<LLMAgent> _activeAgentStack;
-
     private CancellationTokenSource _cancellationSource;
-    private LLMAgent ActiveAgent => _activeAgentStack.TryPeek(out var agent) ? agent : null;
 
+    private LLMAgent ActiveAgent => _activeAgentStack.TryPeek(out var agent) ? agent : null;
     internal bool Exit { set; get; }
     internal Host Host { get; }
     internal CommandRunner CommandRunner { get; }
     internal CancellationToken CancellationToken => _cancellationSource.Token;
 
+    #region IShell implementation
+
+    IHost IShell.Host => Host;
+    CancellationToken IShell.CancellationToken => _cancellationSource.Token;
+
+    #endregion IShell implementation
+
+    /// <summary>
+    /// Creates an instance of <see cref="Shell"/>.
+    /// </summary>
     internal Shell(bool interactive, bool useAlternateBuffer = false, string historyFileNamePrefix = null)
     {
         _isInteractive = interactive;
@@ -33,7 +41,9 @@ internal class Shell
 
         if (interactive)
         {
-            Host.WriteLine("Shell Copilot (v0.1)");
+            Host.WriteLine("Shell Copilot (v0.1)\n");
+            CommandRunner = new CommandRunner(this);
+            SetReadLineExperience();
         }
 
         LoadAvailableAgents();
@@ -41,18 +51,26 @@ internal class Shell
 
         if (interactive)
         {
-            CommandRunner = new CommandRunner(this);
-            SetReadLineExperience();
-
             // Write out information about the active agent.
-            Host.WriteMarkupLine(ActiveAgent is null
-                ? string.Empty
-                : $"\nUsing the agent [green]{ActiveAgent.Impl.Name}[/]:");
+            var current = ActiveAgent?.Impl;
+            if (current is not null)
+            {
+                Host.MarkupLine($"Using the agent [green]{current.Name}[/]:\n[italic]{current.Description.EscapeMarkup()}[/]\n");
+            }
 
             // Write out help.
-            Host.WriteMarkupLine($"Type {ConsoleRender.FormatInlineCode("/help")} for instructions.")
+            Host.MarkupLine($"Type {ConsoleRender.FormatInlineCode("/help")} for instructions.")
                 .WriteLine();
         }
+    }
+
+    /// <summary>
+    /// Get all code blocks from the last LLM response.
+    /// </summary>
+    /// <returns></returns>
+    internal List<string> GetCodeBlockFromLastResponse()
+    {
+        return Host.MarkdownRender.GetAllCodeBlocks();
     }
 
     /// <summary>
@@ -89,6 +107,12 @@ internal class Shell
     /// </summary>
     private void LoadAvailableAgents()
     {
+        //while (!System.Diagnostics.Debugger.IsAttached)
+        //{
+        //    Thread.Sleep(200);
+        //}
+        //System.Diagnostics.Debugger.Break();
+
         foreach (string dir in Directory.EnumerateDirectories(Utils.AgentHome))
         {
             string name = Path.GetFileName(dir);
@@ -105,15 +129,13 @@ internal class Shell
             }
             catch (Exception ex)
             {
-                Host.WriteErrorLine()
-                    .WriteErrorMarkupLine($"Failed to load the agent '{name}': {ex.Message}");
+                Host.MarkupErrorLine($"Failed to load the agent '{name}': {ex.Message}\n");
             }
         }
 
         if (_agents.Count is 0)
         {
-            Host.WriteLine()
-                .WriteMarkupLine(ConsoleRender.FormatWarning($"No agent available."));
+            Host.MarkupWarningLine($"No agent available.\n");
             return;
         }
 
@@ -121,17 +143,85 @@ internal class Shell
         {
             LLMAgent chosenAgent = Host
                 .PromptForSelectionAsync(
-                    title: "Select the agent [green]to use[/]:",
+                    title: "[orange1]Please select an [Blue]agent[/] to use[/]:",
                     choices: _agents,
-                    cancellationToken: default,
                     converter: static a => a.Impl.Name)
                 .GetAwaiter().GetResult();
 
-            _activeAgentStack.Push(chosenAgent);
+            PushActiveAgent(chosenAgent);
         }
         catch (Exception)
         {
             // Ignore failure from showing the confirmation prompt.
+        }
+    }
+
+    /// <summary>
+    /// Push the active agent on to the stack.
+    /// </summary>
+    internal void PushActiveAgent(LLMAgent agent)
+    {
+        if (_activeAgentStack.Count is 2)
+        {
+            throw new InvalidOperationException("Cannot push when two agents are already on stack.");
+        }
+
+        bool loadCommands = true;
+        if (_activeAgentStack.TryPeek(out var current))
+        {
+            loadCommands = current != agent;
+        }
+
+        _activeAgentStack.Push(agent);
+        if (loadCommands)
+        {
+            ILLMAgent impl = agent.Impl;
+            CommandRunner.UnloadAgentCommands();
+            CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
+        }
+    }
+
+    /// <summary>
+    /// Pop the current active agent off the stack.
+    /// </summary>
+    internal void PopActiveAgent()
+    {
+        if (_activeAgentStack.Count != 2)
+        {
+            throw new InvalidOperationException("Cannot pop when only one active agent is on stack.");
+        }
+
+        LLMAgent pre = _activeAgentStack.Pop();
+        LLMAgent cur = _activeAgentStack.Peek();
+
+        if (pre != cur)
+        {
+            ILLMAgent impl = cur.Impl;
+            CommandRunner.UnloadAgentCommands();
+            CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
+        }
+    }
+
+    /// <summary>
+    /// Switch and use another agent as the active.
+    /// </summary>
+    internal void SwitchActiveAgent(LLMAgent agent)
+    {
+        ILLMAgent impl = agent.Impl;
+        if (_activeAgentStack.TryPop(out var current))
+        {
+            _activeAgentStack.Clear();
+            _activeAgentStack.Push(agent);
+            if (current != agent)
+            {
+                CommandRunner.UnloadAgentCommands();
+                CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
+            }
+        }
+        else
+        {
+            _activeAgentStack.Push(agent);
+            CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
         }
     }
 
@@ -176,12 +266,16 @@ internal class Shell
             "Copy the code snippet from the last response to clipboard.");
     }
 
+    /// <summary>
+    /// Execute a command.
+    /// </summary>
+    /// <param name="input">Command line to be executed.</param>
     private void RunCommand(string input)
     {
         string commandLine = input[1..].Trim();
         if (commandLine == string.Empty)
         {
-            Host.WriteMarkupLine(ConsoleRender.FormatError("Command is missing."));
+            Host.MarkupLine(ConsoleRender.FormatError("Command is missing."));
             return;
         }
 
@@ -191,19 +285,21 @@ internal class Shell
         }
         catch (Exception e)
         {
-            Host.WriteMarkupLine(ConsoleRender.FormatError(e.Message));
+            Host.MarkupLine(ConsoleRender.FormatError(e.Message));
         }
     }
 
+    /// <summary>
+    /// Run a chat REPL.
+    /// </summary>
     internal async Task RunREPLAsync()
     {
         int count = 1;
         while (!Exit)
         {
             LLMAgent agent = ActiveAgent;
-            string indicator = agent is null ? ConsoleRender.FormatWarning(" ! ", usePrefix: false) : null;
-            string prompt = $"[bold green]aish[/]:{count}{indicator}> ";
-            Host.WriteMarkupLine(prompt);
+            string prompt = $"[bold green]aish[/]:{count}> ";
+            Host.Markup(prompt);
 
             try
             {
@@ -228,8 +324,8 @@ internal class Shell
                     string helpCommand = ConsoleRender.FormatInlineCode("/help");
 
                     Host.WriteLine()
-                        .WriteMarkupLine(ConsoleRender.FormatWarning("No active agent selected, chat is disabled."))
-                        .WriteMarkupLine(ConsoleRender.FormatWarning($"Run {agentCommand} to select an agent. Type {helpCommand} for more instructions."))
+                        .MarkupLine(ConsoleRender.FormatWarning("No active agent selected, chat is disabled."))
+                        .MarkupLine(ConsoleRender.FormatWarning($"Run {agentCommand} to select an agent. Type {helpCommand} for more instructions."))
                         .WriteLine();
                     continue;
                 }
@@ -239,10 +335,9 @@ internal class Shell
                     && !agent.OrchestratorRoleDisabled
                     && _agents.Count > 1)
                 {
-                    Host.WriteMarkupLine($"The active agent [green]{agent.Impl.Name}[/] can act as an orchestrator and there are multiple agents available.");
+                    Host.MarkupLine($"The active agent [green]{agent.Impl.Name}[/] can act as an orchestrator and there are multiple agents available.");
                     bool confirmed = await Host.PromptForConfirmationAsync(
                         prompt: $"Do you want it to find the most suitable agent for your query?",
-                        cancellationToken: default,
                         defaultValue: false);
 
                     if (confirmed)
@@ -266,15 +361,15 @@ internal class Shell
                             if (selected >= 0)
                             {
                                 var selectedAgent = _agents[selected];
-                                _activeAgentStack.Push(selectedAgent);
-                                Host.WriteMarkupLine(ConsoleRender.FormatNote($"Selected agent: [green]{selectedAgent.Impl.Name}[/]"))
-                                    .WriteMarkupLine(ConsoleRender.FormatNote($"It's now active for your query. When you are done with the topic, run {agentCommand} to return to the orchestrator."));
+                                PushActiveAgent(selectedAgent);
+                                Host.MarkupLine(ConsoleRender.FormatNote($"Selected agent: [green]{selectedAgent.Impl.Name}[/]"))
+                                    .MarkupLine(ConsoleRender.FormatNote($"It's now active for your query. When you are done with the topic, run {agentCommand} to return to the orchestrator."));
                             }
                             else
                             {
-                                _activeAgentStack.Push(agent);
-                                Host.WriteMarkupLine(ConsoleRender.FormatNote($"No suitable agent was found. The active agent [green]{agent.Impl.Name}[/] will be used for the topic."))
-                                    .WriteMarkupLine(ConsoleRender.FormatNote($"When you are done with the topic, run {agentCommand} to return to the orchestrator."));
+                                PushActiveAgent(agent);
+                                Host.MarkupLine(ConsoleRender.FormatNote($"No suitable agent was found. The active agent [green]{agent.Impl.Name}[/] will be used for the topic."))
+                                    .MarkupLine(ConsoleRender.FormatNote($"When you are done with the topic, run {agentCommand} to return to the orchestrator."));
                             }
                         }
                         catch (Exception ex)
@@ -287,34 +382,26 @@ internal class Shell
 
                             agent.OrchestratorRoleDisabled = true;
                             Host.WriteLine()
-                                .WriteMarkupLine(ConsoleRender.FormatError($"Operation failed: {ex.Message}"))
+                                .MarkupLine(ConsoleRender.FormatError($"Operation failed: {ex.Message}"))
                                 .WriteLine()
-                                .WriteMarkupLine(ConsoleRender.FormatNote($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Impl.Name}[/] for the query."));
+                                .MarkupLine(ConsoleRender.FormatNote($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Impl.Name}[/] for the query."));
                         }
                     }
                 }
 
-                // Use the current active agent for the query.
-                agent = ActiveAgent;
-                ShellProxy shellProxy = new(this);
-
                 try
                 {
-                    if (!agent.SelfCheckSucceeded)
-                    {
-                        // Let the agent self check before using it. It's a chance for the agent to validate its
-                        // mandatory settings and maybe even configure the settings interactively with the user.
-                        agent.SelfCheckSucceeded = await agent.Impl.SelfCheck(shellProxy);
-                    }
+                    // Use the current active agent for the query.
+                    agent = ActiveAgent;
 
-                    if (agent.SelfCheckSucceeded)
-                    {
-                        await agent.Impl.Chat(input, shellProxy).WaitAsync(CancellationToken);
-                    }
-                    else
+                    // TODO: Consider `WaitAsync(CancellationToken)` to handle an agent not responding to ctr+c.
+                    // One problem to use `WaitAsync` is to make sure we give reasonable time for the agent to handle the cancellation.
+                    bool wasQueryServed = await agent.Impl.Chat(input, this);
+                    if (!wasQueryServed)
                     {
                         Host.WriteLine()
-                            .WriteMarkupLine(ConsoleRender.FormatWarning("Agent self-check failed. Please resolve the issue as instructed and try again."))
+                            .MarkupWarningLine($"[[{Utils.AppName}]]: Agent self-check failed. Resolve the issue as instructed and try again.")
+                            .MarkupWarningLine($"[[{Utils.AppName}]]: Run {ConsoleRender.FormatInlineCode($"/agent config {agent.Impl.Name}")} to edit the settings for the agent.")
                             .WriteLine();
                     }
                 }
@@ -327,7 +414,7 @@ internal class Shell
                     }
 
                     Host.WriteErrorLine()
-                        .WriteErrorMarkupLine($"Agent failed to generate a response: {ex.Message}")
+                        .MarkupErrorLine($"Agent failed to generate a response: {ex.Message}")
                         .WriteErrorLine();
                 }
             }
@@ -342,6 +429,10 @@ internal class Shell
         }
     }
 
+    /// <summary>
+    /// Run a one-time chat.
+    /// </summary>
+    /// <param name="prompt"></param>
     internal async Task RunOnceAsync(string prompt)
     {
         if (ActiveAgent is null)
@@ -349,24 +440,23 @@ internal class Shell
             string settingCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} --settings");
             string helpCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} --help");
 
-            Host.WriteErrorMarkupLine($"No active agent was configured.");
-            Host.WriteErrorMarkupLine($"Run {settingCommand} to configure the active agent. Run {helpCommand} for details.");
+            Host.MarkupErrorLine($"No active agent was configured.");
+            Host.MarkupErrorLine($"Run {settingCommand} to configure the active agent. Run {helpCommand} for details.");
 
             return;
         }
 
         try
         {
-            ShellProxy shellProxy = new(this);
-            await ActiveAgent.Impl.Chat(prompt, shellProxy).WaitAsync(CancellationToken);
+            await ActiveAgent.Impl.Chat(prompt, this).WaitAsync(CancellationToken);
         }
         catch (OperationCanceledException)
         {
-            Host.WriteErrorMarkupLine("Operation was aborted.");
+            Host.MarkupErrorLine("Operation was aborted.");
         }
         catch (ShellCopilotException exception)
         {
-            Host.WriteErrorMarkupLine(exception.Message.EscapeMarkup());
+            Host.MarkupErrorLine(exception.Message.EscapeMarkup());
         }
     }
 }

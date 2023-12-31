@@ -36,7 +36,7 @@ internal class Shell2
         _config = Configuration.ReadFromConfigFile();
         _service = new BackendService(_config, historyFileNamePrefix);
         _mdRender = new MarkdownRender();
-        _cmdRunner = new CommandRunner();
+        _cmdRunner = new CommandRunner(null);
 
         _rlPrompt = ReadLinePrompt;
         _cancellationSource = new CancellationTokenSource();
@@ -117,7 +117,7 @@ internal class Shell2
 
             // Write out error or warning if pager cannot be resolved while using alternate buffer.
             _pager.ReportAnyResolutionFailure();
-            _cmdRunner.LoadBuiltInCommands(null); // NOTE: was "LoadBuiltInCommands(this);"
+            // _cmdRunner.LoadBuiltInCommands(null); // NOTE: was "LoadBuiltInCommands(this);"
         }
     }
 

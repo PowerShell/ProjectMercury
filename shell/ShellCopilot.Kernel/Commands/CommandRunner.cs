@@ -1,34 +1,99 @@
 ﻿using System.CommandLine;
-using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
+using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Kernel.Commands;
 
 internal class CommandRunner
 {
+    private const string Core = "Core";
+
+    private readonly Shell _shell;
     private readonly Dictionary<string, CommandBase> _commands;
 
-    internal CommandRunner(Shell shell)
-    {
-        _commands = new(StringComparer.OrdinalIgnoreCase);
-        LoadBuiltInCommands(shell);
-    }
-
+    /// <summary>
+    /// Available commands.
+    /// </summary>
     internal Dictionary<string, CommandBase> Commands => _commands;
 
-    private void LoadBuiltInCommands(Shell shell)
+    /// <summary>
+    /// Creates an instance of <see cref="CommandRunner"/>.
+    /// </summary>
+    internal CommandRunner(Shell shell)
     {
-        _commands.Add("cls", new ClearCommand());
-        _commands.Add("code", new CodeCommand(shell));
-        _commands.Add("help", new HelpCommand(shell));
-        _commands.Add("exit", new ExitCommand(shell));
+        _shell = shell;
+        _commands = new(StringComparer.OrdinalIgnoreCase);
+
+        var buildin = new CommandBase[]
+        {
+            new ClearCommand(),
+            new CodeCommand(),
+            new HelpCommand(),
+            new ExitCommand(),
+        };
+
+        LoadCommands(buildin, Core);
     }
 
+    /// <summary>
+    /// Load commands into the runner.
+    /// </summary>
+    /// <param name="commands"></param>
+    /// <param name="agentName"></param>
+    internal void LoadCommands(IEnumerable<CommandBase> commands, string agentName)
+    {
+        if (commands is null)
+        {
+            return;
+        }
+
+        foreach (CommandBase command in commands)
+        {
+            command.Shell = _shell;
+            command.Source = agentName;
+            _commands.Add(command.Name, command);
+        }
+    }
+
+    /// <summary>
+    /// Unload angent commands from the runner.
+    /// </summary>
+    internal void UnloadAgentCommands()
+    {
+        var agentCommands = new List<CommandBase>();
+        foreach (var command in _commands.Values)
+        {
+            if (command.Source is Core)
+            {
+                continue;
+            }
+
+            agentCommands.Add(command);
+        }
+
+        foreach (var command in agentCommands)
+        {
+            _commands.Remove(command.Name);
+            command.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Resolve the given command name.
+    /// </summary>
+    /// <returns>
+    /// The corresponding command or null if the name cannot be resolved
+    /// </returns>
     internal CommandBase ResolveCommand(string name)
     {
         return _commands.TryGetValue(name, out CommandBase value) ? value : null;
     }
 
+    /// <summary>
+    /// Invoke the given command line.
+    /// </summary>
+    /// <param name="commandLine">The command line to run, which may include flags and arguments.</param>
+    /// <exception cref="ShellCopilotException"></exception>
     internal void InvokeCommand(string commandLine)
     {
         int index = commandLine.IndexOf(' ');
@@ -38,36 +103,5 @@ internal class CommandRunner
             ?? throw new ShellCopilotException($"The term '{commandName}' is not recognized as a name of a command.");
 
         command.Parser.Invoke(commandLine);
-    }
-}
-
-internal abstract class CommandBase : Command
-{
-    private static readonly string[] s_helpAlias = new[] { "-h", "--help" };
-    private Parser _parser;
-
-    protected CommandBase(string name, string description = null)
-        : base(name, description)
-    {
-        _parser = null;
-    }
-
-    internal Parser Parser
-    {
-        get
-        {
-            if (_parser is null)
-            {
-                var commandLineBuilder = new CommandLineBuilder(this);
-                commandLineBuilder
-                    .UseHelp(s_helpAlias)
-                    .UseSuggestDirective()
-                    .UseTypoCorrections()
-                    .UseParseErrorReporting();
-                _parser = commandLineBuilder.Build();
-            }
-
-            return _parser;
-        }
     }
 }

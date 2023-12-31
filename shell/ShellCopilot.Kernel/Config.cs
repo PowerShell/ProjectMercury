@@ -194,14 +194,6 @@ You use the ""code blocks"" syntax from markdown to encapsulate any part in resp
 
     internal static void WriteToConfigFile(Configuration config)
     {
-        if (!OperatingSystem.IsWindows() && !File.Exists(ConfigFilePath))
-        {
-            // Non-Windows platform file permissions must be set individually.
-            // Windows platform file ACLs are inherited from containing directory.
-            using (File.Create(ConfigFilePath)) { }
-            Utils.SetPermissions(ConfigFilePath, isDirectory: false);
-        }
-
         using var stream = new FileStream(ConfigFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
         var options = new JsonSerializerOptions
         {

@@ -164,7 +164,7 @@ internal class Program
             string key,
             TrustLevel trust_level)
         {
-            SecureString secure_key = Utils.ConvertDataToSecureString(key);
+            SecureString secure_key = Utils.ConvertToSecureString(key);
             system_prompt = GetSystemPromptForChat(system_prompt);
 
             Configuration
@@ -319,7 +319,7 @@ internal class Program
             if (key is not null)
             {
                 updated = true;
-                model.Key = Utils.ConvertDataToSecureString(key);
+                model.Key = Utils.ConvertToSecureString(key);
             }
             if (trust_level is not null)
             {

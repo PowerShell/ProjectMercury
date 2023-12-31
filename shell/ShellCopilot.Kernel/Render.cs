@@ -72,8 +72,14 @@ internal class MarkdownRender
     }
 }
 
-internal readonly struct RenderElement<T>
+internal class RenderElement<T>
 {
+    internal string PropertyName { get; }
+    internal PropertyInfo PropertyInfo { get; }
+
+    internal string CustomLabel { get; }
+    internal Func<T, string> CustomValue { get; }
+
     internal RenderElement(string propertyName)
     {
         ArgumentException.ThrowIfNullOrEmpty(propertyName);
@@ -101,12 +107,6 @@ internal readonly struct RenderElement<T>
         PropertyName = null;
         PropertyInfo = null;
     }
-
-    internal string PropertyName { get; init; }
-    internal PropertyInfo PropertyInfo { get; init; }
-
-    internal string CustomLabel { get; init; }
-    internal Func<T, string> CustomValue { get; init; }
 }
 
 internal static class ConsoleRender

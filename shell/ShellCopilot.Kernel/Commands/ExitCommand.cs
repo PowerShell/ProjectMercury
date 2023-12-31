@@ -1,21 +1,19 @@
 ﻿using System.CommandLine;
+using ShellCopilot.Abstraction;
 
-namespace ShellCopilot.Kernel.Commands
+namespace ShellCopilot.Kernel.Commands;
+
+internal sealed class ExitCommand : CommandBase
 {
-    internal class ExitCommand : CommandBase
+    public ExitCommand()
+        : base("exit", "Exit the interactive session.")
     {
-        private readonly Shell _shell;
+        this.SetHandler(ExitAction);
+    }
 
-        public ExitCommand(Shell shell)
-            : base("exit", "Exit the interactive session.")
-        {
-            _shell = shell;
-            this.SetHandler(ExitAction);
-        }
-
-        private void ExitAction()
-        {
-            _shell.Exit = true;
-        }
+    private void ExitAction()
+    {
+        var shellImpl = (Shell)Shell;
+        shellImpl.Exit = true;
     }
 }

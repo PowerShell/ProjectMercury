@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
 	<PackageId>ShellCopilot.Abstraction</PackageId>
-	<Version>0.1.0</Version>
+	<Version>0.1.0-beta.1</Version>
 	<Authors>Microsoft</Authors>
 	<Company>Your Company</Company>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -14,6 +14,11 @@
 	<PackageReadmeFile>readme.md</PackageReadmeFile>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.6" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
 
   <ItemGroup>
 	<None Include="..\..\README.md" Pack="true" PackagePath="\" />

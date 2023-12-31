@@ -4,6 +4,7 @@ using System.CommandLine.Parsing;
 using System.CommandLine.Completions;
 
 using Microsoft.PowerShell;
+using ShellCopilot.Abstraction;
 using ShellCopilot.Kernel.Commands;
 
 namespace ShellCopilot.Kernel;

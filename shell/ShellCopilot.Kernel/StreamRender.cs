@@ -5,10 +5,10 @@ using System.Text.RegularExpressions;
 
 namespace ShellCopilot.Kernel;
 
-internal partial class DummyStreamRender : IStreamRender
+internal sealed class DummyStreamRender : IStreamRender
 {
-    private StringBuilder _buffer;
-    private CancellationToken _cancellationToken;
+    private readonly StringBuilder _buffer;
+    private readonly CancellationToken _cancellationToken;
 
     internal DummyStreamRender(CancellationToken token)
     {
@@ -28,18 +28,19 @@ internal partial class DummyStreamRender : IStreamRender
     }
 }
 
-internal partial class FancyStreamRender : IStreamRender
+internal sealed partial class FancyStreamRender : IStreamRender
 {
     internal const char ESC = '\x1b';
     internal static readonly Regex AnsiRegex = CreateAnsiRegex();
 
+    private readonly MarkdownRender _markdownRender;
+    private readonly StringBuilder _buffer;
+    private readonly CancellationToken _cancellationToken;
+
     private string _currentText;
     private int _bufferWidth, _bufferHeight;
     private Point _initialCursor;
-    private MarkdownRender _markdownRender;
-    private StringBuilder _buffer;
     private string _accumulatedContent;
-    private CancellationToken _cancellationToken;
 
     internal FancyStreamRender(MarkdownRender markdownRender, CancellationToken token)
     {

@@ -78,7 +78,7 @@ internal class BackendService
 
         if (isApimEndpoint)
         {
-            string userkey = Utils.GetDataFromSecureString(_activeModel.Key);
+            string userkey = Utils.ConvertFromSecureString(_activeModel.Key);
             clientOptions.AddPolicy(
                 new UserKeyPolicy(
                     new AzureKeyCredential(userkey),
@@ -89,7 +89,7 @@ internal class BackendService
 
         string azOpenAIApiKey = isApimEndpoint
             ? "placeholder-api-key"
-            : Utils.GetDataFromSecureString(_activeModel.Key);
+            : Utils.ConvertFromSecureString(_activeModel.Key);
 
         _client = new(
             new Uri(_activeModel.Endpoint),

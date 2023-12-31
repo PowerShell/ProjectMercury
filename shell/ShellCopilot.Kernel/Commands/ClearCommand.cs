@@ -1,20 +1,18 @@
-﻿using System.Text;
-using System.CommandLine;
-using Spectre.Console;
+﻿using System.CommandLine;
+using ShellCopilot.Abstraction;
 
-namespace ShellCopilot.Kernel.Commands
+namespace ShellCopilot.Kernel.Commands;
+
+internal sealed class ClearCommand : CommandBase
 {
-    internal class ClearCommand : CommandBase
+    public ClearCommand()
+        : base("cls", "Clear the screen.")
     {
-        public ClearCommand()
-            : base("cls", "Clear the screen.")
-        {
-            this.SetHandler(ClearAction);
-        }
+        this.SetHandler(ClearAction);
+    }
 
-        private void ClearAction()
-        {
-            Console.Clear();
-        }
+    private void ClearAction()
+    {
+        Console.Clear();
     }
 }

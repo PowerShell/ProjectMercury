@@ -14,15 +14,15 @@ public class AgentConfig
     public RenderingStyle RenderingStyle { set; get; }
 }
 
-public interface ILLMAgent
+public interface ILLMAgent : IDisposable
 {
     string Name { get; }
     string Description { get; }
     string SettingFile { get; }
 
     void Initialize(AgentConfig config);
-    Task<bool> SelfCheck(IShellContext shell);
-    Task Chat(string input, IShellContext shell);
+    Task<bool> Chat(string input, IShell shell);
+    IEnumerable<CommandBase> GetCommands();
 }
 
 public interface IOrchestrator : ILLMAgent
@@ -38,5 +38,5 @@ public interface IOrchestrator : ILLMAgent
 
 public interface ICodeAnalyzer : ILLMAgent
 {
-    Task<bool> AnalyzeCode(List<string> codeBlocks, IShellContext shell);
+    Task<bool> AnalyzeCode(List<string> codeBlocks, IShell shell);
 }

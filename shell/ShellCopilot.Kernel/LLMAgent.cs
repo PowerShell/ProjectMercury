@@ -5,7 +5,6 @@ namespace ShellCopilot.Kernel;
 internal class LLMAgent
 {
     internal ILLMAgent Impl { get; }
-    internal bool SelfCheckSucceeded { set; get; }
     internal bool OrchestratorRoleDisabled { set; get; }
     internal bool AnalyzerRoleDisabled { set; get; }
 
@@ -13,7 +12,6 @@ internal class LLMAgent
     {
         Impl = agent;
 
-        SelfCheckSucceeded = false;
         OrchestratorRoleDisabled = false;
         AnalyzerRoleDisabled = false;
     }

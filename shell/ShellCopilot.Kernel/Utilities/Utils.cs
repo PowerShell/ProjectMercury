@@ -1,5 +1,4 @@
 using Markdig.Helpers;
-using ShellCopilot.Abstraction;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -21,7 +20,6 @@ internal static class Utils
     internal const string ShellCopilotEndpoint = "https://pscopilot.azure-api.net";
     internal const string KeyApplicationHelpLink = "https://github.com/PowerShell/ShellCopilot#readme";
 
-    internal static readonly bool IsWindows;
     internal static readonly string OS;
     internal static readonly string ShellConfigHome;
     internal static readonly string AgentHome;
@@ -35,8 +33,7 @@ internal static class Utils
         int index = rid.IndexOf('-');
         OS = index is -1 ? rid : rid[..index];
 
-        IsWindows = OperatingSystem.IsWindows();
-        string locationPath = IsWindows
+        string locationPath = OperatingSystem.IsWindows()
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
             : Environment.GetEnvironmentVariable("HOME");
 
@@ -45,12 +42,12 @@ internal static class Utils
         AgentConfigHome = Path.Join(ShellConfigHome, "agent-config");
 
         // Create the folders if they don't exist.
-        CreateFolderAndSetPermission(ShellConfigHome);
+        CreateFolderWithRightPermission(ShellConfigHome);
         Directory.CreateDirectory(AgentHome);
         Directory.CreateDirectory(AgentConfigHome);
     }
 
-    private static void CreateFolderAndSetPermission(string dirPath)
+    private static void CreateFolderWithRightPermission(string dirPath)
     {
         if (Directory.Exists(dirPath))
         {
@@ -58,13 +55,54 @@ internal static class Utils
         }
 
         Directory.CreateDirectory(dirPath);
-        if (IsWindows)
+        if (OperatingSystem.IsWindows())
         {
-            SetDirectoryACLs(dirPath);
+            // Windows platform.
+            // For Windows, file permissions are set to FullAccess for current user account only.
+            // SetAccessRule method applies to this directory.
+            var dirSecurity = new DirectorySecurity();
+            dirSecurity.SetAccessRule(
+                new FileSystemAccessRule(
+                    identity: WindowsIdentity.GetCurrent().User,
+                    type: AccessControlType.Allow,
+                    fileSystemRights: FileSystemRights.FullControl,
+                    inheritanceFlags: InheritanceFlags.None,
+                    propagationFlags: PropagationFlags.None));
+
+            // AddAccessRule method applies to child directories and files.
+            dirSecurity.AddAccessRule(
+                new FileSystemAccessRule(
+                identity: WindowsIdentity.GetCurrent().User,
+                fileSystemRights: FileSystemRights.FullControl,
+                type: AccessControlType.Allow,
+                inheritanceFlags: InheritanceFlags.ObjectInherit | InheritanceFlags.ContainerInherit,
+                propagationFlags: PropagationFlags.InheritOnly));
+
+            // Set access rule protections.
+            dirSecurity.SetAccessRuleProtection(
+                isProtected: true,
+                preserveInheritance: false);
+
+            // Set directory owner.
+            dirSecurity.SetOwner(WindowsIdentity.GetCurrent().User);
+
+            // Apply new rules.
+            FileSystemAclExtensions.SetAccessControl(
+                directoryInfo: new DirectoryInfo(dirPath),
+                directorySecurity: dirSecurity);
         }
         else
         {
-            SetPermissions(dirPath, isDirectory: true);
+            // On non-Windows platforms, set directory permissions to current user only.
+            //   Current user is user owner.
+            //   Current user is group owner.
+            //   Permission for user dir owner:      rwx    (execute for directories only)
+            //   Permission for user file owner:     rw-    (no file execute)
+            //   Permissions for group owner:        ---    (no access)
+            //   Permissions for others:             ---    (no access)
+            string argument = string.Format(CultureInfo.InvariantCulture, @"u=rwx,g=---,o=--- {0}", dirPath);
+            ProcessStartInfo startInfo = new("chmod", argument);
+            Process.Start(startInfo).WaitForExit();
         }
     }
 
@@ -87,7 +125,7 @@ internal static class Utils
         return false;
     }
 
-    internal static string GetDataFromSecureString(SecureString secureString)
+    internal static string ConvertFromSecureString(SecureString secureString)
     {
         if (secureString is null || secureString.Length is 0)
         {
@@ -105,7 +143,7 @@ internal static class Utils
         }
     }
 
-    internal static SecureString ConvertDataToSecureString(string text)
+    internal static SecureString ConvertToSecureString(string text)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -119,66 +157,6 @@ internal static class Utils
         }
 
         return ss;
-    }
-
-    internal static void SetDirectoryACLs(string directoryPath)
-    {
-        Debug.Assert(OperatingSystem.IsWindows());
-
-        // Windows platform.
-        // For Windows, file permissions are set to FullAccess for current user account only.
-        // SetAccessRule method applies to this directory.
-        var dirSecurity = new DirectorySecurity();
-        dirSecurity.SetAccessRule(
-            new FileSystemAccessRule(
-                identity: WindowsIdentity.GetCurrent().User,
-                type: AccessControlType.Allow,
-                fileSystemRights: FileSystemRights.FullControl,
-                inheritanceFlags: InheritanceFlags.None,
-                propagationFlags: PropagationFlags.None));
-
-        // AddAccessRule method applies to child directories and files.
-        dirSecurity.AddAccessRule(
-            new FileSystemAccessRule(
-            identity: WindowsIdentity.GetCurrent().User,
-            fileSystemRights: FileSystemRights.FullControl,
-            type: AccessControlType.Allow,
-            inheritanceFlags: InheritanceFlags.ObjectInherit | InheritanceFlags.ContainerInherit,
-            propagationFlags: PropagationFlags.InheritOnly));
-
-        // Set access rule protections.
-        dirSecurity.SetAccessRuleProtection(
-            isProtected: true,
-            preserveInheritance: false);
-
-        // Set directory owner.
-        dirSecurity.SetOwner(WindowsIdentity.GetCurrent().User);
-
-        // Apply new rules.
-        FileSystemAclExtensions.SetAccessControl(
-            directoryInfo: new DirectoryInfo(directoryPath),
-            directorySecurity: dirSecurity);
-    }
-
-    internal static void SetPermissions(string path, bool isDirectory)
-    {
-        // Non-Windows platforms.
-
-        // Set directory permissions to current user only.
-        /*
-        Current user is user owner.
-        Current user is group owner.
-        Permission for user dir owner:      rwx    (execute for directories only)
-        Permission for user file owner:     rw-    (no file execute)
-        Permissions for group owner:        ---    (no access)
-        Permissions for others:             ---    (no access)
-        */
-        string argument = isDirectory ? 
-            string.Format(CultureInfo.InvariantCulture, @"u=rwx,g=---,o=--- {0}", path) :
-            string.Format(CultureInfo.InvariantCulture, @"u=rw-,g=---,o=--- {0}", path);
-
-        ProcessStartInfo startInfo = new("chmod", argument);
-        Process.Start(startInfo).WaitForExit();
     }
 
     internal static int GetParentProcessId()

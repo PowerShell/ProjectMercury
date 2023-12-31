@@ -1,10 +1,10 @@
 using System.Diagnostics;
-using System.Reflection;
 using System.Security;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
+using ShellCopilot.Abstraction;
 using SharpToken;
 using Spectre.Console;
 
@@ -241,7 +241,7 @@ public class AiModel
             try
             {
                 string secret = await ConsoleRender.AskForSecret("Enter [green]Key[/]:", cancellationToken).ConfigureAwait(false);
-                Key = Utils.ConvertDataToSecureString(secret);
+                Key = Utils.ConvertToSecureString(secret);
 
                 AnsiConsole.WriteLine();
                 return true;
@@ -275,12 +275,12 @@ internal class SecureStringJsonConverter : JsonConverter<SecureString>
     public override SecureString Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         string payload = reader.GetString();
-        return Utils.ConvertDataToSecureString(payload);
+        return Utils.ConvertToSecureString(payload);
     }
 
     public override void Write(Utf8JsonWriter writer, SecureString value, JsonSerializerOptions options)
     {
-        string payload = Utils.GetDataFromSecureString(value);
+        string payload = Utils.ConvertFromSecureString(value);
         writer.WriteStringValue(payload);
     }
 }
