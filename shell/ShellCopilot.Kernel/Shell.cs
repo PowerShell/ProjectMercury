@@ -29,7 +29,7 @@ internal sealed class Shell : IShell
     /// <summary>
     /// Creates an instance of <see cref="Shell"/>.
     /// </summary>
-    internal Shell(bool interactive, bool useAlternateBuffer = false, string historyFileNamePrefix = null)
+    internal Shell(bool interactive, bool useAlternateBuffer)
     {
         _isInteractive = interactive;
         _agents = new List<LLMAgent>();
@@ -59,7 +59,7 @@ internal sealed class Shell : IShell
             }
 
             // Write out help.
-            Host.MarkupLine($"Type {ConsoleRender.FormatInlineCode("/help")} for instructions.")
+            Host.MarkupLine($"Type {Formatter.InlineCode("/help")} for instructions.")
                 .WriteLine();
         }
     }
@@ -275,7 +275,7 @@ internal sealed class Shell : IShell
         string commandLine = input[1..].Trim();
         if (commandLine == string.Empty)
         {
-            Host.MarkupLine(ConsoleRender.FormatError("Command is missing."));
+            Host.MarkupErrorLine("Command is missing.");
             return;
         }
 
@@ -285,7 +285,7 @@ internal sealed class Shell : IShell
         }
         catch (Exception e)
         {
-            Host.MarkupLine(ConsoleRender.FormatError(e.Message));
+            Host.MarkupErrorLine(e.Message);
         }
     }
 
@@ -320,12 +320,12 @@ internal sealed class Shell : IShell
                 if (agent is null)
                 {
                     // No agent to serve the query. Print the warning and go back to read-line prompt.
-                    string agentCommand = ConsoleRender.FormatInlineCode($"/agent use");
-                    string helpCommand = ConsoleRender.FormatInlineCode("/help");
+                    string agentCommand = Formatter.InlineCode($"/agent use");
+                    string helpCommand = Formatter.InlineCode("/help");
 
                     Host.WriteLine()
-                        .MarkupLine(ConsoleRender.FormatWarning("No active agent selected, chat is disabled."))
-                        .MarkupLine(ConsoleRender.FormatWarning($"Run {agentCommand} to select an agent. Type {helpCommand} for more instructions."))
+                        .MarkupWarningLine("No active agent selected, chat is disabled.")
+                        .MarkupWarningLine($"Run {agentCommand} to select an agent. Type {helpCommand} for more instructions.")
                         .WriteLine();
                     continue;
                 }
@@ -356,20 +356,20 @@ internal sealed class Shell : IShell
                                 token: CancellationToken).WaitAsync(CancellationToken);
 
                             int selected = await Host.RunWithSpinnerAsync(find_agent_op, status: "Thinking...");
-                            string agentCommand = ConsoleRender.FormatInlineCode($"/agent pop");
+                            string agentCommand = Formatter.InlineCode($"/agent pop");
 
                             if (selected >= 0)
                             {
                                 var selectedAgent = _agents[selected];
                                 PushActiveAgent(selectedAgent);
-                                Host.MarkupLine(ConsoleRender.FormatNote($"Selected agent: [green]{selectedAgent.Impl.Name}[/]"))
-                                    .MarkupLine(ConsoleRender.FormatNote($"It's now active for your query. When you are done with the topic, run {agentCommand} to return to the orchestrator."));
+                                Host.MarkupNoteLine($"Selected agent: [green]{selectedAgent.Impl.Name}[/]")
+                                    .MarkupNoteLine($"It's now active for your query. When you are done with the topic, run {agentCommand} to return to the orchestrator.");
                             }
                             else
                             {
                                 PushActiveAgent(agent);
-                                Host.MarkupLine(ConsoleRender.FormatNote($"No suitable agent was found. The active agent [green]{agent.Impl.Name}[/] will be used for the topic."))
-                                    .MarkupLine(ConsoleRender.FormatNote($"When you are done with the topic, run {agentCommand} to return to the orchestrator."));
+                                Host.MarkupNoteLine($"No suitable agent was found. The active agent [green]{agent.Impl.Name}[/] will be used for the topic.")
+                                    .MarkupNoteLine($"When you are done with the topic, run {agentCommand} to return to the orchestrator.");
                             }
                         }
                         catch (Exception ex)
@@ -382,9 +382,9 @@ internal sealed class Shell : IShell
 
                             agent.OrchestratorRoleDisabled = true;
                             Host.WriteLine()
-                                .MarkupLine(ConsoleRender.FormatError($"Operation failed: {ex.Message}"))
+                                .MarkupErrorLine($"Operation failed: {ex.Message}")
                                 .WriteLine()
-                                .MarkupLine(ConsoleRender.FormatNote($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Impl.Name}[/] for the query."));
+                                .MarkupNoteLine($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Impl.Name}[/] for the query.");
                         }
                     }
                 }
@@ -401,7 +401,7 @@ internal sealed class Shell : IShell
                     {
                         Host.WriteLine()
                             .MarkupWarningLine($"[[{Utils.AppName}]]: Agent self-check failed. Resolve the issue as instructed and try again.")
-                            .MarkupWarningLine($"[[{Utils.AppName}]]: Run {ConsoleRender.FormatInlineCode($"/agent config {agent.Impl.Name}")} to edit the settings for the agent.")
+                            .MarkupWarningLine($"[[{Utils.AppName}]]: Run {Formatter.InlineCode($"/agent config {agent.Impl.Name}")} to edit the settings for the agent.")
                             .WriteLine();
                     }
                 }
@@ -420,7 +420,7 @@ internal sealed class Shell : IShell
             }
             catch (ShellCopilotException e)
             {
-                AnsiConsole.MarkupLine(ConsoleRender.FormatError(e.Message));
+                Host.MarkupErrorLine(e.Message);
                 if (e.HandlerAction is ExceptionHandlerAction.Stop)
                 {
                     break;
@@ -437,8 +437,8 @@ internal sealed class Shell : IShell
     {
         if (ActiveAgent is null)
         {
-            string settingCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} --settings");
-            string helpCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} --help");
+            string settingCommand = Formatter.InlineCode($"{Utils.AppName} --settings");
+            string helpCommand = Formatter.InlineCode($"{Utils.AppName} --help");
 
             Host.MarkupErrorLine($"No active agent was configured.");
             Host.MarkupErrorLine($"Run {settingCommand} to configure the active agent. Run {helpCommand} for details.");

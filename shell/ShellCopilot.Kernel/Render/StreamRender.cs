@@ -1,5 +1,6 @@
 ﻿using ShellCopilot.Abstraction;
 using Spectre.Console;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -279,3 +280,19 @@ internal sealed partial class FancyStreamRender : IStreamRender
     }
 }
 
+internal struct Point
+{
+    public int X;
+    public int Y;
+
+    internal Point(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
+
+    public override readonly string ToString()
+    {
+        return string.Format(CultureInfo.InvariantCulture, "{0},{1}", X, Y);
+    }
+}

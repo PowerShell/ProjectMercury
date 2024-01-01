@@ -1,7 +1,9 @@
 ﻿
 using Azure.AI.OpenAI;
+using Markdig.Helpers;
 using ShellCopilot.Abstraction;
 using Spectre.Console;
+using System.Text;
 
 namespace ShellCopilot.Kernel;
 
@@ -107,7 +109,7 @@ internal sealed class Host : IHost
         }
         else
         {
-            _stderrConsole.MarkupLine($"[bold red]ERROR: {value}[/]");
+            _stderrConsole.MarkupLine(Formatter.Error(value));
         }
 
         return this;
@@ -137,7 +139,7 @@ internal sealed class Host : IHost
         }
         else
         {
-            AnsiConsole.MarkupLine($"[bold yellow]WARNING: {value}[/]");
+            AnsiConsole.MarkupLine(Formatter.Warning(value));
         }
 
         return this;
@@ -157,7 +159,7 @@ internal sealed class Host : IHost
         if (string.IsNullOrWhiteSpace(response))
         {
             WriteLine();
-            MarkupLine(ConsoleRender.FormatNote("Received response is empty or contains whitespace only."));
+            MarkupNoteLine("Received response is empty or contains whitespace only.");
         }
         else if (_outputRedirected)
         {
@@ -167,7 +169,7 @@ internal sealed class Host : IHost
         {
             // Render the markdown only if standard output is not redirected.
             string text = MarkdownRender.RenderText(response);
-            if (!Utils.LeadingWhiteSpaceHasNewLine(text))
+            if (!LeadingWhiteSpaceHasNewLine(text))
             {
                 WriteLine();
             }
@@ -417,5 +419,76 @@ internal sealed class Host : IHost
         {
             throw new InvalidOperationException($"Cannot {operation} when both the stdout and stderr are redirected.");
         }
+    }
+
+    /// <summary>
+    /// Check if the leading whitespace characters of <paramref name="text"/> contains a newline.
+    /// </summary>
+    private static bool LeadingWhiteSpaceHasNewLine(string text)
+    {
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (c == '\n')
+            {
+                return true;
+            }
+
+            if (!c.IsWhitespace())
+            {
+                break;
+            }
+        }
+
+        return false;
+    }
+}
+
+internal sealed class AsciiLetterSpinner : Spinner
+{
+    private const int FrameNumber = 8;
+    private readonly List<string> _frames;
+
+    internal static readonly AsciiLetterSpinner Default = new();
+
+    internal AsciiLetterSpinner(int prefixGap = 0, int charLength = 12)
+    {
+        _frames = new List<string>(capacity: FrameNumber);
+        StringBuilder sb = new(capacity: prefixGap + charLength + 2);
+
+        var gap = prefixGap is 0 ? null : new string(' ', prefixGap);
+        for (var i = 0; i < FrameNumber; i++)
+        {
+            sb.Append(gap).Append('/');
+            for (var j = 0; j < charLength; j++)
+            {
+                sb.Append((char)Random.Shared.Next(33, 127));
+            }
+
+            _frames.Add(sb.Append('/').ToString());
+            sb.Clear();
+        }
+    }
+
+    public override TimeSpan Interval => TimeSpan.FromMilliseconds(100);
+    public override bool IsUnicode => false;
+    public override IReadOnlyList<string> Frames => _frames;
+}
+
+internal static class Formatter
+{
+    internal static string InlineCode(string code)
+    {
+        return $"[indianred1 on grey19] {code} [/]";
+    }
+
+    internal static string Error(string message)
+    {
+        return $"[bold red]ERROR: {message}[/]";
+    }
+
+    internal static string Warning(string message)
+    {
+        return $"[bold yellow]WARNING: {message}[/]";
     }
 }

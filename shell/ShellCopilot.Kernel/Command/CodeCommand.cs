@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using System.CommandLine;
-using Spectre.Console;
 using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Kernel.Commands;
@@ -56,12 +55,12 @@ internal sealed class CodeCommand : CommandBase
         string code = GetCodeText();
         if (code is null)
         {
-            AnsiConsole.MarkupLine("[olive]No code snippet available for copy.[/]");
+            Shell.Host.MarkupLine("[olive]No code snippet available for copy.[/]");
             return;
         }
 
         Clipboard.SetText(code);
-        AnsiConsole.MarkupLine("[cyan]Code snippet copied to clipboard.[/]");
+        Shell.Host.MarkupLine("[cyan]Code snippet copied to clipboard.[/]");
     }
 
     private void SaveAction(FileInfo file, bool append)
@@ -69,7 +68,7 @@ internal sealed class CodeCommand : CommandBase
         string code = GetCodeText();
         if (code is null)
         {
-            AnsiConsole.MarkupLine("[olive]No code snippet available for save.[/]");
+            Shell.Host.MarkupLine("[olive]No code snippet available for save.[/]");
             return;
         }
 
@@ -81,11 +80,11 @@ internal sealed class CodeCommand : CommandBase
             writer.Write(code);
             writer.Flush();
 
-            AnsiConsole.MarkupLine("[cyan]Code snippet saved to the file.[/]");
+            Shell.Host.MarkupLine("[cyan]Code snippet saved to the file.[/]");
         }
         catch (Exception e)
         {
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError(e.Message));
+            Shell.Host.MarkupErrorLine(e.Message);
         }
     }
 }

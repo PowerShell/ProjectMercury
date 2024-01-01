@@ -1,4 +1,3 @@
-using Markdig.Helpers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -7,6 +6,32 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 
 namespace ShellCopilot.Kernel;
+
+internal sealed class Disposable : IDisposable
+{
+    private Action m_onDispose;
+
+    internal static readonly Disposable NonOp = new();
+
+    private Disposable()
+    {
+        m_onDispose = null;
+    }
+
+    public Disposable(Action onDispose)
+    {
+        m_onDispose = onDispose ?? throw new ArgumentNullException(nameof(onDispose));
+    }
+
+    public void Dispose()
+    {
+        if (m_onDispose != null)
+        {
+            m_onDispose();
+            m_onDispose = null;
+        }
+    }
+}
 
 internal static class Utils
 {
@@ -103,43 +128,6 @@ internal static class Utils
             string argument = string.Format(CultureInfo.InvariantCulture, @"u=rwx,g=---,o=--- {0}", dirPath);
             ProcessStartInfo startInfo = new("chmod", argument);
             Process.Start(startInfo).WaitForExit();
-        }
-    }
-
-    internal static bool LeadingWhiteSpaceHasNewLine(string text)
-    {
-        for (int i = 0; i < text.Length; i++)
-        {
-            char c = text[i];
-            if (c == '\n')
-            {
-                return true;
-            }
-
-            if (!c.IsWhitespace())
-            {
-                break;
-            }
-        }
-
-        return false;
-    }
-
-    internal static string ConvertFromSecureString(SecureString secureString)
-    {
-        if (secureString is null || secureString.Length is 0)
-        {
-            return null;
-        }
-
-        nint ptr = Marshal.SecureStringToBSTR(secureString);
-        try
-        {
-            return Marshal.PtrToStringBSTR(ptr);
-        }
-        finally
-        {
-            Marshal.ZeroFreeBSTR(ptr);
         }
     }
 
