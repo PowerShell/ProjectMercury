@@ -1,6 +1,4 @@
-﻿using Azure.AI.OpenAI;
-
-namespace ShellCopilot.Abstraction;
+﻿namespace ShellCopilot.Abstraction;
 
 public interface IHost
 {
@@ -67,14 +65,6 @@ public interface IHost
     ///  - otherwise, response will be parsed as markdown and rendered with rich UI elements to stdout.
     /// </summary>
     void RenderFullResponse(string response);
-
-    /// <summary>
-    /// Render a streaming response from OpenAI-like service.
-    /// </summary>
-    /// <param name="response">Completion response for streaming request.</param>
-    /// <param name="cancellationToken">Token for cancellation.</param>
-    /// <returns>Full content of the response.</returns>
-    Task<string> RenderStreamingResponse(StreamingChatCompletions response, CancellationToken cancellationToken);
 
     /// <summary>
     /// Render the passed-in objects in the table format.

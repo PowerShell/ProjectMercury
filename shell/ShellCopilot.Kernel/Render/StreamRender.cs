@@ -27,6 +27,8 @@ internal sealed class DummyStreamRender : IStreamRender
         Console.Write(newChunk);
         _buffer.Append(newChunk);
     }
+
+    public void Dispose() { }
 }
 
 internal sealed partial class FancyStreamRender : IStreamRender
@@ -54,25 +56,41 @@ internal sealed partial class FancyStreamRender : IStreamRender
         _buffer = new StringBuilder();
         _cancellationToken = token;
         _accumulatedContent = string.Empty;
+
+        // Hide the cursor when rendering the streaming response.
+        Console.CursorVisible = false;
     }
 
     public string AccumulatedContent => _accumulatedContent;
 
+    public void Dispose()
+    {
+        if (!string.IsNullOrEmpty(_accumulatedContent))
+        {
+            // Write a new line if we did render something out to the console.
+            Console.WriteLine();
+        }
+
+        // Show the cursor after the rendering is done.
+        Console.CursorVisible = true;
+    }
+
     public void Refresh(string newChunk)
     {
-        // Stop rendering up on cancellation.
+        // Avoid rendering the new chunk up on cancellation.
         _cancellationToken.ThrowIfCancellationRequested();
 
         _buffer.Append(newChunk);
         _accumulatedContent = _buffer.ToString();
         RefreshImpl(_markdownRender.RenderText(_accumulatedContent));
+
+        // If the rendering is in progress, don't let the cancellation interrupt the rendering.
+        // But we throw the exception when the current rendering is done.
+        _cancellationToken.ThrowIfCancellationRequested();
     }
 
     private void RefreshImpl(string newText)
     {
-        // Stop rendering up on cancellation.
-        _cancellationToken.ThrowIfCancellationRequested();
-
         if (string.Equals(newText, _currentText, StringComparison.Ordinal))
         {
             return;
@@ -160,9 +178,6 @@ internal sealed partial class FancyStreamRender : IStreamRender
         }
 
         _currentText = newText;
-
-        // Avoid waiting up on cancellation.
-        _cancellationToken.ThrowIfCancellationRequested();
 
         // Wait for a short interval before refreshing again for the in-coming payload.
         // We use a smaller interval (20ms) when rendering code blocks, so as to reduce the flashing when

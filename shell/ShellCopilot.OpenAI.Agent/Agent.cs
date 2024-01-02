@@ -99,35 +99,58 @@ public sealed class OpenAIAgent : ILLMAgent
         }
 
         string responseContent = null;
-        switch (_renderingStyle)
+        if (_renderingStyle is RenderingStyle.FullResponsePreferred)
         {
-            case RenderingStyle.FullResponsePreferred:
-                Task<ChatChoice> func_non_streaming() => _chatService.GetChatResponseAsync(input, token);
-                ChatChoice choice = await host.RunWithSpinnerAsync(func_non_streaming).ConfigureAwait(false);
+            Task<ChatChoice> func_non_streaming() => _chatService.GetChatResponseAsync(input, token);
+            ChatChoice choice = await host.RunWithSpinnerAsync(func_non_streaming).ConfigureAwait(false);
 
-                if (choice is not null)
+            if (choice is not null)
+            {
+                responseContent = choice.Message.Content;
+                host.RenderFullResponse(responseContent);
+
+                string warning = GetWarningBasedOnFinishReason(choice.FinishReason);
+                if (warning is not null)
                 {
-                    responseContent = choice.Message.Content;
-                    host.RenderFullResponse(responseContent);
+                    host.MarkupWarningLine(warning);
+                    host.WriteLine();
+                }
+            }
+        }
+        else
+        {
+            Task<StreamingChatCompletions> func_streaming() => _chatService.GetStreamingChatResponseAsync(input, token);
+            StreamingChatCompletions response = await host.RunWithSpinnerAsync(func_streaming).ConfigureAwait(false);
 
-                    string warning = GetWarningBasedOnFinishReason(choice.FinishReason);
-                    if (warning is not null)
+            if (response is not null)
+            {
+                using var streamingRender = host.NewStreamRender(token);
+
+                try
+                {
+                    // Cannot pass in `cancellationToken` to `GetChoicesStreaming()` and `GetMessageStreaming()` methods.
+                    // Doing so will result in an exception in Azure.OpenAI when we are cancelling the operation.
+                    // TODO: Use the latest preview version. The bug may have been fixed.
+                    await foreach (StreamingChatChoice choice in response.GetChoicesStreaming())
                     {
-                        host.MarkupWarningLine(warning);
-                        host.WriteLine();
+                        await foreach (ChatMessage message in choice.GetMessageStreaming())
+                        {
+                            if (string.IsNullOrEmpty(message.Content))
+                            {
+                                continue;
+                            }
+
+                            streamingRender.Refresh(message.Content);
+                        }
                     }
                 }
-                break;
-
-            case RenderingStyle.StreamingResponsePreferred:
-                Task<StreamingChatCompletions> func_streaming() => _chatService.GetStreamingChatResponseAsync(input, token);
-                StreamingChatCompletions response = await host.RunWithSpinnerAsync(func_streaming).ConfigureAwait(false);
-
-                if (response is not null)
+                catch (OperationCanceledException)
                 {
-                    responseContent = await host.RenderStreamingResponse(response, token);
+                    // Ignore the cancellation exception.
                 }
-                break;
+
+                responseContent = streamingRender.AccumulatedContent;
+            }
         }
 
         _chatService.AddResponseToHistory(responseContent);

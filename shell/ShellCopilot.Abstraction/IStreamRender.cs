@@ -1,6 +1,6 @@
 namespace ShellCopilot.Abstraction;
 
-public interface IStreamRender
+public interface IStreamRender : IDisposable
 {
     string AccumulatedContent { get; }
     void Refresh(string newChunk);

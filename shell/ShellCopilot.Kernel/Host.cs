@@ -1,6 +1,4 @@
-﻿
-using Azure.AI.OpenAI;
-using Markdig.Helpers;
+﻿using Markdig.Helpers;
 using ShellCopilot.Abstraction;
 using Spectre.Console;
 using System.Text;
@@ -176,45 +174,6 @@ internal sealed class Host : IHost
 
             WriteLine(text);
         }
-    }
-
-    /// <inheritdoc/>
-    public async Task<string> RenderStreamingResponse(StreamingChatCompletions response, CancellationToken cancellationToken)
-    {
-        var streamingRender = new FancyStreamRender(MarkdownRender, cancellationToken);
-
-        try
-        {
-            // Hide the cursor position when rendering the streaming response.
-            Console.CursorVisible = false;
-
-            // Cannot pass in `cancellationToken` to `GetChoicesStreaming()` and `GetMessageStreaming()` methods.
-            // Doing so will result in an exception in Azure.OpenAI when we are cancelling the operation.
-            // TODO: Use the latest preview version. The bug may have been fixed.
-            await foreach (StreamingChatChoice choice in response.GetChoicesStreaming())
-            {
-                await foreach (ChatMessage message in choice.GetMessageStreaming())
-                {
-                    if (string.IsNullOrEmpty(message.Content))
-                    {
-                        continue;
-                    }
-
-                    streamingRender.Refresh(message.Content);
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Ignore the cancellation exception.
-        }
-        finally
-        {
-            Console.CursorVisible = true;
-        }
-
-        Console.WriteLine();
-        return streamingRender.AccumulatedContent;
     }
 
     /// <inheritdoc/>
