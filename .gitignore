@@ -3,3 +3,5 @@ bin/
 obj/
 .vs/
 .vscode/
+shell/**/*.sln
+!shell/file.sln
