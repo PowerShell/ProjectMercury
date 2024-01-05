@@ -2,3 +2,4 @@ out/
 bin/
 obj/
 .vs/
+.vscode/

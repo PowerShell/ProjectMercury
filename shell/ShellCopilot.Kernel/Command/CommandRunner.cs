@@ -26,10 +26,11 @@ internal class CommandRunner
 
         var buildin = new CommandBase[]
         {
+            new AgentCommand(),
             new ClearCommand(),
             new CodeCommand(),
-            new HelpCommand(),
             new ExitCommand(),
+            new HelpCommand(),
         };
 
         LoadCommands(buildin, Core);

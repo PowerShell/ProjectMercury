@@ -13,11 +13,12 @@ internal sealed class Shell : IShell
     private readonly Stack<LLMAgent> _activeAgentStack;
     private CancellationTokenSource _cancellationSource;
 
-    private LLMAgent ActiveAgent => _activeAgentStack.TryPeek(out var agent) ? agent : null;
     internal bool Exit { set; get; }
     internal Host Host { get; }
     internal CommandRunner CommandRunner { get; }
+    internal List<LLMAgent> Agents => _agents;
     internal CancellationToken CancellationToken => _cancellationSource.Token;
+    internal LLMAgent ActiveAgent => _activeAgentStack.TryPeek(out var agent) ? agent : null;
 
     #region IShell implementation
 
