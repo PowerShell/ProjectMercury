@@ -8,10 +8,14 @@ using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.AzCLI.Agent;
 
-public sealed partial class AzCLIAgent : ILLMAgent
+public sealed class AzCLIAgent : ILLMAgent
 {
     public string Name => "az-cli";
-    public string Description { private set; get; }
+    public string Description => @"An AI assistant to get the Azure CLI scripts or commands for management operations of Azure resources and the end-to-end scenarios containing multiple different Azure resources. Sample questions:
+1. Give me a CLI script to create a VM with a public IP address.
+2. How to use Azure CLI script to backup an Azure SQL single database to an Azure storage container?
+3. How to connect an App Service app to an Azure Cache for Redis using Azure CLI?
+4. What is the CLI command to start a SAP system using Azure Center for SAP solutions?";
     public string SettingFile { private set; get; }
 
     private const string SettingFileName = "az-cli.agent.json";
@@ -22,7 +26,6 @@ public sealed partial class AzCLIAgent : ILLMAgent
     private RenderingStyle _renderingStyle;
     private HttpClient _client;
     private StringBuilder _text;
-    private Regex _listItemPatten;
     private string[] _scopes;
     private AccessToken? _accessToken;
     private JsonSerializerOptions _jsonOptions;
@@ -40,16 +43,14 @@ public sealed partial class AzCLIAgent : ILLMAgent
         _client = new HttpClient();
         _text = new StringBuilder();
 
-        Description = $"An AI assistant with expertise in Azure CLI topics. I can help with queries about Azure resource management using Azure CLI.";
-        SettingFile = Path.Combine(_configRoot, SettingFileName);
-
-        _listItemPatten = ListItemRegex();
         _scopes = ["api://62009369-df36-4df2-b7d7-b3e784b3ed55/"];
         _jsonOptions = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false,
         };
+
+        SettingFile = Path.Combine(_configRoot, SettingFileName);
     }
 
     public IEnumerable<CommandBase> GetCommands()
@@ -93,30 +94,32 @@ public sealed partial class AzCLIAgent : ILLMAgent
         }
 
         var data = azResponse.Data[0];
+        _text.Clear();
         _text.AppendLine($"### {data.Scenario}")
             .AppendLine()
             .AppendLine(data.Description)
             .AppendLine();
 
-        if (_listItemPatten.IsMatch(data.Description))
+        if (data.CommandSet.Count > 0)
         {
-            // When the description itself contains list items, we separate all the
-            // actions to another section to make it more readable.
-            _text.AppendLine("### Actions to take")
-                .AppendLine();
-        }
+            _text.AppendLine("```sh");
+            for (int i = 0; i < data.CommandSet.Count; i++)
+            {
+                if (i > 0)
+                {
+                    _text.AppendLine();
+                }
 
-        foreach (Action action in data.CommandSet)
-        {
-            _text.AppendLine($"- {action.Reason}, using command `{action.Command}`. For example:")
-                .AppendLine("```")
-                .AppendLine(action.Example)
-                .AppendLine("```")
-                .AppendLine();
+                Action action = data.CommandSet[i];
+                _text.AppendLine($"## {action.Reason}, using command `{action.Command}`")
+                    .AppendLine(action.Example);
+            }
+            _text.AppendLine("```")
+                .AppendLine()
+                .AppendLine("Make sure to replace the argument values used above as appropriate.");
         }
 
         host.RenderFullResponse(_text.ToString());
-        _text.Clear();
 
         return true;
     }
@@ -136,9 +139,6 @@ public sealed partial class AzCLIAgent : ILLMAgent
                 .GetToken(new TokenRequestContext(_scopes));
         }
     }
-
-    [GeneratedRegex("^\\d\\. ", RegexOptions.Multiline | RegexOptions.Compiled)]
-    private static partial Regex ListItemRegex();
 }
 
 internal class Query

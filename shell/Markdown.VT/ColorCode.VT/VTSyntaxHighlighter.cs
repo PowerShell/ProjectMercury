@@ -41,6 +41,8 @@ public class VTSyntaxHighlighter : CodeColorizerBase
             string background = style.Background.ToVTColor(isForeground: false);
             _plainFgBgColors = $"{foreground}{background}";
         }
+
+        Languages.Load(new Bash());
     }
 
     /// <summary>
