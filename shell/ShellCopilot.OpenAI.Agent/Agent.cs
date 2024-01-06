@@ -23,6 +23,7 @@ public sealed class OpenAIAgent : ILLMAgent
     private FileSystemWatcher _watcher;
     private ChatService _chatService;
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (_isDisposed)
@@ -35,6 +36,7 @@ public sealed class OpenAIAgent : ILLMAgent
         _isDisposed = true;
     }
 
+    /// <inheritdoc/>
     public void Initialize(AgentConfig config)
     {
         // while (!System.Diagnostics.Debugger.IsAttached)
@@ -74,11 +76,13 @@ public sealed class OpenAIAgent : ILLMAgent
         _watcher.Created += OnSettingFileChange;
     }
 
+    /// <inheritdoc/>
     public IEnumerable<CommandBase> GetCommands()
     {
         return null;
     }
 
+    /// <inheritdoc/>
     public async Task<bool> Chat(string input, IShell shell)
     {
         IHost host = shell.Host;
