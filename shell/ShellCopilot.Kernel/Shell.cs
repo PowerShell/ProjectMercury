@@ -108,13 +108,12 @@ internal sealed class Shell : IShell
     /// </summary>
     private void LoadAvailableAgents()
     {
-        //while (!System.Diagnostics.Debugger.IsAttached)
-        //{
-        //    Thread.Sleep(200);
-        //}
-        //System.Diagnostics.Debugger.Break();
+        string inboxAgentHome = Path.Join(AppContext.BaseDirectory, "agents");
+        IEnumerable<string> agentDirs = Enumerable.Concat(
+            Directory.EnumerateDirectories(inboxAgentHome),
+            Directory.EnumerateDirectories(Utils.AgentHome));
 
-        foreach (string dir in Directory.EnumerateDirectories(Utils.AgentHome))
+        foreach (string dir in agentDirs)
         {
             string name = Path.GetFileName(dir);
             string file = Path.Join(dir, $"{name}.dll");
@@ -167,10 +166,10 @@ internal sealed class Shell : IShell
             throw new InvalidOperationException("Cannot push when two agents are already on stack.");
         }
 
-        bool loadCommands = true;
-        if (_activeAgentStack.TryPeek(out var current))
+        bool loadCommands = false;
+        if (_isInteractive)
         {
-            loadCommands = current != agent;
+            loadCommands = !_activeAgentStack.TryPeek(out var current) || current != agent;
         }
 
         _activeAgentStack.Push(agent);
