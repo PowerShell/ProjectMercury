@@ -141,8 +141,11 @@ internal sealed class Shell : IShell
 
         try
         {
-            LLMAgent chosenAgent = Host
-                .PromptForSelectionAsync(
+            // If there is only 1 agent available, use it as the active one.
+            // Otherwise, ask user to choose the active one from the list.
+            LLMAgent chosenAgent = _agents.Count is 1
+                ? _agents[0]
+                : Host.PromptForSelectionAsync(
                     title: "[orange1]Please select an [Blue]agent[/] to use[/]:",
                     choices: _agents,
                     converter: static a => a.Impl.Name)
