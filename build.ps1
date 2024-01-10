@@ -22,6 +22,7 @@ $app_dir = Join-Path $shell_dir "ShellCopilot.App"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
 $az_cli_agent_dir = Join-Path $shell_dir "ShellCopilot.AzCLI.Agent"
 
+$pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $Configuration.ToLower()
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.OpenAI.Agent"
 $az_cli_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.AzCLI.Agent"
@@ -39,6 +40,12 @@ $app_csproj = GetProjectFile $app_dir
 dotnet build $app_csproj -c $Configuration -o $app_out_dir
 
 if ($LASTEXITCODE -eq 0) {
+    ## Move the nuget package to the package folder.
+    if (-not (Test-Path $pkg_out_dir)) {
+        mkdir $pkg_out_dir > $null
+    }
+    Move-Item $app_out_dir/ShellCopilot.Abstraction.*.nupkg $pkg_out_dir -Force
+
     Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
     $open_ai_csproj = GetProjectFile $open_ai_agent_dir
     dotnet publish $open_ai_csproj -c $Configuration -o $open_ai_out_dir
@@ -52,5 +59,7 @@ if ($LASTEXITCODE -eq 0) {
 
 if ($LASTEXITCODE -eq 0) {
     $shell_path = Join-Path $app_out_dir ($IsWindows ? "aish.exe" : "aish")
-    Write-Host "`nBuild was successful, output path: $shell_path`n" -ForegroundColor Green
+    Set-Clipboard $shell_path
+    Write-Host "`nBuild was successful, output path: $shell_path " -NoNewline -ForegroundColor Green
+    Write-Host "(copied to clipboard)`n" -ForegroundColor Cyan
 }
