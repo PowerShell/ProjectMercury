@@ -37,7 +37,7 @@ if ($Clean) {
 
 ## Create the package folder. Build will fail when nuget.config references to non-existing path.
 if (-not (Test-Path $pkg_out_dir)) {
-    mkdir $pkg_out_dir > $null
+    New-Item $pkg_out_dir -ItemType Directory > $null
 }
 
 Write-Host "`n[Build Shell Copilot ...]`n" -ForegroundColor Green
