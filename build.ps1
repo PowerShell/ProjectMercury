@@ -35,15 +35,17 @@ if ($Clean) {
     }
 }
 
+## Create the package folder. Build will fail when nuget.config references to non-existing path.
+if (-not (Test-Path $pkg_out_dir)) {
+    mkdir $pkg_out_dir > $null
+}
+
 Write-Host "`n[Build Shell Copilot ...]`n" -ForegroundColor Green
 $app_csproj = GetProjectFile $app_dir
 dotnet build $app_csproj -c $Configuration -o $app_out_dir
 
 if ($LASTEXITCODE -eq 0) {
     ## Move the nuget package to the package folder.
-    if (-not (Test-Path $pkg_out_dir)) {
-        mkdir $pkg_out_dir > $null
-    }
     Move-Item $app_out_dir/ShellCopilot.Abstraction.*.nupkg $pkg_out_dir -Force
 
     Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
