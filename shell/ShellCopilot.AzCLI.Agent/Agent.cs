@@ -43,7 +43,7 @@ public sealed class AzCLIAgent : ILLMAgent
         _client = new HttpClient();
         _text = new StringBuilder();
 
-        _scopes = ["api://62009369-df36-4df2-b7d7-b3e784b3ed55/"];
+        _scopes = new[] { "api://62009369-df36-4df2-b7d7-b3e784b3ed55/" };
         _jsonOptions = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
