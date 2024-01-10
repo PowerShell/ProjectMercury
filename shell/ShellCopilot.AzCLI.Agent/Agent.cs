@@ -1,7 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Azure.Core;
 using Azure.Identity;
 using ShellCopilot.Abstraction;
@@ -11,11 +10,7 @@ namespace ShellCopilot.AzCLI.Agent;
 public sealed class AzCLIAgent : ILLMAgent
 {
     public string Name => "az-cli";
-    public string Description => @"An AI assistant to get the Azure CLI scripts or commands for management operations of Azure resources and the end-to-end scenarios containing multiple different Azure resources. Sample questions:
-  1. Give me a CLI script to create a VM with a public IP address.
-  2. How to use Azure CLI script to backup an Azure SQL single database to an Azure storage container?
-  3. How to connect an App Service app to an Azure Cache for Redis using Azure CLI?
-  4. What is the CLI command to start a SAP system using Azure Center for SAP solutions?";
+    public string Description => "An AI assistant to get the Azure CLI scripts or commands for management operations of Azure resources and the end-to-end scenarios containing multiple different Azure resources.";
     public string SettingFile { private set; get; }
 
     private const string SettingFileName = "az-cli.agent.json";
@@ -72,7 +67,7 @@ public sealed class AzCLIAgent : ILLMAgent
             if (ex is CredentialUnavailableException)
             {
                 host.MarkupErrorLine($"Access token not available. Query cannot be served.");
-                host.MarkupErrorLine($"The '{Name}' agent depends on the Azure CLI credential to aquire access token. Please run 'az login' to setup account.");
+                host.MarkupErrorLine($"The '{Name}' agent depends on the Azure CLI credential to aquire access token. Please run 'az login' from a command-line shell to setup account.");
             }
             else
             {
