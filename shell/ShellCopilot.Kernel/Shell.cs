@@ -1,53 +1,232 @@
-using Azure.AI.OpenAI;
-using Spectre.Console;
+using System.Reflection;
 using Microsoft.PowerShell;
+using ShellCopilot.Abstraction;
 using ShellCopilot.Kernel.Commands;
-using System.Text;
+using Spectre.Console;
 
 namespace ShellCopilot.Kernel;
 
-internal class Shell
+internal sealed class Shell : IShell
 {
-    private const string ALTERNATE_SCREEN_BUFFER = "\x1b[?1049h";
-    private const string MAIN_SCREEN_BUFFER = "\x1b[?1049l";
-
-    private readonly bool _interactive;
-    private readonly bool _useAlternateBuffer;
-
-    private readonly Pager _pager;
-    private readonly Configuration _config;
-    private readonly BackendService _service;
-    private readonly MarkdownRender _mdRender;
-    private readonly CommandRunner _cmdRunner;
-
-    private readonly Func<int, bool, string> _rlPrompt;
+    private readonly bool _isInteractive;
+    private readonly List<LLMAgent> _agents;
+    private readonly Stack<LLMAgent> _activeAgentStack;
     private CancellationTokenSource _cancellationSource;
-    private bool _hasExited;
 
-    internal Shell(bool interactive, bool useAlternateBuffer = false, string historyFileNamePrefix = null)
+    internal bool Exit { set; get; }
+    internal Host Host { get; }
+    internal CommandRunner CommandRunner { get; }
+    internal List<LLMAgent> Agents => _agents;
+    internal CancellationToken CancellationToken => _cancellationSource.Token;
+    internal LLMAgent ActiveAgent => _activeAgentStack.TryPeek(out var agent) ? agent : null;
+
+    #region IShell implementation
+
+    IHost IShell.Host => Host;
+    CancellationToken IShell.CancellationToken => _cancellationSource.Token;
+
+    #endregion IShell implementation
+
+    /// <summary>
+    /// Creates an instance of <see cref="Shell"/>.
+    /// </summary>
+    internal Shell(bool interactive, bool useAlternateBuffer)
     {
-        _interactive = interactive;
-        _useAlternateBuffer = useAlternateBuffer;
-
-        _pager = new Pager(interactive && useAlternateBuffer);
-        _config = Configuration.ReadFromConfigFile();
-        _service = new BackendService(_config, historyFileNamePrefix);
-        _mdRender = new MarkdownRender();
-        _cmdRunner = new CommandRunner();
-
-        _rlPrompt = ReadLinePrompt;
+        _isInteractive = interactive;
+        _agents = new List<LLMAgent>();
+        _activeAgentStack = new Stack<LLMAgent>();
         _cancellationSource = new CancellationTokenSource();
 
-        InitializeShell();
+        Exit = false;
+        Host = new Host();
+
+        if (interactive)
+        {
+            Host.WriteLine("Shell Copilot (v0.1)\n");
+            CommandRunner = new CommandRunner(this);
+            SetReadLineExperience();
+        }
+
+        LoadAvailableAgents();
+        Console.CancelKeyPress += OnCancelKeyPress;
+
+        if (interactive)
+        {
+            // Write out information about the active agent.
+            var current = ActiveAgent?.Impl;
+            if (current is not null)
+            {
+                Host.MarkupLine($"Using the agent [green]{current.Name}[/]:\n[italic]{current.Description.EscapeMarkup()}[/]\n");
+            }
+
+            // Write out help.
+            Host.MarkupLine($"Type {Formatter.InlineCode("/help")} for instructions.")
+                .WriteLine();
+        }
     }
 
-    private CancellationToken CancellationToken => _cancellationSource.Token;
-    private bool ChatDisabled { get; set; }
+    /// <summary>
+    /// Get all code blocks from the last LLM response.
+    /// </summary>
+    /// <returns></returns>
+    internal List<string> GetCodeBlockFromLastResponse()
+    {
+        return Host.MarkdownRender.GetAllCodeBlocks();
+    }
 
-    internal Configuration Configuration => _config;
-    internal BackendService BackendService => _service;
-    internal MarkdownRender MarkdownRender => _mdRender;
-    internal CommandRunner CommandRunner => _cmdRunner;
+    /// <summary>
+    /// Load a plugin assembly file and process the agents defined in it.
+    /// </summary>
+    internal void ProcessAgentPlugin(string pluginFile)
+    {
+        Assembly plugin = Assembly.LoadFrom(pluginFile);
+        foreach (Type type in plugin.ExportedTypes)
+        {
+            if (!typeof(ILLMAgent).IsAssignableFrom(type))
+            {
+                continue;
+            }
+
+            var agent = (ILLMAgent)Activator.CreateInstance(type);
+            var agentHome = Path.Join(Utils.AgentConfigHome, agent.Name);
+            var config = new AgentConfig
+            {
+                IsInteractive = _isInteractive,
+                ConfigurationRoot = Directory.CreateDirectory(agentHome).FullName,
+                RenderingStyle = Console.IsOutputRedirected
+                    ? RenderingStyle.FullResponsePreferred
+                    : RenderingStyle.StreamingResponsePreferred
+            };
+
+            agent.Initialize(config);
+            _agents.Add(new LLMAgent(agent));
+        }
+    }
+
+    /// <summary>
+    /// Load all available agents.
+    /// </summary>
+    private void LoadAvailableAgents()
+    {
+        string inboxAgentHome = Path.Join(AppContext.BaseDirectory, "agents");
+        IEnumerable<string> agentDirs = Enumerable.Concat(
+            Directory.EnumerateDirectories(inboxAgentHome),
+            Directory.EnumerateDirectories(Utils.AgentHome));
+
+        foreach (string dir in agentDirs)
+        {
+            string name = Path.GetFileName(dir);
+            string file = Path.Join(dir, $"{name}.dll");
+
+            if (!File.Exists(file))
+            {
+                continue;
+            }
+
+            try
+            {
+                ProcessAgentPlugin(file);
+            }
+            catch (Exception ex)
+            {
+                Host.MarkupErrorLine($"Failed to load the agent '{name}': {ex.Message}\n");
+            }
+        }
+
+        if (_agents.Count is 0)
+        {
+            Host.MarkupWarningLine($"No agent available.\n");
+            return;
+        }
+
+        try
+        {
+            // If there is only 1 agent available, use it as the active one.
+            // Otherwise, ask user to choose the active one from the list.
+            LLMAgent chosenAgent = _agents.Count is 1
+                ? _agents[0]
+                : Host.PromptForSelectionAsync(
+                    title: "[orange1]Please select an [Blue]agent[/] to use[/]:",
+                    choices: _agents,
+                    converter: static a => a.Impl.Name)
+                .GetAwaiter().GetResult();
+
+            PushActiveAgent(chosenAgent);
+        }
+        catch (Exception)
+        {
+            // Ignore failure from showing the confirmation prompt.
+        }
+    }
+
+    /// <summary>
+    /// Push the active agent on to the stack.
+    /// </summary>
+    internal void PushActiveAgent(LLMAgent agent)
+    {
+        if (_activeAgentStack.Count is 2)
+        {
+            throw new InvalidOperationException("Cannot push when two agents are already on stack.");
+        }
+
+        bool loadCommands = false;
+        if (_isInteractive)
+        {
+            loadCommands = !_activeAgentStack.TryPeek(out var current) || current != agent;
+        }
+
+        _activeAgentStack.Push(agent);
+        if (loadCommands)
+        {
+            ILLMAgent impl = agent.Impl;
+            CommandRunner.UnloadAgentCommands();
+            CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
+        }
+    }
+
+    /// <summary>
+    /// Pop the current active agent off the stack.
+    /// </summary>
+    internal void PopActiveAgent()
+    {
+        if (_activeAgentStack.Count != 2)
+        {
+            throw new InvalidOperationException("Cannot pop when only one active agent is on stack.");
+        }
+
+        LLMAgent pre = _activeAgentStack.Pop();
+        LLMAgent cur = _activeAgentStack.Peek();
+
+        if (pre != cur)
+        {
+            ILLMAgent impl = cur.Impl;
+            CommandRunner.UnloadAgentCommands();
+            CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
+        }
+    }
+
+    /// <summary>
+    /// Switch and use another agent as the active.
+    /// </summary>
+    internal void SwitchActiveAgent(LLMAgent agent)
+    {
+        ILLMAgent impl = agent.Impl;
+        if (_activeAgentStack.TryPop(out var current))
+        {
+            _activeAgentStack.Clear();
+            _activeAgentStack.Push(agent);
+            if (current != agent)
+            {
+                CommandRunner.UnloadAgentCommands();
+                CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
+            }
+        }
+        else
+        {
+            _activeAgentStack.Push(agent);
+            CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
+        }
+    }
 
     /// <summary>
     /// For reference:
@@ -70,10 +249,13 @@ internal class Shell
         }
     }
 
-    private void ReadLineInitialization()
+    /// <summary>
+    /// Configure the read-line experience.
+    /// </summary>
+    private void SetReadLineExperience()
     {
         PSConsoleReadLineOptions options = PSConsoleReadLine.GetOptions();
-        options.RenderHelper = new ReadLine(_cmdRunner);
+        options.RenderHelper = new ReadLineHelper(CommandRunner);
 
         PSConsoleReadLine.SetKeyHandler(
             new[] { "Ctrl+d,Ctrl+c" },
@@ -87,281 +269,40 @@ internal class Shell
             "Copy the code snippet from the last response to clipboard.");
     }
 
-    private void InitializeShell()
+    /// <summary>
+    /// Execute a command.
+    /// </summary>
+    /// <param name="input">Command line to be executed.</param>
+    private void RunCommand(string input)
     {
-        ChatDisabled = false;
-        Console.CancelKeyPress += OnCancelKeyPress;
-
-        if (_interactive)
+        string commandLine = input[1..].Trim();
+        if (commandLine == string.Empty)
         {
-            if (_useAlternateBuffer)
-            {
-                Console.Write(ALTERNATE_SCREEN_BUFFER);
-                Console.Clear();
-            }
-
-            // Write out the active model information.
-            AnsiConsole.WriteLine("\nShell Copilot (v0.1)");
-            AnsiConsole.MarkupLine($"Using the model [green]{_config.ActiveModel}[/]:");
-            _config.GetModelInUse().DisplayBackendInfo();
-
-            // Write out help.
-            AnsiConsole.MarkupLine($"Type {ConsoleRender.FormatInlineCode("/help")} for instructions.");
-            AnsiConsole.WriteLine();
-
-            // Set readline configuration.
-            ReadLineInitialization();
-
-            // Write out error or warning if pager cannot be resolved while using alternate buffer.
-            _pager.ReportAnyResolutionFailure();
-            _cmdRunner.LoadBuiltInCommands(this);
-        }
-    }
-
-    private void CleanupShell(bool hadError = false)
-    {
-        if (_interactive && _useAlternateBuffer)
-        {
-            if (hadError)
-            {
-                string message = "Press any key to return to the main screen buffer ...";
-                AnsiConsole.Markup(ConsoleRender.FormatError(message, usePrefix: false));
-                AnsiConsole.Console.Input.ReadKey(intercept: true);
-            }
-
-            Console.Write(MAIN_SCREEN_BUFFER);
-        }
-
-        Console.CancelKeyPress -= OnCancelKeyPress;
-    }
-
-    private static string ReadLinePrompt(int count, bool chatDisabled)
-    {
-        var indicator = chatDisabled ? ConsoleRender.FormatWarning(" ! ", usePrefix: false) : null;
-        return $"[bold green]aish[/]:{count}{indicator}> ";
-    }
-
-    private static string GetWarningBasedOnFinishReason(CompletionsFinishReason reason)
-    {
-        if (reason.Equals(CompletionsFinishReason.TokenLimitReached))
-        {
-            return "The response may not be complete as the max token limit was exhausted.";
-        }
-
-        if (reason.Equals(CompletionsFinishReason.ContentFiltered))
-        {
-            return "The response is not complete as it was identified as potentially sensitive per content moderation policies.";
-        }
-
-        return null;
-    }
-
-    private static void WriteChatDisabledWarning()
-    {
-        string useCommand = ConsoleRender.FormatInlineCode($"/use");
-        string helpCommand = ConsoleRender.FormatInlineCode("/help");
-
-        AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine(ConsoleRender.FormatWarning("Chat disabled due to the missing access key."));
-        AnsiConsole.MarkupLine(ConsoleRender.FormatWarning($"Run {useCommand} to switch to a different model. Type {helpCommand} for more instructions."));
-        AnsiConsole.WriteLine();
-    }
-
-    private void PrintChatResponse(ChatResponse response)
-    {
-        if (string.IsNullOrWhiteSpace(response.Content))
-        {
-            AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine(ConsoleRender.FormatNote("Received response is empty or contains whitespace only."));
-        }
-        else if (Console.IsOutputRedirected)
-        {
-            Console.WriteLine(response.Content);
-        }
-        else
-        {
-            // Render the markdown only if standard output is not redirected.
-            string text = _mdRender.RenderText(response.Content);
-            if (!Utils.LeadingWhiteSpaceHasNewLine(text))
-            {
-                Console.WriteLine();
-            }
-
-            _pager.WriteOutput(text);
-        }
-
-        string warning = GetWarningBasedOnFinishReason(response.FinishReason);
-        if (warning is not null)
-        {
-            AnsiConsole.MarkupLine(ConsoleRender.FormatWarning(warning));
-            AnsiConsole.WriteLine();
-        }
-    }
-
-    private async Task<string> PrintStreamingChatResponse(StreamingChatCompletions streamingChatCompletions)
-    {
-        var content = new StringBuilder();
-        var streamingRender = new StreamingRender();
-        using var response = streamingChatCompletions;
-
-        try
-        {
-            // Hide the cursor position when rendering the streaming response.
-            Console.CursorVisible = false;
-            await foreach (StreamingChatChoice choice in response.GetChoicesStreaming())
-            {
-                await foreach (ChatMessage message in choice.GetMessageStreaming())
-                {
-                    if (string.IsNullOrEmpty(message.Content))
-                    {
-                        continue;
-                    }
-
-                    content.Append(message.Content);
-                    string text = _mdRender.RenderText(content.ToString());
-                    streamingRender.Refresh(text);
-                }
-            }
-        }
-        finally
-        {
-            Console.CursorVisible = true;
-        }
-
-        Console.WriteLine();
-        return content.ToString();
-    }
-
-    internal void ExitShell()
-    {
-        _hasExited = true;
-    }
-
-    internal bool EnsureKeyPresentForActiveModel()
-    {
-        AiModel model = _config.GetModelInUse();
-        if (model.Key is null && model.RequestForKey(mandatory: true, CancellationToken, showBackendInfo: false))
-        {
-            Configuration.WriteToConfigFile(_config);
-        }
-
-        return model.Key is not null;
-    }
-
-    internal async Task<ChatResponse> ChatWithSpinnerAsync(string prompt, bool insertToHistory, bool useStderr)
-    {
-        using var _ = useStderr ? ConsoleRender.UseErrorConsole() : null;
-        Capabilities caps = AnsiConsole.Profile.Capabilities;
-        bool interactive = caps.Interactive;
-
-        try
-        {
-            // When standard input is redirected, AnsiConsole's auto detection believes it's non-interactive,
-            // and thus doesn't render Status or Progress. However, redirected input should not affect the
-            // Status/Progress rendering as long as its output target, stderr or stdout, is not redirected.
-            caps.Interactive = true;
-
-            return await AnsiConsole
-                .Status()
-                .AutoRefresh(true)
-                .Spinner(AsciiLetterSpinner.Default)
-                .SpinnerStyle(new Style(Color.Olive))
-                .StartAsync(
-                    "[italic slowblink]Generating...[/]",
-                    statusContext => _service.GetChatResponseAsync(prompt, insertToHistory, CancellationToken))
-                .ConfigureAwait(false);
-        }
-        finally
-        {
-            caps.Interactive = interactive;
-        }
-    }
-
-    internal async Task<StreamingChatCompletions> StreamingChatWithSpinnerAsync(string prompt, bool insertToHistory, bool useStderr)
-    {
-        using var _ = useStderr ? ConsoleRender.UseErrorConsole() : null;
-        Capabilities caps = AnsiConsole.Profile.Capabilities;
-        bool interactive = caps.Interactive;
-
-        try
-        {
-            // When standard input is redirected, AnsiConsole's auto detection believes it's non-interactive,
-            // and thus doesn't render Status or Progress. However, redirected input should not affect the
-            // Status/Progress rendering as long as its output target, stderr or stdout, is not redirected.
-            caps.Interactive = true;
-
-            return await AnsiConsole
-                .Status()
-                .AutoRefresh(true)
-                .Spinner(AsciiLetterSpinner.Default)
-                .SpinnerStyle(new Style(Color.Olive))
-                .StartAsync(
-                    "[italic slowblink]Generating...[/]",
-                    statusContext => _service.GetStreamingChatResponseAsync(prompt, insertToHistory, CancellationToken))
-                .ConfigureAwait(false);
-        }
-        finally
-        {
-            caps.Interactive = interactive;
-        }
-    }
-
-    internal async Task RunOnceAsync(string prompt)
-    {
-        AiModel model = _config.GetModelInUse();
-        if (model.Key is null)
-        {
-            string setCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} set");
-            string helpCommand = ConsoleRender.FormatInlineCode($"{Utils.AppName} set -h");
-
-            using var _ = ConsoleRender.UseErrorConsole();
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError($"Access key is missing for the active model '{model.Name}'."));
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError($"You can set the key by {setCommand}. Run {helpCommand} for details."));
-
+            Host.MarkupErrorLine("Command is missing.");
             return;
         }
 
         try
         {
-            ChatResponse response = Console.IsOutputRedirected && Console.IsErrorRedirected
-                ? await _service.GetChatResponseAsync(prompt, insertToHistory: false, CancellationToken).ConfigureAwait(false)
-                : await ChatWithSpinnerAsync(prompt, insertToHistory: false, Console.IsOutputRedirected).ConfigureAwait(false);
-
-            if (response is not null)
-            {
-                PrintChatResponse(response);
-            }
+            CommandRunner.InvokeCommand(commandLine);
         }
-        catch (OperationCanceledException)
+        catch (Exception e)
         {
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError("Operation was aborted."));
-        }
-        catch (ShellCopilotException exception)
-        {
-            AnsiConsole.MarkupLine(ConsoleRender.FormatError(exception.Message));
-        }
-        finally
-        {
-            CleanupShell();
+            Host.MarkupErrorLine(e.Message);
         }
     }
 
+    /// <summary>
+    /// Run a chat REPL.
+    /// </summary>
     internal async Task RunREPLAsync()
     {
-        if (!EnsureKeyPresentForActiveModel())
-        {
-            ChatDisabled = true;
-            WriteChatDisabledWarning();
-        }
-
         int count = 1;
-        bool hadError = false;
-
-        while (!_hasExited)
+        while (!Exit)
         {
-            hadError = false;
-            string rlPrompt = _rlPrompt(count, ChatDisabled);
-            AnsiConsole.Markup(rlPrompt);
+            LLMAgent agent = ActiveAgent;
+            string prompt = $"[bold green]aish[/]:{count}> ";
+            Host.Markup(prompt);
 
             try
             {
@@ -374,51 +315,151 @@ internal class Shell
                 count++;
                 if (input.StartsWith('/'))
                 {
-                    string commandLine = input[1..].Trim();
-                    if (commandLine == string.Empty)
+                    RunCommand(input);
+                    continue;
+                }
+
+                // Now it's a query to the LLM.
+                if (agent is null)
+                {
+                    // No agent to serve the query. Print the warning and go back to read-line prompt.
+                    string agentCommand = Formatter.InlineCode($"/agent use");
+                    string helpCommand = Formatter.InlineCode("/help");
+
+                    Host.WriteLine()
+                        .MarkupWarningLine("No active agent selected, chat is disabled.")
+                        .MarkupWarningLine($"Run {agentCommand} to select an agent. Type {helpCommand} for more instructions.")
+                        .WriteLine();
+                    continue;
+                }
+
+                if (agent.IsOrchestrator(out IOrchestrator orchestrator)
+                    && _activeAgentStack.Count is 1
+                    && !agent.OrchestratorRoleDisabled
+                    && _agents.Count > 1)
+                {
+                    Host.MarkupLine($"The active agent [green]{agent.Impl.Name}[/] can act as an orchestrator and there are multiple agents available.");
+                    bool confirmed = await Host.PromptForConfirmationAsync(
+                        prompt: $"Do you want it to find the most suitable agent for your query?",
+                        defaultValue: false);
+
+                    if (confirmed)
                     {
-                        AnsiConsole.MarkupLine(ConsoleRender.FormatError("Command is missing."));
+                        List<string> descriptions = new(capacity: _agents.Count);
+                        foreach (LLMAgent item in _agents)
+                        {
+                            descriptions.Add(item.Impl.Description);
+                        }
+
+                        try
+                        {
+                            Task<int> find_agent_op() => orchestrator.FindAgentForPrompt(
+                                prompt: input,
+                                agents: descriptions,
+                                token: CancellationToken).WaitAsync(CancellationToken);
+
+                            int selected = await Host.RunWithSpinnerAsync(find_agent_op, status: "Thinking...");
+                            string agentCommand = Formatter.InlineCode($"/agent pop");
+
+                            if (selected >= 0)
+                            {
+                                var selectedAgent = _agents[selected];
+                                PushActiveAgent(selectedAgent);
+                                Host.MarkupNoteLine($"Selected agent: [green]{selectedAgent.Impl.Name}[/]")
+                                    .MarkupNoteLine($"It's now active for your query. When you are done with the topic, run {agentCommand} to return to the orchestrator.");
+                            }
+                            else
+                            {
+                                PushActiveAgent(agent);
+                                Host.MarkupNoteLine($"No suitable agent was found. The active agent [green]{agent.Impl.Name}[/] will be used for the topic.")
+                                    .MarkupNoteLine($"When you are done with the topic, run {agentCommand} to return to the orchestrator.");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            if (ex is OperationCanceledException)
+                            {
+                                // User cancelled the operation, so we return to the read-line prompt.
+                                continue;
+                            }
+
+                            agent.OrchestratorRoleDisabled = true;
+                            Host.WriteLine()
+                                .MarkupErrorLine($"Operation failed: {ex.Message}")
+                                .WriteLine()
+                                .MarkupNoteLine($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Impl.Name}[/] for the query.");
+                        }
+                    }
+                }
+
+                try
+                {
+                    // Use the current active agent for the query.
+                    agent = ActiveAgent;
+
+                    // TODO: Consider `WaitAsync(CancellationToken)` to handle an agent not responding to ctr+c.
+                    // One problem to use `WaitAsync` is to make sure we give reasonable time for the agent to handle the cancellation.
+                    bool wasQueryServed = await agent.Impl.Chat(input, this);
+                    if (!wasQueryServed)
+                    {
+                        Host.WriteLine()
+                            .MarkupWarningLine($"[[{Utils.AppName}]]: Agent self-check failed. Resolve the issue as instructed and try again.")
+                            .MarkupWarningLine($"[[{Utils.AppName}]]: Run {Formatter.InlineCode($"/agent config {agent.Impl.Name}")} to edit the settings for the agent.")
+                            .WriteLine();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (ex is OperationCanceledException)
+                    {
+                        // User cancelled the operation, so we return to the read-line prompt.
                         continue;
                     }
 
-                    try
-                    {
-                        _cmdRunner.InvokeCommand(commandLine);
-                    }
-                    catch (Exception e)
-                    {
-                        AnsiConsole.MarkupLine(ConsoleRender.FormatError(e.Message));
-                    }
-
-                    continue;
-                }
-
-                // Chat to the AI endpoint.
-                if (ChatDisabled)
-                {
-                    WriteChatDisabledWarning();
-                    continue;
-                }
-
-                StreamingChatCompletions response = await
-                    StreamingChatWithSpinnerAsync(input, insertToHistory: true, useStderr: false).ConfigureAwait(false);
-
-                if (response is not null)
-                {
-                    await PrintStreamingChatResponse(response);
+                    Host.WriteErrorLine()
+                        .MarkupErrorLine($"Agent failed to generate a response: {ex.Message}")
+                        .WriteErrorLine();
                 }
             }
             catch (ShellCopilotException e)
             {
-                AnsiConsole.MarkupLine(ConsoleRender.FormatError(e.Message));
+                Host.MarkupErrorLine(e.Message);
                 if (e.HandlerAction is ExceptionHandlerAction.Stop)
                 {
-                    hadError = true;
                     break;
                 }
             }
         }
+    }
 
-        CleanupShell(hadError);
+    /// <summary>
+    /// Run a one-time chat.
+    /// </summary>
+    /// <param name="prompt"></param>
+    internal async Task RunOnceAsync(string prompt)
+    {
+        if (ActiveAgent is null)
+        {
+            string settingCommand = Formatter.InlineCode($"{Utils.AppName} --settings");
+            string helpCommand = Formatter.InlineCode($"{Utils.AppName} --help");
+
+            Host.MarkupErrorLine($"No active agent was configured.");
+            Host.MarkupErrorLine($"Run {settingCommand} to configure the active agent. Run {helpCommand} for details.");
+
+            return;
+        }
+
+        try
+        {
+            await ActiveAgent.Impl.Chat(prompt, this).WaitAsync(CancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            Host.MarkupErrorLine("Operation was aborted.");
+        }
+        catch (ShellCopilotException exception)
+        {
+            Host.MarkupErrorLine(exception.Message.EscapeMarkup());
+        }
     }
 }

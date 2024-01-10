@@ -1,22 +1,21 @@
 ﻿using System.CommandLine;
+using ShellCopilot.Abstraction;
 using Spectre.Console;
 
 namespace ShellCopilot.Kernel.Commands;
 
-internal class HelpCommand : CommandBase
+internal sealed class HelpCommand : CommandBase
 {
-    private readonly Shell _shell;
-
-    public HelpCommand(Shell shell)
+    public HelpCommand()
         : base("help", "Show all available commands.")
     {
-        _shell = shell;
         this.SetHandler(HelpAction);
     }
 
     private void HelpAction()
     {
-        var commands = _shell.CommandRunner.Commands;
+        var shellImpl = (Shell)Shell;
+        var commands = shellImpl.CommandRunner.Commands;
         var list = commands.Values.OrderBy(c => c.Name).ToList();
 
         AnsiConsole.WriteLine();
@@ -26,10 +25,10 @@ internal class HelpCommand : CommandBase
 
         var elements = new[]
         {
-            new RenderElement<CommandBase>(nameof(Name)),
-            new RenderElement<CommandBase>(nameof(Description))
+            new PropertyElement<CommandBase>(nameof(Name)),
+            new PropertyElement<CommandBase>(nameof(Description))
         };
 
-        ConsoleRender.RenderTable(list, elements);
+        shellImpl.Host.RenderTable(list, elements);
     }
 }

@@ -8,6 +8,8 @@
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <TargetFramework>net6.0</TargetFramework>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
-    <LangVersion>9.0</LangVersion>
+
+    <!-- Disable deps.json generation -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
 </Project>

@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShellCopilot.Abstraction", "ShellCopilot.Abstraction\ShellCopilot.Abstraction.csproj", "{1C02CDBD-D89A-4945-9FD7-4551FEE287D4}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShellCopilot.App", "ShellCopilot.App\ShellCopilot.App.csproj", "{B0DAD6B9-06E4-4811-9367-60174BEDC475}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShellCopilot.Kernel", "ShellCopilot.Kernel\ShellCopilot.Kernel.csproj", "{615788CB-1B9A-4B34-97B3-4608686E59CA}"

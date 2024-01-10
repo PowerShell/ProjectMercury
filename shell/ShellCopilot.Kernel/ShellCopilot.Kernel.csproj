@@ -4,12 +4,12 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!-- Disable deps.json generation -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.6" />
-    <PackageReference Include="Azure.Core" Version="1.34.0" />
-    <PackageReference Include="SharpToken" Version="1.2.2" />
     <PackageReference Include="Microsoft.PowerShell.Native" Version="7.3.2" />
     <PackageReference Include="Spectre.Console" Version="0.47.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ReadLine\PSReadLine.csproj" />
     <ProjectReference Include="..\Markdown.VT\Markdown.VT.csproj" />
+    <ProjectReference Include="..\ShellCopilot.Abstraction\ShellCopilot.Abstraction.csproj" />
   </ItemGroup>
 
 </Project>
