@@ -38,19 +38,10 @@ internal static class Utils
     internal const int InvalidProcessId = -1;
     internal const string AppName = "aish";
 
-    internal const string ApimAuthorizationHeader = "Ocp-Apim-Subscription-Key";
-    internal const string ApimGatewayDomain = ".azure-api.net";
-    internal const string AzureOpenAIDomain = ".openai.azure.com";
-
-    internal const string ShellCopilotEndpoint = "https://pscopilot.azure-api.net";
-    internal const string KeyApplicationHelpLink = "https://github.com/PowerShell/ShellCopilot#readme";
-
     internal static readonly string OS;
     internal static readonly string ShellConfigHome;
     internal static readonly string AgentHome;
     internal static readonly string AgentConfigHome;
-
-    private static int? s_parentProcessId;
 
     static Utils()
     {
@@ -129,124 +120,5 @@ internal static class Utils
             ProcessStartInfo startInfo = new("chmod", argument);
             Process.Start(startInfo).WaitForExit();
         }
-    }
-
-    internal static SecureString ConvertToSecureString(string text)
-    {
-        if (string.IsNullOrEmpty(text))
-        {
-            return null;
-        }
-
-        var ss = new SecureString();
-        foreach (char c in text)
-        {
-            ss.AppendChar(c);
-        }
-
-        return ss;
-    }
-
-    internal static int GetParentProcessId()
-    {
-        if (!s_parentProcessId.HasValue)
-        {
-            s_parentProcessId = GetParentProcessId(Process.GetCurrentProcess());
-        }
-
-        return s_parentProcessId.Value;
-    }
-
-    private static int GetParentProcessId(Process process)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            var res = Interop.Windows.NtQueryInformationProcess(
-                process.Handle,
-                processInformationClass: 0,
-                processInformation: out Interop.Windows.PROCESS_BASIC_INFORMATION pbi,
-                processInformationLength: Marshal.SizeOf<Interop.Windows.PROCESS_BASIC_INFORMATION>(),
-                returnLength: out _);
-
-            return res is 0 ? pbi.InheritedFromUniqueProcessId.ToInt32() : InvalidProcessId;
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            return Interop.MacOS.GetPPid(process.Id);
-        }
-        else if (OperatingSystem.IsLinux())
-        {
-            // Read '/proc/<pid>/status' for the row beginning with 'PPid:', which is the parent process id.
-            // We could check '/proc/<pid>/stat', but although that file was meant to be a space delimited line,
-            // it contains a value which could contain spaces itself.
-            // Using the 'status' file is a lot simpler because each line contains a record with a simple label.
-            // https://github.com/PowerShell/PowerShell/issues/17541#issuecomment-1159911577
-            var path = $"/proc/{process.Id}/status";
-            try
-            {
-                string line = null;
-                using StreamReader sr = new(path);
-
-                while ((line = sr.ReadLine()) is not null)
-                {
-                    if (!line.StartsWith("PPid:\t", StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    string[] lineSplit = line.Split(
-                        separator: '\t',
-                        count: 2,
-                        options: StringSplitOptions.RemoveEmptyEntries);
-
-                    if (lineSplit.Length is not 2)
-                    {
-                        continue;
-                    }
-
-                    if (int.TryParse(lineSplit[1].Trim(), out int ppid))
-                    {
-                        return ppid;
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // Ignore exception thrown from reading the proc file.
-            }
-        }
-
-        return InvalidProcessId;
-    }
-}
-
-internal static partial class Interop
-{
-    internal static unsafe partial class Windows
-    {
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct PROCESS_BASIC_INFORMATION
-        {
-            public nint ExitStatus;
-            public nint PebBaseAddress;
-            public nint AffinityMask;
-            public nint BasePriority;
-            public nint UniqueProcessId;
-            public nint InheritedFromUniqueProcessId;
-        }
-
-        [LibraryImport("ntdll.dll")]
-        internal static partial int NtQueryInformationProcess(
-                nint processHandle,
-                int processInformationClass,
-                out PROCESS_BASIC_INFORMATION processInformation,
-                int processInformationLength,
-                out int returnLength);
-    }
-
-    internal static unsafe partial class MacOS
-    {
-        [LibraryImport("libpsl-native")]
-        internal static partial int GetPPid(int pid);
     }
 }
