@@ -38,17 +38,12 @@ internal static class Utils
     internal const int InvalidProcessId = -1;
     internal const string AppName = "aish";
 
-    internal static readonly string OS;
     internal static readonly string ShellConfigHome;
     internal static readonly string AgentHome;
     internal static readonly string AgentConfigHome;
 
     static Utils()
     {
-        string rid = RuntimeInformation.RuntimeIdentifier;
-        int index = rid.IndexOf('-');
-        OS = index is -1 ? rid : rid[..index];
-
         string locationPath = OperatingSystem.IsWindows()
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
             : Environment.GetEnvironmentVariable("HOME");
