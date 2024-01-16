@@ -67,12 +67,27 @@ public interface IHost
     void RenderFullResponse(string response);
 
     /// <summary>
+    /// Render the passed-in objects in the table format, for all public readable properties of <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">Type of the passed-in object.</typeparam>
+    /// <param name="sources">Passed-in objects.</param>
+    void RenderTable<T>(IList<T> sources);
+
+    /// <summary>
     /// Render the passed-in objects in the table format.
     /// </summary>
     /// <typeparam name="T">Type of the passed-in object.</typeparam>
     /// <param name="sources">Passed-in objects.</param>
     /// <param name="elements">Header and value pairs to be rendered for each object.</param>
     void RenderTable<T>(IList<T> sources, IList<IRenderElement<T>> elements);
+
+    /// <summary>
+    /// Render the passed-in object out in the list format, for all public readable properties of <typeparamref name="T"/>,
+    /// or for all key/value pairs if <typeparamref name="T"/> implements <see cref="IDictionary{String, String}"/>.
+    /// </summary>
+    /// <typeparam name="T">Type of the passed-in object.</typeparam>
+    /// <param name="source">Passed-in object.</param>
+    void RenderList<T>(T source);
 
     /// <summary>
     /// Render the passed-in object out in the list format.

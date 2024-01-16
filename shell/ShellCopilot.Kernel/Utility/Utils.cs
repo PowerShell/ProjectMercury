@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ShellCopilot.Kernel;
 
@@ -35,20 +35,21 @@ internal sealed class Disposable : IDisposable
 
 internal static class Utils
 {
-    internal const int InvalidProcessId = -1;
-    internal const string AppName = "aish";
+    internal const string DefaultAppName = "aish";
 
-    internal static readonly string ShellConfigHome;
-    internal static readonly string AgentHome;
-    internal static readonly string AgentConfigHome;
+    internal static string AppName;
+    internal static string ShellConfigHome;
+    internal static string AgentHome;
+    internal static string AgentConfigHome;
 
-    static Utils()
+    internal static void Setup(string appName)
     {
         string locationPath = OperatingSystem.IsWindows()
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
             : Environment.GetEnvironmentVariable("HOME");
 
-        ShellConfigHome = Path.Combine(locationPath, AppName);
+        AppName = appName?.Trim().ToLower() ?? DefaultAppName;
+        ShellConfigHome = Path.Combine(locationPath, AppName.Replace(' ', '.'));
         AgentHome = Path.Join(ShellConfigHome, "agents");
         AgentConfigHome = Path.Join(ShellConfigHome, "agent-config");
 
@@ -56,6 +57,17 @@ internal static class Utils
         CreateFolderWithRightPermission(ShellConfigHome);
         Directory.CreateDirectory(AgentHome);
         Directory.CreateDirectory(AgentConfigHome);
+    }
+
+    internal static JsonSerializerOptions GetJsonSerializerOptions()
+    {
+        return new JsonSerializerOptions
+        {
+            AllowTrailingCommas = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+        };
     }
 
     private static void CreateFolderWithRightPermission(string dirPath)

@@ -1,5 +1,40 @@
-
 namespace ShellCopilot.Abstraction;
+
+/// <summary>
+/// Contract class for an application to warp around Shell Copilot.
+/// </summary>
+public class ShellWrapper
+{
+    /// <summary>
+    /// Name of the application to run from command line, e.g. 'az copilot'
+    /// </summary>
+    public string Name { set; get; }
+
+    /// <summary>
+    /// Banner text to use.
+    /// </summary>
+    public string Banner { set; get; }
+
+    /// <summary>
+    /// Version to show.
+    /// </summary>
+    public string Version { set; get; }
+
+    /// <summary>
+    /// The prompt text to use.
+    /// </summary>
+    public string Prompt { set; get; }
+
+    /// <summary>
+    /// The default agent to use, which should be available along with Shell Copilot.
+    /// </summary>
+    public string Agent { set; get; }
+
+    /// <summary>
+    /// Context information that can be passed into the agent.
+    /// </summary>
+    public Dictionary<string, string> Context { set; get; }
+}
 
 public enum RenderingStyle
 {
@@ -30,6 +65,11 @@ public class AgentConfig
     /// Sets and gets the preferred rendering style.
     /// </summary>
     public RenderingStyle RenderingStyle { set; get; }
+
+    /// <summary>
+    /// Sets and gets the context information for the agent that is passed into Shell Copilot.
+    /// </summary>
+    public Dictionary<string, string> Context { set; get; }
 }
 
 public interface ILLMAgent : IDisposable
@@ -43,6 +83,11 @@ public interface ILLMAgent : IDisposable
     /// Gets description of the agent.
     /// </summary>
     string Description { get; }
+
+    /// <summary>
+    /// Properties of the agent to be displayed to user.
+    /// </summary>
+    Dictionary<string, string> AgentInfo => null;
 
     /// <summary>
     /// Gets the path to the setting file of the agent.

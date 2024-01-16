@@ -10,8 +10,9 @@ namespace ShellCopilot.AzCLI.Agent;
 public sealed class AzCLIAgent : ILLMAgent
 {
     public string Name => "az-cli";
-    public string Description => "An AI assistant to get the Azure CLI scripts or commands for management operations of Azure resources and the end-to-end scenarios containing multiple different Azure resources.";
-    public string SettingFile { private set; get; }
+    public string Description => "An AI assistant to provide Azure CLI scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple Azure resources.";
+    public Dictionary<string, string> AgentInfo { private set; get; } = null;
+    public string SettingFile { private set; get; } = null;
 
     private const string SettingFileName = "az-cli.agent.json";
     private const string Endpoint = "https://cli-copilot-dogfood.azurewebsites.net/api/CopilotService";
@@ -19,6 +20,7 @@ public sealed class AzCLIAgent : ILLMAgent
     private bool _isInteractive;
     private string _configRoot;
     private RenderingStyle _renderingStyle;
+    private Dictionary<string, string> _context;
     private HttpClient _client;
     private StringBuilder _text;
     private string[] _scopes;
@@ -37,6 +39,19 @@ public sealed class AzCLIAgent : ILLMAgent
         _configRoot = config.ConfigurationRoot;
         _client = new HttpClient();
         _text = new StringBuilder();
+
+        _context = config.Context;
+        if (_context is not null)
+        {
+            _context.TryGetValue("tenant", out string tenantId);
+            _context.TryGetValue("subscription", out string subscriptionId);
+
+            AgentInfo = new Dictionary<string, string>
+            {
+                ["Tenant"] = tenantId,
+                ["Subscription"] = subscriptionId,
+            };
+        }
 
         _scopes = new[] { "api://62009369-df36-4df2-b7d7-b3e784b3ed55/" };
         _jsonOptions = new()

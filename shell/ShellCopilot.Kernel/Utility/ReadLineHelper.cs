@@ -70,7 +70,7 @@ internal class ReadLineHelper : IReadLineHelper
             if (regex.IsMatch(name))
             {
                 result ??= new();
-                result.Add(new CompletionResult(name, name, CompletionResultType.Command, toolTip: null));
+                result.Add(new CompletionResult(name, name, CompletionResultType.Command, toolTip: entry.Value.Description));
             }
         }
 

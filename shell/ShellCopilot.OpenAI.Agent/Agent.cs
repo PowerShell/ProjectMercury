@@ -206,9 +206,10 @@ public sealed class OpenAIAgent : ILLMAgent
             using var stream = new FileStream(SettingFile, FileMode.Open, FileAccess.Read, FileShare.Read);
             var options = new JsonSerializerOptions
             {
-                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+                AllowTrailingCommas = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
             };
             var data = JsonSerializer.Deserialize<ConfigData>(stream, options);
             settings = new Settings(data);

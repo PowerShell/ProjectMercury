@@ -9,8 +9,10 @@ namespace ShellCopilot.Kernel;
 internal sealed class Shell : IShell
 {
     private readonly bool _isInteractive;
+    private readonly string _prompt;
     private readonly List<LLMAgent> _agents;
     private readonly Stack<LLMAgent> _activeAgentStack;
+    private readonly ShellWrapper _wrapper;
     private CancellationTokenSource _cancellationSource;
 
     internal bool Exit { set; get; }
@@ -30,9 +32,11 @@ internal sealed class Shell : IShell
     /// <summary>
     /// Creates an instance of <see cref="Shell"/>.
     /// </summary>
-    internal Shell(bool interactive, bool useAlternateBuffer)
+    internal Shell(bool interactive, ShellWrapper wrapper)
     {
         _isInteractive = interactive;
+        _wrapper = wrapper;
+        _prompt = wrapper?.Prompt ?? Utils.DefaultAppName;
         _agents = new List<LLMAgent>();
         _activeAgentStack = new Stack<LLMAgent>();
         _cancellationSource = new CancellationTokenSource();
@@ -42,7 +46,11 @@ internal sealed class Shell : IShell
 
         if (interactive)
         {
-            Host.WriteLine("Shell Copilot (v0.1)\n");
+            string banner = wrapper is null
+                ? "Shell Copilot (v0.1)"
+                : $"{wrapper.Banner} ({wrapper.Version})";
+
+            Host.WriteLine(banner).WriteLine();
             CommandRunner = new CommandRunner(this);
             SetReadLineExperience();
         }
@@ -53,10 +61,15 @@ internal sealed class Shell : IShell
         if (interactive)
         {
             // Write out information about the active agent.
-            var current = ActiveAgent?.Impl;
+            var current = ActiveAgent;
             if (current is not null)
             {
-                Host.MarkupLine($"Using the agent [green]{current.Name}[/]:\n[italic]{current.Description.EscapeMarkup()}[/]\n");
+                if (!current.Impl.Name.Equals(wrapper?.Agent, StringComparison.OrdinalIgnoreCase))
+                {
+                    Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
+                }
+
+                current.Display(Host);
             }
 
             // Write out help.
@@ -95,7 +108,10 @@ internal sealed class Shell : IShell
                 ConfigurationRoot = Directory.CreateDirectory(agentHome).FullName,
                 RenderingStyle = Console.IsOutputRedirected
                     ? RenderingStyle.FullResponsePreferred
-                    : RenderingStyle.StreamingResponsePreferred
+                    : RenderingStyle.StreamingResponsePreferred,
+                Context = agent.Name.Equals(_wrapper?.Agent, StringComparison.OrdinalIgnoreCase)
+                    ? _wrapper.Context
+                    : null
             };
 
             agent.Initialize(config);
@@ -141,9 +157,27 @@ internal sealed class Shell : IShell
 
         try
         {
+            LLMAgent chosenAgent = null;
+            if (_wrapper is not null)
+            {
+                foreach (LLMAgent agent in _agents)
+                {
+                    if (agent.Impl.Name.Equals(_wrapper.Agent, StringComparison.OrdinalIgnoreCase))
+                    {
+                        chosenAgent = agent;
+                        break;
+                    }
+                }
+
+                if (chosenAgent is null)
+                {
+                    Host.MarkupWarningLine($"The configured active agent '{_wrapper.Agent}' is not available.\n");
+                }
+            }
+
             // If there is only 1 agent available, use it as the active one.
             // Otherwise, ask user to choose the active one from the list.
-            LLMAgent chosenAgent = _agents.Count is 1
+            chosenAgent ??= _agents.Count is 1
                 ? _agents[0]
                 : Host.PromptForSelectionAsync(
                     title: "[orange1]Please select an [Blue]agent[/] to use[/]:",
@@ -301,7 +335,7 @@ internal sealed class Shell : IShell
         while (!Exit)
         {
             LLMAgent agent = ActiveAgent;
-            string prompt = $"[bold green]aish[/]:{count}> ";
+            string prompt = $"[bold green]{_prompt}[/]:{count}> ";
             Host.Markup(prompt);
 
             try

@@ -2,7 +2,6 @@
 using System.CommandLine.Completions;
 using System.Diagnostics;
 using ShellCopilot.Abstraction;
-using Spectre.Console;
 
 namespace ShellCopilot.Kernel.Commands;
 
@@ -53,9 +52,9 @@ internal sealed class AgentCommand : CommandBase
             return;
         }
 
-        var current = chosenAgent.Impl;
         shell.SwitchActiveAgent(chosenAgent);
-        shell.Host.MarkupLine($"Using the agent [green]{current.Name}[/]:\n[italic]{current.Description.EscapeMarkup()}[/]\n");
+        shell.Host.MarkupLine($"Using the agent [green]{chosenAgent.Impl.Name}[/]:");
+        chosenAgent.Display(shell.Host);
     }
 
     private void PopAgentAction()
@@ -66,8 +65,9 @@ internal sealed class AgentCommand : CommandBase
         {
             shell.PopActiveAgent();
 
-            var current = shell.ActiveAgent.Impl;
-            shell.Host.MarkupLine($"Using the agent [green]{current.Name}[/]:\n[italic]{current.Description.EscapeMarkup()}[/]\n");
+            var current = shell.ActiveAgent;
+            shell.Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
+            current.Display(shell.Host);
         }
         catch (Exception ex)
         {
