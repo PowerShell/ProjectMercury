@@ -53,9 +53,10 @@ internal class ChatService
             using var stream = new FileStream(historyFile, FileMode.Open, FileAccess.Read, FileShare.Read);
             var options = new JsonSerializerOptions
             {
-                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+                AllowTrailingCommas = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
             };
 
             _chatHistory = JsonSerializer.Deserialize<List<ChatMessage>>(stream, options);

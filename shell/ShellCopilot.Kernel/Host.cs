@@ -1,7 +1,8 @@
-﻿using Markdig.Helpers;
+﻿using System.Reflection;
+using System.Text;
+using Markdig.Helpers;
 using ShellCopilot.Abstraction;
 using Spectre.Console;
-using System.Text;
 
 namespace ShellCopilot.Kernel;
 
@@ -177,6 +178,29 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
+    public void RenderTable<T>(IList<T> sources)
+    {
+        RequireStdoutOrStderr(operation: "render table");
+        ArgumentNullException.ThrowIfNull(sources);
+
+        if (sources.Count is 0)
+        {
+            return;
+        }
+
+        var elements = new List<IRenderElement<T>>();
+        foreach (PropertyInfo property in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (property.CanRead)
+            {
+                elements.Add(new PropertyElement<T>(property));
+            }
+        }
+
+        RenderTable(sources, elements);
+    }
+
+    /// <inheritdoc/>
     public void RenderTable<T>(IList<T> sources, IList<IRenderElement<T>> elements)
     {
         RequireStdoutOrStderr(operation: "render table");
@@ -219,6 +243,37 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
+    public void RenderList<T>(T source)
+    {
+        RequireStdoutOrStderr(operation: "render list");
+        ArgumentNullException.ThrowIfNull(source);
+
+        if (source is IDictionary<string, string> dict)
+        {
+            var elements = new List<IRenderElement<IDictionary<string, string>>>(capacity: dict.Count);
+            foreach (string key in dict.Keys)
+            {
+                elements.Add(new KeyValueElement<IDictionary<string, string>>(key));
+            }
+
+            RenderList(dict, elements);
+        }
+        else
+        {
+            var elements = new List<IRenderElement<T>>();
+            foreach (PropertyInfo property in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (property.CanRead)
+                {
+                    elements.Add(new PropertyElement<T>(property));
+                }
+            }
+
+            RenderList(source, elements);
+        }
+    }
+
+    /// <inheritdoc/>
     public void RenderList<T>(T source, IList<IRenderElement<T>> elements)
     {
         RequireStdoutOrStderr(operation: "render list");
@@ -244,14 +299,14 @@ internal sealed class Host : IHost
         var spectreTable = new Table()
             .HideHeaders()
             .NoBorder()
-            .AddColumn("Labels", c => c.NoWrap().LeftAligned().Width(maxLabelLen + 3))
-            .AddColumn("Values", c => c.PadRight(0));
+            .AddColumn("Labels", c => c.NoWrap().LeftAligned().Width(maxLabelLen + 4))
+            .AddColumn("Values");
 
         foreach (var element in elements)
         {
             string col1 = element.Name;
             string col2 = element.Value(source) ?? string.Empty;
-            spectreTable.AddRow(Spectre.Console.Markup.FromInterpolated($"[green bold]{col1} :[/]"), new Markup(col2));
+            spectreTable.AddRow(Spectre.Console.Markup.FromInterpolated($"  [green bold]{col1} :[/]"), new Markup(col2));
         }
 
         AnsiConsole.WriteLine();

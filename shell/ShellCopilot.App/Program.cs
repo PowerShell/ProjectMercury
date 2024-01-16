@@ -1,5 +1,7 @@
 ﻿using System.CommandLine;
 using System.Text;
+using System.Text.Json;
+using ShellCopilot.Abstraction;
 using ShellCopilot.Kernel;
 
 namespace ShellCopilot.App;
@@ -23,7 +25,7 @@ internal class Program
 
         Console.OutputEncoding = Encoding.Default;
         Argument<string> query = new("query", getDefaultValue: () => null, "The query term used to get response from AI.");
-        Option<bool> use_alt_buffer = new("--use-alt-buffer", "Use the alternate screen buffer for an interactive session.");
+        Option<FileInfo> shellWrapper = new("--shell-wrapper", "Path to the configuration file to wrap Shell Copilot as a different application.");
 
         query.AddValidator(result =>
         {
@@ -35,21 +37,24 @@ internal class Program
             }
         });
 
-        RootCommand rootCommand = new("AI for the command line.")
-        {
-            query, use_alt_buffer
-        };
-
-        rootCommand.SetHandler(StartShellAsync, query, use_alt_buffer);
+        RootCommand rootCommand = new("AI for the command line.") { query, shellWrapper };
+        rootCommand.SetHandler(StartShellAsync, query, shellWrapper);
         return rootCommand.Invoke(args);
     }
 
-    private async static Task StartShellAsync(string query, bool use_alt_buffer)
+    private async static Task StartShellAsync(string query, FileInfo shellWrapperConfigFile)
     {
+        if (!ReadShellWrapperConfig(shellWrapperConfigFile, out ShellWrapper shellWrapper))
+        {
+            return;
+        }
+
+        Utils.Setup(shellWrapper?.Name);
+
         Shell shell;
         if (query is not null)
         {
-            shell = new(interactive: false, useAlternateBuffer: false);
+            shell = new(interactive: false, shellWrapper);
 
             if (Console.IsInputRedirected)
             {
@@ -72,7 +77,48 @@ internal class Program
             return;
         }
 
-        shell = new(interactive: true, use_alt_buffer);
+        shell = new(interactive: true, shellWrapper);
         await shell.RunREPLAsync();
+    }
+
+    private static bool ReadShellWrapperConfig(FileInfo file, out ShellWrapper shellWrapper)
+    {
+        shellWrapper = null;
+
+        if (file is null)
+        {
+            return true;
+        }
+
+        if (!file.Exists)
+        {
+            Console.Error.WriteLine($"The specified config file '{file.FullName}' doesn't exist.");
+            return false;
+        }
+
+        try
+        {
+            using var stream = file.OpenRead();
+            var options = Utils.GetJsonSerializerOptions();
+
+            shellWrapper = JsonSerializer.Deserialize<ShellWrapper>(stream, options);
+            if (string.IsNullOrEmpty(shellWrapper.Name) || string.IsNullOrEmpty(shellWrapper.Banner) ||
+                string.IsNullOrEmpty(shellWrapper.Version) || string.IsNullOrEmpty(shellWrapper.Prompt) ||
+                string.IsNullOrEmpty(shellWrapper.Agent))
+            {
+                Console.Error.WriteLine("Invalid shell wrapper configuration. Make sure the following required keys are properly set:");
+                Console.Error.WriteLine($"{nameof(ShellWrapper.Name)}, {nameof(ShellWrapper.Banner)}, {nameof(ShellWrapper.Version)}, {nameof(ShellWrapper.Prompt)}, {nameof(ShellWrapper.Agent)}");
+
+                shellWrapper = null;
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Loading JSON configuration from '{file.FullName}' failed: {ex.Message}");
+            return false;
+        }
+
+        return true;
     }
 }

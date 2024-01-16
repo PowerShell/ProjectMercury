@@ -26,11 +26,49 @@ public sealed class PropertyElement<T> : IRenderElement<T>
         }
     }
 
+    public PropertyElement(PropertyInfo property)
+    {
+        ArgumentNullException.ThrowIfNull(property);
+
+        Type type = typeof(T);
+        if (type != property.ReflectedType)
+        {
+            throw new ArgumentException($"The passed-in property is not retrieved from the target type '{type.FullName}'.", nameof(property));
+        }
+
+        if (!_propertyInfo.CanRead)
+        {
+            throw new ArgumentException($"The property '{property.Name}' is write-only.", nameof(property));
+        }
+
+        _propertyName = property.Name;
+        _propertyInfo = property;
+    }
+
     public string Name => _propertyName;
     public string Value(T source)
     {
         ArgumentNullException.ThrowIfNull(source);
         return _propertyInfo.GetValue(source)?.ToString();
+    }
+}
+
+public sealed class KeyValueElement<T> : IRenderElement<T>
+    where T : IDictionary<string, string>
+{
+    private readonly string _key;
+
+    public KeyValueElement(string key)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(key);
+        _key = key;
+    }
+
+    public string Name => _key;
+    public string Value(T source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return source.TryGetValue(_key, out string value) ? value : null;
     }
 }
 
