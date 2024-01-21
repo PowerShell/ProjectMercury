@@ -438,8 +438,7 @@ internal sealed class Shell : IShell
                     {
                         Host.WriteLine()
                             .MarkupWarningLine($"[[{Utils.AppName}]]: Agent self-check failed. Resolve the issue as instructed and try again.")
-                            .MarkupWarningLine($"[[{Utils.AppName}]]: Run {Formatter.InlineCode($"/agent config {agent.Impl.Name}")} to edit the settings for the agent.")
-                            .WriteLine();
+                            .MarkupWarningLine($"[[{Utils.AppName}]]: Run {Formatter.InlineCode($"/agent config {agent.Impl.Name}")} to edit the settings for the agent.");
                     }
                 }
                 catch (Exception ex)

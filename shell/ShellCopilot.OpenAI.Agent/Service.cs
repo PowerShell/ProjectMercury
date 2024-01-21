@@ -54,8 +54,8 @@ internal class ChatService
             var options = new JsonSerializerOptions
             {
                 AllowTrailingCommas = true,
+                PropertyNameCaseInsensitive = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
             };
 
