@@ -207,8 +207,8 @@ public sealed class OpenAIAgent : ILLMAgent
             var options = new JsonSerializerOptions
             {
                 AllowTrailingCommas = true,
+                PropertyNameCaseInsensitive = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
             };
             var data = JsonSerializer.Deserialize<ConfigData>(stream, options);
