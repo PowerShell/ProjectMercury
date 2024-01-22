@@ -11,7 +11,7 @@ an interactive chat session with a registered Large Language Model. Currently we
 Here are the steps to install and use Shell Copilot.
 1. Clone this repository
 2. To build run `./build.ps1` in the project's directory
-3. Add the `<path to project>/out/ShellCopilot.App` directory to your `$PATH` with `$env:PATH += <path to project>\out\ShellCopilot.App`
+3. Add the `<path to project>\ShellCopilot\out\debug` directory to your `$PATH` with `$env:PATH += <path to project>\ShellCopilot\out\debug`
 4. Add the above line to your `$PROFILE` to be able to use it anytime you open up PowerShell. You can edit it by doing `code $PROFILE` if you have VSCode installed.
 
 > Note: Depending on your OS directory paths may be `\` on Windows or `/` on Mac.
