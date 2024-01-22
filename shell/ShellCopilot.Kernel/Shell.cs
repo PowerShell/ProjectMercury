@@ -13,9 +13,12 @@ internal sealed class Shell : IShell
     private readonly List<LLMAgent> _agents;
     private readonly Stack<LLMAgent> _activeAgentStack;
     private readonly ShellWrapper _wrapper;
+    private readonly HashSet<string> _textToIgnore;
     private CancellationTokenSource _cancellationSource;
 
     internal bool Exit { set; get; }
+    internal bool Regenerate { set; get; }
+    internal string LastQuery { private set; get; }
     internal Host Host { get; }
     internal CommandRunner CommandRunner { get; }
     internal List<LLMAgent> Agents => _agents;
@@ -39,9 +42,12 @@ internal sealed class Shell : IShell
         _prompt = wrapper?.Prompt ?? Utils.DefaultAppName;
         _agents = new List<LLMAgent>();
         _activeAgentStack = new Stack<LLMAgent>();
+        _textToIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         _cancellationSource = new CancellationTokenSource();
 
         Exit = false;
+        Regenerate = false;
+        LastQuery = null;
         Host = new Host();
 
         if (interactive)
@@ -326,24 +332,79 @@ internal sealed class Shell : IShell
         }
     }
 
+    private void IgnoreStaleClipboardContent()
+    {
+        string copiedText = Clipboard.GetText().Trim();
+        if (!string.IsNullOrEmpty(copiedText))
+        {
+            _textToIgnore.Add(copiedText);
+        }
+    }
+
+    private async Task<string> GetClipboardContent(string input)
+    {
+        string copiedText = Clipboard.GetText().Trim();
+        if (string.IsNullOrEmpty(copiedText) || _textToIgnore.Contains(copiedText))
+        {
+            return null;
+        }
+
+        // Always avoid asking for the same copied text.
+        _textToIgnore.Add(copiedText);
+        if (input.Contains(copiedText))
+        {
+            return null;
+        }
+
+        string textToShow = copiedText;
+        if (copiedText.Length > 150)
+        {
+            int index = 149;
+            while (index < copiedText.Length && !char.IsWhiteSpace(copiedText[index]))
+            {
+                index++;
+            }
+
+            textToShow = copiedText[..index].TrimEnd() + " <more...>";
+        }
+
+        Host.RenderReferenceText("clipboard content", textToShow);
+        bool confirmed = await Host.PromptForConfirmationAsync(
+            prompt: "Include the clipboard content as context information for your query?",
+            defaultValue: true);
+
+        return confirmed ? copiedText : null;
+    }
+
     /// <summary>
     /// Run a chat REPL.
     /// </summary>
     internal async Task RunREPLAsync()
     {
         int count = 1;
+        IgnoreStaleClipboardContent();
+
         while (!Exit)
         {
+            string input = null;
             LLMAgent agent = ActiveAgent;
-            string prompt = $"[bold green]{_prompt}[/]:{count}> ";
-            Host.Markup(prompt);
 
             try
             {
-                string input = PSConsoleReadLine.ReadLine();
-                if (string.IsNullOrEmpty(input))
+                if (Regenerate)
                 {
-                    continue;
+                    input = LastQuery;
+                    Regenerate = false;
+                }
+                else
+                {
+                    Host.Markup($"[bold green]{_prompt}[/]:{count}> ");
+                    input = PSConsoleReadLine.ReadLine();
+
+                    if (string.IsNullOrEmpty(input))
+                    {
+                        continue;
+                    }
                 }
 
                 count++;
@@ -351,6 +412,12 @@ internal sealed class Shell : IShell
                 {
                     RunCommand(input);
                     continue;
+                }
+
+                string copiedText = await GetClipboardContent(input);
+                if (copiedText is not null)
+                {
+                    input = string.Concat(input, "\n\n", copiedText);
                 }
 
                 // Now it's a query to the LLM.
@@ -374,7 +441,7 @@ internal sealed class Shell : IShell
                 {
                     Host.MarkupLine($"The active agent [green]{agent.Impl.Name}[/] can act as an orchestrator and there are multiple agents available.");
                     bool confirmed = await Host.PromptForConfirmationAsync(
-                        prompt: $"Do you want it to find the most suitable agent for your query?",
+                        prompt: "Do you want it to find the most suitable agent for your query?",
                         defaultValue: false);
 
                     if (confirmed)
@@ -430,6 +497,7 @@ internal sealed class Shell : IShell
                 {
                     // Use the current active agent for the query.
                     agent = ActiveAgent;
+                    LastQuery = input;
 
                     // TODO: Consider `WaitAsync(CancellationToken)` to handle an agent not responding to ctr+c.
                     // One problem to use `WaitAsync` is to make sure we give reasonable time for the agent to handle the cancellation.
