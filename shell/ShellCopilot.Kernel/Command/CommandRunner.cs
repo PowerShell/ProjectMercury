@@ -30,6 +30,7 @@ internal class CommandRunner
             new ClearCommand(),
             new CodeCommand(),
             new ExitCommand(),
+            new RegenCommand(),
             new HelpCommand(),
         };
 

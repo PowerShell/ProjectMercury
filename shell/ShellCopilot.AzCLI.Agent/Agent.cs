@@ -122,10 +122,7 @@ public sealed class AzCLIAgent : ILLMAgent
 
         var data = azResponse.Data[0];
         _text.Clear();
-        _text.AppendLine($"### {data.Scenario}")
-            .AppendLine()
-            .AppendLine(data.Description)
-            .AppendLine();
+        _text.AppendLine(data.Description).AppendLine();
 
         if (data.CommandSet.Count > 0)
         {
@@ -143,7 +140,7 @@ public sealed class AzCLIAgent : ILLMAgent
             }
             _text.AppendLine("```")
                 .AppendLine()
-                .AppendLine("Make sure to replace the argument values used above as appropriate.");
+                .AppendLine("Make sure to replace the placeholder values with your specific details.");
         }
 
         host.RenderFullResponse(_text.ToString());

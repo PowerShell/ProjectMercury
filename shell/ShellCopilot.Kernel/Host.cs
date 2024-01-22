@@ -387,7 +387,7 @@ internal sealed class Host : IHost
         RequireStdoutOrStderr(operation);
 
         IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
-        var confirmation = new ConfirmationPrompt(prompt) { DefaultValue = defaultValue };
+        var confirmation = new ConfirmationPrompt($"[orange3 on italic]{prompt.EscapeMarkup()}[/]") { DefaultValue = defaultValue };
 
         return await confirmation.ShowAsync(ansiConsole, cancellationToken).ConfigureAwait(false);
     }
@@ -407,6 +407,25 @@ internal sealed class Host : IHost
             .Secret()
             .ShowAsync(ansiConsole, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Render text content in the "for-reference" style.
+    /// </summary>
+    /// <param name="header">Title for the content.</param>
+    /// <param name="content">Text to be rendered.</param>
+    internal void RenderReferenceText(string header, string content)
+    {
+        RequireStdoutOrStderr(operation: "Render reference");
+
+        var panel = new Panel($"\n[italic]{content.EscapeMarkup()}[/]\n")
+            .RoundedBorder()
+            .BorderColor(Color.DarkCyan)
+            .Header($"[orange3 on italic] {header.Trim()} [/]");
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(panel);
+        AnsiConsole.WriteLine();
     }
 
     /// <summary>
