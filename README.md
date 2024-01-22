@@ -16,6 +16,20 @@ Here are the steps to install and use Shell Copilot.
 
 > Note: Depending on your OS directory paths may be `\` on Windows or `/` on Mac.
 
+## Agent Concept
+
+ShellCopilot has a concept of different A.I Agents, these can be thought of like modules that users can use to interact with different A.I models. Right now there are two supported agents
+- `az-cli`
+- `openai-gpt`
+
+If you run `aish` you will get prompted to choose between the two.
+
+# Az-CLI Agent
+
+This agent is for talking specifically to Az CLI endpoint to help users user Azure CLI tools better. Right now the only prerequistate to using this is to be within the Microsoft Azure tenant and be logged in with az cli via the `az login` command. 
+
+# OpenAI-GPT Agent
+
 ## Getting an Azure OpenAI Endpoint Key
 
 Currently we only support Azure OpenAI LLM endpoints. We are currently hosting a internal only Azure
