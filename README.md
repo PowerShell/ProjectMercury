@@ -8,16 +8,16 @@ an interactive chat session with a registered Large Language Model. Currently we
 
 ## Installing and Using Shell Copilot
 
-Some prerequistates for using building Shell Copilot
-- Need to be on PowerShell 7.0+
+Some prerequistates for building Shell Copilot
+- Need to be on [PowerShell 7.0+](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell?view=powershell-7.4)
 - Need [.NET SDK v7+](https://dotnet.microsoft.com/en-us/download) installed
-- Execution permission on the `build.ps1` script
+- Execution permission on the `build.ps1` script, you can do this by setting the execution policy to unrestricted `Set-ExecutionPolicy -ExecutionPolicy Restricted -Scope CurrentUser`
 
 Here are the steps to install and use Shell Copilot.
-1. Clone this repository
+1. Clone this repository, `git clone https://github.com/PowerShell/ShellCopilot`
 2. To build run `./build.ps1` in the project's directory
 3. Add the `<path to project>\ShellCopilot\out\debug` directory to your `$PATH` with `$env:PATH += <path to project>\ShellCopilot\out\debug`
-4. Add the above line to your `$PROFILE` to be able to use it anytime you open up PowerShell. You can edit it by doing `code $PROFILE` if you have VSCode installed.
+4. Add the above line to your `$PROFILE` to be able to use it anytime you open up PowerShell. You can edit it by doing `code $PROFILE` if you have VSCode installed or `notepad $PROFILE` if you are on Windows
 
 > Note: Depending on your OS directory paths may be `\` on Windows or `/` on Mac.
 
