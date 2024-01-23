@@ -4,6 +4,7 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.PowerShell;
 
 namespace ShellCopilot.Kernel;
 
@@ -68,6 +69,75 @@ internal static class Utils
             ReadCommentHandling = JsonCommentHandling.Skip,
             Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
         };
+    }
+
+    internal static void SetDefaultKeyHandlers()
+    {
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+d,Ctrl+c" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeAll",
+            "Copy all the code snippets from the last response to clipboard.");
+
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+1" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy 1");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeFirst",
+            "Copy the 1st code snippet from the last response to clipboard.");
+
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+2" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy 2");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeSecond",
+            "Copy the 2nd code snippet from the last response to clipboard.");
+
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+3" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy 3");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeThird",
+            "Copy the 3rd code snippet from the last response to clipboard.");
+
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+4" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy 4");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeThird",
+            "Copy the 4th code snippet from the last response to clipboard.");
+
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+5" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy 5");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeThird",
+            "Copy the 5th code snippet from the last response to clipboard.");
     }
 
     private static void CreateFolderWithRightPermission(string dirPath)

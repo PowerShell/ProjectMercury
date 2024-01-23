@@ -12,6 +12,16 @@ internal sealed class CodeCommand : CommandBase
         var copy = new Command("copy", "Copy the code snippet from the last response to clipboard.");
         var save = new Command("save", "Save the code snippet from the last response to a file.");
 
+        var nth = new Argument<int>("n", () => -1, "The n-th (starts from 1) code block to copy.");
+        nth.AddValidator(result => {
+            int value = result.GetValueForArgument(nth);
+            if (value is not -1 && value < 1)
+            {
+                result.ErrorMessage = "The argument <n> must be equal to or greater than 1.";
+            }
+        });
+        copy.AddArgument(nth);
+
         var append = new Option<bool>("--append", "Append to the end of the file.");
         var file = new Argument<FileInfo>("file", "The file path to save the code to.");
         save.AddArgument(file);
@@ -20,16 +30,22 @@ internal sealed class CodeCommand : CommandBase
         AddCommand(copy);
         AddCommand(save);
 
-        copy.SetHandler(CopyAction);
+        copy.SetHandler(CopyAction, nth);
         save.SetHandler(SaveAction, file, append);
     }
 
-    private string GetCodeText()
+    private string GetCodeText(int index)
     {
         var shellImpl = (Shell)Shell;
         List<string> code = shellImpl.GetCodeBlockFromLastResponse();
 
-        if (code is not null && code.Count > 0)
+        if (code is null || code.Count is 0 || index >= code.Count)
+        {
+            return null;
+        }
+
+        // The index being -1 means to combine all code blocks.
+        if (index is -1)
         {
             // Use LF as line ending to be consistent with the response from LLM.
             StringBuilder sb = new(capacity: 50);
@@ -40,19 +56,20 @@ internal sealed class CodeCommand : CommandBase
                     sb.Append('\n');
                 }
 
-                sb.Append(code[i])
-                  .Append('\n');
+                sb.Append(code[i]).Append('\n');
             }
 
             return sb.ToString();
         }
 
-        return null;
+        // Otherwise, return the specific code block.
+        return code[index];
     }
 
-    private void CopyAction()
+    private void CopyAction(int nth)
     {
-        string code = GetCodeText();
+        int index = nth > 0 ? nth - 1 : nth;
+        string code = GetCodeText(index);
         if (code is null)
         {
             Shell.Host.MarkupLine("[olive]No code snippet available for copy.[/]");
@@ -65,7 +82,7 @@ internal sealed class CodeCommand : CommandBase
 
     private void SaveAction(FileInfo file, bool append)
     {
-        string code = GetCodeText();
+        string code = GetCodeText(index: -1);
         if (code is null)
         {
             Shell.Host.MarkupLine("[olive]No code snippet available for save.[/]");

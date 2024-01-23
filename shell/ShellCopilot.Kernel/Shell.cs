@@ -296,19 +296,8 @@ internal sealed class Shell : IShell
     /// </summary>
     private void SetReadLineExperience()
     {
-        PSConsoleReadLineOptions options = PSConsoleReadLine.GetOptions();
-        options.RenderHelper = new ReadLineHelper(CommandRunner);
-
-        PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+d,Ctrl+c" },
-            (key, arg) =>
-            {
-                PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy");
-                PSConsoleReadLine.AcceptLine();
-            },
-            "CopyCode",
-            "Copy the code snippet from the last response to clipboard.");
+        Utils.SetDefaultKeyHandlers();
+        PSConsoleReadLine.GetOptions().RenderHelper = new ReadLineHelper(CommandRunner);
     }
 
     /// <summary>
