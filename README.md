@@ -39,14 +39,11 @@ Prerequistates:
 
 # OpenAI-GPT Agent
 
-This is a more generalized agent that users can bring their own instance of Azure OpenAI and a completely customizable prompt.
+This is a more generalized agent that users can bring their own instance of Azure OpenAI and a completely customizable prompt. Right now it is defaulted to an internal Azure OpenAI endpoint with a prompt to be an assistant for PowerShell commands. This is for internal private preview purposes only.
 
 ## Getting an Azure OpenAI Endpoint Key
 
-Currently we only support Azure OpenAI LLM endpoints. We are currently hosting a internal only Azure
-OpenAI endpoint that you can get and use without getting your Azure OpenAI instance. This is for internal private preview purposes only.
-
-All the configuration is already included by default and so you will be prompted to include a API key to be able to use this endpoint.
+All the configuration is already included by default and on the first run of this agent you will be prompted to include a API key to be able to use this endpoint.
 
 Guide for Signing Up For API Key
 1.  Navigate to <https://pscopilot.developer.azure-api.net>
@@ -79,6 +76,12 @@ wt -w 0 sp aish
 ```
 
 To explore the other options available to you, run `aish --help` to see all the subcommands. 
+
+If you would like to tie this command to a key like `F3` you can add the following code to your `$PROFILE`:
+
+```powershell
+Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb'--size 0.4 -p "{574e775e-4f2a-5b96-ac1e-a2962a402336}" --title 'Shell Copilot' <FULL PATH TO aish.exe> }
+```
 
 ## Feedback
 
