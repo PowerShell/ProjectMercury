@@ -6,12 +6,14 @@ namespace ShellCopilot.Kernel;
 internal class LLMAgent
 {
     internal ILLMAgent Impl { get; }
+    internal AgentAssemblyLoadContext LoadContext { get; }
     internal bool OrchestratorRoleDisabled { set; get; }
     internal bool AnalyzerRoleDisabled { set; get; }
 
-    internal LLMAgent(ILLMAgent agent)
+    internal LLMAgent(ILLMAgent agent, AgentAssemblyLoadContext loadContext)
     {
         Impl = agent;
+        LoadContext = loadContext;
 
         OrchestratorRoleDisabled = false;
         AnalyzerRoleDisabled = false;

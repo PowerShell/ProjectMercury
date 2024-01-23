@@ -96,9 +96,11 @@ internal sealed class Shell : IShell
     /// <summary>
     /// Load a plugin assembly file and process the agents defined in it.
     /// </summary>
-    internal void ProcessAgentPlugin(string pluginFile)
+    internal void ProcessAgentPlugin(string pluginName, string pluginDir, string pluginFile)
     {
-        Assembly plugin = Assembly.LoadFrom(pluginFile);
+        AgentAssemblyLoadContext context = new(pluginName, pluginDir);
+        Assembly plugin = context.LoadFromAssemblyPath(pluginFile);
+
         foreach (Type type in plugin.ExportedTypes)
         {
             if (!typeof(ILLMAgent).IsAssignableFrom(type))
@@ -121,7 +123,7 @@ internal sealed class Shell : IShell
             };
 
             agent.Initialize(config);
-            _agents.Add(new LLMAgent(agent));
+            _agents.Add(new LLMAgent(agent, context));
         }
     }
 
@@ -147,7 +149,7 @@ internal sealed class Shell : IShell
 
             try
             {
-                ProcessAgentPlugin(file);
+                ProcessAgentPlugin(name, dir, file);
             }
             catch (Exception ex)
             {
