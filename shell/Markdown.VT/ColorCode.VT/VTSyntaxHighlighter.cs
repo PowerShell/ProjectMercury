@@ -31,7 +31,7 @@ public class VTSyntaxHighlighter : CodeColorizerBase
     /// <param name="styles">The Custom styles to Apply to the formatted Code.</param>
     /// <param name="languageParser">The language parser that the <see cref="VTSyntaxHighlighter"/> instance will use for its lifetime.</param>
     public VTSyntaxHighlighter(StyleDictionary styles = null, ILanguageParser languageParser = null)
-        : base(styles, languageParser)
+        : base(styles.UseBatStyle(), languageParser)
     {
         _buffer = new StringBuilder(capacity: 512);
 
@@ -200,6 +200,49 @@ public class VTSyntaxHighlighter : CodeColorizerBase
 
 public static class ColorExtensionMethods
 {
+    /// <summary>
+    /// Use the style from 'bat' for PowerShell syntax highlighting.
+    /// </summary>
+    internal static StyleDictionary UseBatStyle(this StyleDictionary styles)
+    {
+        if (styles is null)
+        {
+            return null;
+        }
+
+        styles.Remove(ScopeName.String);
+        styles.Remove(ScopeName.Comment);
+        styles.Remove(ScopeName.PowerShellOperator);
+        styles.Remove(ScopeName.PowerShellVariable);
+
+        styles.Add(
+            new Style(ScopeName.String)
+            {
+                Foreground = "\x1b[38;5;186m",
+                ReferenceName = "string"
+            });
+        styles.Add(
+            new Style(ScopeName.Comment)
+            {
+                Foreground = "\x1b[38;5;242m",
+                ReferenceName = "comment"
+            });
+        styles.Add(
+            new Style(ScopeName.PowerShellOperator)
+            {
+                Foreground = "\x1b[38;5;203m",
+                ReferenceName = "powershellOperator"
+            });
+        styles.Add(
+            new Style(ScopeName.PowerShellVariable)
+            {
+                Foreground = "\x1b[92m",
+                ReferenceName = "powershellVariable"
+            });
+
+        return styles;
+    }
+
     public static string ToVTColor(this string color, bool isForeground = true)
     {
         if (color == null)
