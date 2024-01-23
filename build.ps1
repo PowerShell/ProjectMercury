@@ -1,6 +1,8 @@
 ## Copyright (c) Microsoft Corporation.
 ## Licensed under the MIT License.
 
+#Requires -Version 7.2
+
 [CmdletBinding()]
 param (
     [Parameter()]
