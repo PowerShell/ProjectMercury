@@ -8,6 +8,11 @@ an interactive chat session with a registered Large Language Model. Currently we
 
 ## Installing and Using Shell Copilot
 
+Some prerequistates for using building Shell Copilot
+- Need to be on PowerShell 7.0+
+- Need [.NET SDK v7+](https://dotnet.microsoft.com/en-us/download) installed
+- Execution permission on the `build.ps1` script
+
 Here are the steps to install and use Shell Copilot.
 1. Clone this repository
 2. To build run `./build.ps1` in the project's directory
@@ -29,6 +34,8 @@ If you run `aish` you will get prompted to choose between the two.
 This agent is for talking specifically to Az CLI endpoint to help users user Azure CLI tools better. Right now the only prerequistate to using this is to be within the Microsoft Azure tenant and be logged in with az cli via the `az login` command. 
 
 # OpenAI-GPT Agent
+
+This is a more generalized agent that users can bring their own instance of Azure OpenAI and a completely customizable prompt.
 
 ## Getting an Azure OpenAI Endpoint Key
 
