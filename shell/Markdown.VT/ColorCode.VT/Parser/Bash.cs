@@ -19,6 +19,41 @@ public class Bash : ILanguage
                 {
                     {1, ScopeName.Comment}
                 }),
+
+            // match the first word of a line in a multi-line string as the command name.
+            new LanguageRule(
+                @"(?m)^\s*(\w+)",
+                new Dictionary<int, string>
+                {
+                    {1, ScopeName.PowerShellCommand}
+                }),
+
+            // match options like '-word'
+            new LanguageRule(
+                @"\s+-\w+",
+                new Dictionary<int, string>
+                    {
+                        {0, ScopeName.PowerShellParameter}
+                    }
+                ),
+
+            // match options like '--word', '--word-word', '--word-word-word' and etc.
+            new LanguageRule(
+                @"\s+--(?:\w+-?)+",
+                new Dictionary<int, string>
+                    {
+                        {0, ScopeName.PowerShellParameter}
+                    }
+                ),
+
+            // match variable like '$word', '$digit', '$word_word' and etc.
+            new LanguageRule(
+                @"\$(?:[\d\w]+_?)+",
+                new Dictionary<int, string>
+                    {
+                        {0, ScopeName.PowerShellVariable}
+                    }
+                ),
         };
 
     public bool HasAlias(string lang)
