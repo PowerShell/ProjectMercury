@@ -31,7 +31,11 @@ If you run `aish` you will get prompted to choose between the two.
 
 # Az-CLI Agent
 
-This agent is for talking specifically to Az CLI endpoint to help users user Azure CLI tools better. Right now the only prerequistate to using this is to be within the Microsoft Azure tenant and be logged in with az cli via the `az login` command. 
+This agent is for talking specifically to an Az CLI endpoint tailored to helping users with Azure CLI questions.
+
+Prerequistates:
+- Have [Azure CLI installed](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+- Login with an Azure account within the Microsoft tenant with `az login` command
 
 # OpenAI-GPT Agent
 
@@ -40,7 +44,7 @@ This is a more generalized agent that users can bring their own instance of Azur
 ## Getting an Azure OpenAI Endpoint Key
 
 Currently we only support Azure OpenAI LLM endpoints. We are currently hosting a internal only Azure
-OpenAI endpoint that you can get and use without getting your Azure OpenAI instance. This is for private preview purposes only.
+OpenAI endpoint that you can get and use without getting your Azure OpenAI instance. This is for internal private preview purposes only.
 
 All the configuration is already included by default and so you will be prompted to include a API key to be able to use this endpoint.
 
