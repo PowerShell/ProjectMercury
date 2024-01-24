@@ -37,7 +37,8 @@ Prerequisites:
 
 ### OpenAI-GPT Agent
 
-This is a more generalized agent that users can bring their own instance of Azure OpenAI and a completely customizable prompt. Right now it is defaulted to an internal Azure OpenAI endpoint with a prompt to be an assistant for PowerShell commands. This is for internal private preview purposes only.
+This is a more generalized agent that users can bring their own instance of Azure OpenAI (or the public OpenAI) and a completely customizable system prompt.
+Right now, it is defaulted to an internal Azure OpenAI endpoint with a prompt to be an assistant for PowerShell commands. This is for internal private preview purposes only.
 
 ## Getting an Azure OpenAI Endpoint Key
 
