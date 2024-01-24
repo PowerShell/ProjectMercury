@@ -74,7 +74,6 @@ To start a chat session with the LLM, simply run `aish` and it will open up a ne
 wt -w 0 sp aish
 ```
 
-To explore the other options available to you, run `aish --help` to see all the subcommands. 
 
 If you would like to tie this command to a key like `F3` you can add the following code to your `$PROFILE`:
 
