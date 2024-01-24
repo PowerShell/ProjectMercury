@@ -35,7 +35,7 @@ Prerequisites:
 - Have [Azure CLI installed](https://learn.microsoft.com/cli/azure/install-azure-cli)
 - Login with an Azure account within the Microsoft tenant with `az login` command
 
-# OpenAI-GPT Agent
+### OpenAI-GPT Agent
 
 This is a more generalized agent that users can bring their own instance of Azure OpenAI and a completely customizable prompt. Right now it is defaulted to an internal Azure OpenAI endpoint with a prompt to be an assistant for PowerShell commands. This is for internal private preview purposes only.
 
