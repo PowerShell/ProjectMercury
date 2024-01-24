@@ -77,7 +77,8 @@ wt -w 0 sp aish
 ```
 
 
-If you would like to tie this command to a key like `F3` you can add the following code to your `$PROFILE`:
+If you use Windows Terminal and would like to tie this command to a key like `F3` in your PowerShell session,
+you can add the following code to your `$PROFILE`:
 
 ```powershell
 Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb'--size 0.4 -p "<your-default-WT-profile-guid>" --title 'Shell Copilot' <full-path-to-aish.exe> }
