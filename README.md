@@ -32,7 +32,7 @@ If you run `aish` you will get prompted to choose between the two.
 This agent is for talking specifically to an Az CLI endpoint tailored to helping users with Azure CLI questions.
 
 Prerequisites:
-- Have [Azure CLI installed](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+- Have [Azure CLI installed](https://learn.microsoft.com/cli/azure/install-azure-cli)
 - Login with an Azure account within the Microsoft tenant with `az login` command
 
 # OpenAI-GPT Agent
