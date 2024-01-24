@@ -68,7 +68,9 @@ If you have separate Azure OpenAI endpoint you can use that instead of the one a
 
 ## Using Shell Copilot
 
-To start a chat session with the LLM, simply run `aish` and it will open up a new session in your current window. We suggest using a split pane approach with the terminal of choice, Windows Terminal offers an easy pane option by running:
+To start a chat session with the LLM, simply run `aish` and it will open up a new session in your current window.
+We suggest using a split pane approach with the terminal of choice.
+Windows Terminal offers an easy pane option by running:
 
 ```shell
 wt -w 0 sp aish
