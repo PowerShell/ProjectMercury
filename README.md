@@ -11,7 +11,6 @@ an interactive chat session with a registered Large Language Model. Currently we
 Some prerequisites for building Shell Copilot
 - Build script requires PowerShell v7.2 or newer versions. [PowerShell v7.4](https://learn.microsoft.com/powershell/scripting/install/installing-powershell?view=powershell-7.4) is recommended.
 - [.NET SDK 8](https://dotnet.microsoft.com/en-us/download) is required to build the project.
-- Execution permission on the `build.ps1` script, you can do this by setting the execution policy to unrestricted `Set-ExecutionPolicy -ExecutionPolicy Restricted -Scope CurrentUser`
 
 Here are the steps to install and use Shell Copilot.
 1. Clone this repository, `git clone https://github.com/PowerShell/ShellCopilot`
