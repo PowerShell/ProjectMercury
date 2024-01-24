@@ -64,7 +64,7 @@ In order to view your subscription/API key,
 Once you have a key you can always edit your endpoint configuration by running `/agent config openai-gpt` within Shell Copilot. This opens up a JSON file with all the configuration options. 
 
 If you have separate Azure OpenAI endpoint you can use that instead of the one above. Read more at
-[Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=ps).
+[Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=ps).
 
 ## Using Shell Copilot
 
