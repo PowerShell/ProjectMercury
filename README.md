@@ -8,18 +8,41 @@ an interactive chat session with a registered Large Language Model. Currently we
 
 ## Installing and Using Shell Copilot
 
+Some prerequisites for building Shell Copilot
+- Build script requires PowerShell v7.2 or newer versions. [PowerShell v7.4](https://learn.microsoft.com/powershell/scripting/install/installing-powershell?view=powershell-7.4) is recommended.
+- [.NET SDK 8](https://dotnet.microsoft.com/en-us/download) is required to build the project.
+
 Here are the steps to install and use Shell Copilot.
-1. Clone this repository
-2. To build run `./build.ps1` in the project's directory
-3. Add the `<path to project>/out/ShellCopilot.App` directory to your `$PATH` with `$env:PATH += <path to project>\out\ShellCopilot.App`
-4. Add the above line to your `$PROFILE` to be able to use it anytime you open up PowerShell. You can edit it by doing `code $PROFILE` if you have VSCode installed.
+1. Clone this repository, `git clone https://github.com/PowerShell/ShellCopilot`;
+2. Run `./build.ps1` in the repository's root directory to build the project;
+3. After the build is complete, you can find the produced executable `aish` in the `out\debug` folder within the repository's root directory. You can add it to the `PATH` environment variable for easy access.
 
 > Note: Depending on your OS directory paths may be `\` on Windows or `/` on Mac.
 
+## Agent Concept
+
+Shell Copilot has a concept of different A.I Agents, these can be thought of like modules that users can use to interact with different A.I models. Right now there are two supported agents
+- `az-cli`
+- `openai-gpt`
+
+If you run `aish` you will get prompted to choose between the two.
+
+### Az-CLI Agent
+
+This agent is for talking specifically to an Az CLI endpoint tailored to helping users with Azure CLI questions.
+
+Prerequisites:
+- Have [Azure CLI installed](https://learn.microsoft.com/cli/azure/install-azure-cli)
+- Login with an Azure account within the Microsoft tenant with `az login` command
+
+### OpenAI-GPT Agent
+
+This is a more generalized agent that users can bring their own instance of Azure OpenAI (or the public OpenAI) and a completely customizable system prompt.
+Right now, it is defaulted to an internal Azure OpenAI endpoint with a prompt to be an assistant for PowerShell commands. This is for internal private preview purposes only.
+
 ## Getting an Azure OpenAI Endpoint Key
 
-Currently we only support Azure OpenAI LLM endpoints. We are currently hosting a internal only Azure
-OpenAI endpoint that you can get and use without getting your Azure OpenAI instance. This is for private preview purposes only.
+All the configuration is already included by default and on the first run of this agent you will be prompted to include a API key to be able to use this endpoint.
 
 Guide for Signing Up For API Key
 1.  Navigate to <https://pscopilot.developer.azure-api.net>
@@ -38,35 +61,28 @@ In order to view your subscription/API key,
 2.  Your Key should be located under the `Subscriptions` section. Click on `Show` to view the
     primary or secondary key.
 
-To register an endpoint you can use the `aish register` subcommand.
-
-```console
-aish register --name <Name Of Model> --endpoint https://pscopilot.azure-api.net --key <Insert Key From Above Steps> --deployment gpt4 --openai-model gpt-4-0314 --system-prompt <Add Whatever System Prompt you want to guide the LLM>
-```
-Here are better descriptions for the arguments for this command:
-- `--name` is your choice of name for the model registration, we suggest using something that is easily identifiable. Something like `default-model` could work or if you tailor the model to be a pro in python a name could be `python-model` etc. 
-- `--endpoint` currently we only support Azure OpenAI service endpoints but for the sake of the early private preview you can use `https://pscopilot.azure-api.net` and get the key from instructions above.
-- `--key` is the key you get from [steps above](#Getting-an-Azure-OpenAI-Endpoint-key)
-- `--deployment` is the name of the model being used in the backend, if you are using the private preview endpoint, be sure its value is `gpt4`
-- `--openai-model` is the name of openai endpoint and version of it,  if you are using the private preview endpoint, the correct version is `gpt-4-0314`
-- `--SystemPrompt` is a simple system prompt or grounding mechanism for the calls to the endpoint, it can help guide the model to be specific to an area. We suggest doing something like:
-
-```
-You are an AI assistant with expertise in PowerShell, Azure, and the command line. Assume user is using the operating system "<INSERT OS>" unless otherwise specified. You are helpful, creative, clever, and very friendly. You always respond in the markdown format. You use the "code blocks" syntax from markdown to encapsulate any part in responses that's longer-format content such as code, poem, lyrics, etc
-```
-
-There are two other non-required flags you can use:
-- `--description` is a description of the custom AI model
-- `--trust-level` can be either `Public` or `Private`, current there is no difference between the two but eventually we see this being useful for models that are public models or models that are private to an enterprise customer.
+Once you have a key you can always edit your endpoint configuration by running `/agent config openai-gpt` within Shell Copilot. This opens up a JSON file with all the configuration options. 
 
 If you have separate Azure OpenAI endpoint you can use that instead of the one above. Read more at
-[Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=ps).
+[Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=ps).
 
 ## Using Shell Copilot
 
-To start a chat session with the LLM, simply run `aish` and it will open up a new session in your current window. You can also use `aish --use-alt-buffer` to open up a new chat session in the alternate screen buffer. 
+To start a chat session with the LLM, simply run `aish` and it will open up a new session in your current window.
+We suggest using a split pane approach with the terminal of choice.
+Windows Terminal offers an easy pane option by running:
 
-To explore the other options available to you, run `aish --help` to see all the subcommands.
+```shell
+wt -w 0 sp aish
+```
+
+
+If you use Windows Terminal and would like to tie this command to a key like `F3` in your PowerShell session,
+you can add the following code to your `$PROFILE`:
+
+```powershell
+Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb'--size 0.4 -p "<your-default-WT-profile-guid>" --title 'Shell Copilot' <full-path-to-aish.exe> }
+```
 
 ## Feedback
 
