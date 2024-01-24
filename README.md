@@ -80,7 +80,7 @@ wt -w 0 sp aish
 If you would like to tie this command to a key like `F3` you can add the following code to your `$PROFILE`:
 
 ```powershell
-Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb'--size 0.4 -p "{574e775e-4f2a-5b96-ac1e-a2962a402336}" --title 'Shell Copilot' <FULL PATH TO aish.exe> }
+Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb'--size 0.4 -p "<your-default-WT-profile-guid>" --title 'Shell Copilot' <full-path-to-aish.exe> }
 ```
 
 ## Feedback
