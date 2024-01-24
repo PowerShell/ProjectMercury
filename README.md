@@ -27,7 +27,7 @@ Shell Copilot has a concept of different A.I Agents, these can be thought of lik
 
 If you run `aish` you will get prompted to choose between the two.
 
-# Az-CLI Agent
+### Az-CLI Agent
 
 This agent is for talking specifically to an Az CLI endpoint tailored to helping users with Azure CLI questions.
 
