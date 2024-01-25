@@ -126,21 +126,20 @@ public sealed class AzCLIAgent : ILLMAgent
 
         if (data.CommandSet.Count > 0)
         {
-            _text.AppendLine("```sh");
+            _text.AppendLine("Action step(s):").AppendLine();
+
             for (int i = 0; i < data.CommandSet.Count; i++)
             {
-                if (i > 0)
-                {
-                    _text.AppendLine();
-                }
-
                 Action action = data.CommandSet[i];
-                _text.AppendLine($"## {action.Reason}, using command `{action.Command}`")
-                    .AppendLine(action.Example);
+                _text.AppendLine($"{i+1}. {action.Reason}")
+                    .AppendLine()
+                    .AppendLine("```sh")
+                    .AppendLine(action.Example)
+                    .AppendLine("```")
+                    .AppendLine();
             }
-            _text.AppendLine("```")
-                .AppendLine()
-                .AppendLine("Make sure to replace the placeholder values with your specific details.");
+
+            _text.AppendLine("Make sure to replace the placeholder values with your specific details.");
         }
 
         host.RenderFullResponse(_text.ToString());
