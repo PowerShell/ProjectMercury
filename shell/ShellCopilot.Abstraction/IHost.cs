@@ -107,6 +107,16 @@ public interface IHost
     Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status);
 
     /// <summary>
+    /// Run an asynchronouse task with a spinner on the console showing the task in progress.
+    /// Allow changing the status message from within the task while the spinner is running.
+    /// </summary>
+    /// <typeparam name="T">The return type of the asynchronouse task.</typeparam>
+    /// <param name="func">The asynchronouse task, which can change the status of the spinner.</param>
+    /// <param name="status">The initial status message to be shown.</param>
+    /// <returns>The returned result of <paramref name="func"/></returns>
+    Task<T> RunWithSpinnerAsync<T>(Func<IStatusContext, Task<T>> func, string status);
+
+    /// <summary>
     /// Run an asynchronouse task with a spinner with the default status message.
     /// </summary>
     Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func) => RunWithSpinnerAsync(func, "Generating...");
@@ -140,4 +150,15 @@ public interface IHost
     /// Prompt for secret asynchronously.
     /// </summary>
     Task<string> PromptForSecretAsync(string prompt, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Interface for the status context used when displaying a spinner.
+/// </summary>
+public interface IStatusContext
+{
+    /// <summary>
+    /// Sets the new status.
+    /// </summary>
+    void Status(string status);
 }

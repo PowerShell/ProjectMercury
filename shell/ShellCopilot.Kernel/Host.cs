@@ -352,6 +352,43 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
+    public async Task<T> RunWithSpinnerAsync<T>(Func<IStatusContext, Task<T>> func, string status)
+    {
+        if (_outputRedirected && _errorRedirected)
+        {
+            // Since both stdout and stderr are redirected, no need to use a spinner for the async call.
+            return await func(null).ConfigureAwait(false);
+        }
+
+        IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
+        Capabilities caps = ansiConsole.Profile.Capabilities;
+        bool interactive = caps.Interactive;
+
+        try
+        {
+            // When standard input is redirected, AnsiConsole's auto detection believes it's non-interactive,
+            // and thus doesn't render Status or Progress. However, redirected input should not affect the
+            // Status/Progress rendering as long as its output target, stderr or stdout, is not redirected.
+            caps.Interactive = true;
+            status ??= "Generating...";
+
+            return await ansiConsole
+                .Status()
+                .AutoRefresh(true)
+                .Spinner(AsciiLetterSpinner.Default)
+                .SpinnerStyle(new Style(Color.Olive))
+                .StartAsync(
+                    $"[italic slowblink]{status.EscapeMarkup()}[/]",
+                    ctx => func(new StatusContext(ctx)))
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            caps.Interactive = interactive;
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task<T> PromptForSelectionAsync<T>(string title, IEnumerable<T> choices, Func<T, string> converter = null, CancellationToken cancellationToken = default)
     {
         string operation = "prompt for selection";
@@ -474,6 +511,26 @@ internal sealed class Host : IHost
         }
 
         return false;
+    }
+}
+
+/// <summary>
+/// Wrapper of the <see cref="Spectre.Console.StatusContext"/> to not expose 'Spectre.Console' types,
+/// so as to avoid requiring all agent implementations to depend on the 'Spectre.Console' package.
+/// </summary>
+internal sealed class StatusContext : IStatusContext
+{
+    private readonly Spectre.Console.StatusContext _context;
+
+    internal StatusContext(Spectre.Console.StatusContext context)
+    {
+        _context = context;
+    }
+
+    /// <inheritdoc/>
+    public void Status(string status)
+    {
+        _context.Status($"[italic slowblink]{status.EscapeMarkup()}[/]");
     }
 }
 
