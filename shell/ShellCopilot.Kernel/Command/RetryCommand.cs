@@ -3,15 +3,15 @@ using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Kernel.Commands;
 
-internal sealed class RegenCommand : CommandBase
+internal sealed class RetryCommand : CommandBase
 {
-    public RegenCommand()
-        : base("regen", "Regenerate a new response for the last query.")
+    public RetryCommand()
+        : base("retry", "Regenerate a new response for the last query.")
     {
-        this.SetHandler(RegenAction);
+        this.SetHandler(RetryAction);
     }
 
-    private void RegenAction()
+    private void RetryAction()
     {
         var shell = (Shell)Shell;
 

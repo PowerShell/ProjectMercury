@@ -19,8 +19,8 @@ internal sealed class HelpCommand : CommandBase
         var list = commands.Values.OrderBy(c => c.Name).ToList();
 
         AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine("[bold white]-[/] Just type your query and press [bold olive underline]Enter[/] to send it to the chosen AI model.");
-        AnsiConsole.MarkupLine("[bold white]-[/] To run a command, use the colon prefix [bold olive underline]'/'[/] to indicate command invocation.");
+        AnsiConsole.MarkupLine("[bold white]-[/] Just type your query and press [bold olive underline]Enter[/] to chat with the chosen AI agent.");
+        AnsiConsole.MarkupLine("[bold white]-[/] To run a command, use the prefix [bold olive underline]'/'[/] to indicate command invocation.");
         AnsiConsole.MarkupLine("[bold white]-[/] All available commands are listed in the table below.");
 
         var elements = new[]
