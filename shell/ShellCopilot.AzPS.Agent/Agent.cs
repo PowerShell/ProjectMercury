@@ -72,6 +72,8 @@ public sealed class AzPSAgent : ILLMAgent
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = content };
 
+        // The AzPS endpoint can return status information in the streaming manner, so we can
+        // update the status message while waiting for the answer payload to come back.
         using ReaderWrapper reader = await host.RunWithSpinnerAsync(
             status: "Thinking ...",
             func: async context => {
@@ -100,6 +102,8 @@ public sealed class AzPSAgent : ILLMAgent
 
                         if (chunk.Contains("Starting Generate Answer", StringComparison.Ordinal))
                         {
+                            // Received the first chunk for the real answer.
+                            // Wrap it along with the reader and return the wrapper.
                             return new ReaderWrapper(reader, chunk);
                         }
                     }
