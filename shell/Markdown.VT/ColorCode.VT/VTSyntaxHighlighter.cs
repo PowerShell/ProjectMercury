@@ -31,7 +31,7 @@ public class VTSyntaxHighlighter : CodeColorizerBase
     /// <param name="styles">The Custom styles to Apply to the formatted Code.</param>
     /// <param name="languageParser">The language parser that the <see cref="VTSyntaxHighlighter"/> instance will use for its lifetime.</param>
     public VTSyntaxHighlighter(StyleDictionary styles = null, ILanguageParser languageParser = null)
-        : base(styles.UseBatStyle(), languageParser)
+        : base(styles.UseCustomStyle(), languageParser)
     {
         _buffer = new StringBuilder(capacity: 512);
 
@@ -203,35 +203,50 @@ public static class ColorExtensionMethods
     /// <summary>
     /// Use the style from 'bat' for PowerShell syntax highlighting.
     /// </summary>
-    internal static StyleDictionary UseBatStyle(this StyleDictionary styles)
+    internal static StyleDictionary UseCustomStyle(this StyleDictionary styles)
     {
         if (styles is null)
         {
             return null;
         }
 
+        // Use the PSReadLine syntax colors.
         styles.Remove(ScopeName.String);
         styles.Remove(ScopeName.Comment);
+        styles.Remove(ScopeName.PowerShellCommand);
         styles.Remove(ScopeName.PowerShellOperator);
+        styles.Remove(ScopeName.PowerShellParameter);
         styles.Remove(ScopeName.PowerShellVariable);
 
         styles.Add(
             new Style(ScopeName.String)
             {
-                Foreground = "\x1b[38;5;186m",
+                Foreground = "\x1b[36m",
                 ReferenceName = "string"
             });
         styles.Add(
             new Style(ScopeName.Comment)
             {
-                Foreground = "\x1b[38;5;242m",
+                Foreground = "\x1b[32m",
                 ReferenceName = "comment"
+            });
+        styles.Add(
+            new Style(ScopeName.PowerShellCommand)
+            {
+                Foreground = "\x1b[93m",
+                ReferenceName = "powerShellCommand"
             });
         styles.Add(
             new Style(ScopeName.PowerShellOperator)
             {
-                Foreground = "\x1b[38;5;203m",
+                Foreground = "\x1b[90m",
                 ReferenceName = "powershellOperator"
+            });
+        styles.Add(
+            new Style(ScopeName.PowerShellParameter)
+            {
+                Foreground = "\x1b[90m",
+                ReferenceName = "powerShellParameter"
             });
         styles.Add(
             new Style(ScopeName.PowerShellVariable)
