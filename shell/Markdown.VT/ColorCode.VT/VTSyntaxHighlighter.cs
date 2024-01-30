@@ -201,7 +201,7 @@ public class VTSyntaxHighlighter : CodeColorizerBase
 public static class ColorExtensionMethods
 {
     /// <summary>
-    /// Use the style from 'bat' for PowerShell syntax highlighting.
+    /// Use the PSReadLine syntax colors for PowerShell syntax highlighting.
     /// </summary>
     internal static StyleDictionary UseCustomStyle(this StyleDictionary styles)
     {
@@ -210,7 +210,6 @@ public static class ColorExtensionMethods
             return null;
         }
 
-        // Use the PSReadLine syntax colors.
         styles.Remove(ScopeName.String);
         styles.Remove(ScopeName.Comment);
         styles.Remove(ScopeName.PowerShellCommand);
