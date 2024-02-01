@@ -13,7 +13,8 @@ public sealed class AzPSAgent : ILLMAgent
     public string SettingFile { private set; get; } = null;
 
     private const string SettingFileName = "az-ps.agent.json";
-    private const string Endpoint = "https://wyunchi-tmp-container-app.delightfulsea-cb0824ab.eastus.azurecontainerapps.io/api/azure-powershell/copilot/streaming";
+    private const string Domain = "https://wyunchi-tmp-container-app.delightfulsea-cb0824ab.eastus.azurecontainerapps.io";
+    private const string Endpoint = $"{Domain}/api/azure-powershell/copilot/streaming";
 
     private bool _isInteractive;
     private string _configRoot;
@@ -66,7 +67,11 @@ public sealed class AzPSAgent : ILLMAgent
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
 
-        var requestData = new Query { SemanticQuestion = input };
+        var messages = new List<ChatMessage>
+        {
+            new ChatMessage { Role = "User", Content = input },
+        };
+        var requestData = new Query { Messages = messages };
         var json = JsonSerializer.Serialize(requestData, _jsonOptions);
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -176,10 +181,18 @@ internal class ReaderWrapper : IDisposable
     }
 }
 
+internal class ChatMessage
+{
+    [JsonPropertyName("role")]
+    public string Role { get; set; }
+    [JsonPropertyName("content")]
+    public string Content { get; set; }
+}
+
 internal class Query
 {
-    [JsonPropertyName("semantic_question")]
-    public string SemanticQuestion { get; set; }
+    [JsonPropertyName("messages")]
+    public List<ChatMessage> Messages { get; set; }
 }
 
 internal class ChunkData
