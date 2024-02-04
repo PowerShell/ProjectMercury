@@ -4,4 +4,4 @@ obj/
 .vs/
 .vscode/
 shell/**/*.sln
-!shell/file.sln
+!shell/shell.sln
