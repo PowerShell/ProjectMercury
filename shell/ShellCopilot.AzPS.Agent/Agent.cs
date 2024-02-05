@@ -17,7 +17,7 @@ public sealed class AzPSAgent : ILLMAgent
 
     private const string SettingFileName = "az-ps.agent.json";
     private const string BaseURL = "https://azclitools-copilot.azure-api.net/azps";
-    private const string Endpoint = $"{BaseURL}/api/azure-powershell/copilot/streaming";
+    private const string Endpoint = $"{BaseURL}/api/azure-powershell/copilot";
 
     private bool _isInteractive;
     private string _configRoot;
@@ -101,7 +101,7 @@ public sealed class AzPSAgent : ILLMAgent
             if (ex is CredentialUnavailableException)
             {
                 host.MarkupErrorLine($"Access token not available. Query cannot be served.");
-                host.MarkupErrorLine($"The '{Name}' agent depends on the Azure CLI credential to aquire access token. Please run 'az login' from a command-line shell to setup account.");
+                host.MarkupErrorLine($"The '{Name}' agent depends on the Azure PowerShell credential to acquire access token. Please run 'Connect-AzAccount' from a command-line shell to setup account.");
             }
             else
             {
@@ -140,7 +140,6 @@ public sealed class AzPSAgent : ILLMAgent
                     while ((chunk = await reader.ReadLineAsync(token)) is not null)
                     {
                         var chunkData = JsonSerializer.Deserialize<ChunkData>(chunk, _jsonOptions);
-                        host.MarkupWarningLine(chunkData.Status);
                         if (chunkData.Status.Equals("Starting Search Examples", StringComparison.Ordinal))
                         {
                             context.Status("Searching Examples ...");
