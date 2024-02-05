@@ -16,7 +16,6 @@ public sealed class AzPSAgent : ILLMAgent
     public string SettingFile { private set; get; } = null;
 
     private const string SettingFileName = "az-ps.agent.json";
-    // private const string BaseURL = "http://127.0.0.1:8000";
     private const string BaseURL = "https://azclitools-copilot.azure-api.net/azps";
     private const string Endpoint = $"{BaseURL}/api/azure-powershell/copilot/streaming";
 
