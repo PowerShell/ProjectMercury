@@ -22,14 +22,12 @@ function GetProjectFile($dir)
 $shell_dir = Join-Path $PSScriptRoot "shell"
 $app_dir = Join-Path $shell_dir "ShellCopilot.App"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
-$interpreter_agent_dir = Join-Path $shell_dir "ShellCopilot.Interpreter.Agent"
 $az_cli_agent_dir = Join-Path $shell_dir "ShellCopilot.AzCLI.Agent"
 $az_ps_agent_dir = Join-Path $shell_dir "ShellCopilot.AzPS.Agent"
 
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $Configuration.ToLower()
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.OpenAI.Agent"
-$interpreter_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Interpreter.Agent"
 $az_cli_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.AzCLI.Agent"
 $az_ps_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.AzPS.Agent"
 
@@ -57,13 +55,6 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
     $open_ai_csproj = GetProjectFile $open_ai_agent_dir
     dotnet publish $open_ai_csproj -c $Configuration -o $open_ai_out_dir
-}
-
-if ($LASTEXITCODE -eq 0) {
-    ## Move the nuget package to the package folder.
-    Write-Host "`n[Build the Interpreter agent ...]`n" -ForegroundColor Green
-    $interpreter_csproj = GetProjectFile $interpreter_agent_dir
-    dotnet publish $interpreter_csproj -c $Configuration -o $interpreter_out_dir
 }
 
 if ($LASTEXITCODE -eq 0) {
