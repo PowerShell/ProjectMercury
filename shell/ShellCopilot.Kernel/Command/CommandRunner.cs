@@ -29,7 +29,9 @@ internal class CommandRunner
             new AgentCommand(),
             new ClearCommand(),
             new CodeCommand(),
+            new DislikeCommand(),
             new ExitCommand(),
+            new LikeCommand(),
             new RetryCommand(),
             new HelpCommand(),
         };

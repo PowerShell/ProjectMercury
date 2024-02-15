@@ -34,10 +34,9 @@ internal sealed class CodeCommand : CommandBase
         save.SetHandler(SaveAction, file, append);
     }
 
-    private string GetCodeText(int index)
+    private static string GetCodeText(Shell shell, int index)
     {
-        var shellImpl = (Shell)Shell;
-        List<string> code = shellImpl.GetCodeBlockFromLastResponse();
+        List<string> code = shell.GetCodeBlockFromLastResponse();
 
         if (code is null || code.Count is 0 || index >= code.Count)
         {
@@ -68,24 +67,32 @@ internal sealed class CodeCommand : CommandBase
 
     private void CopyAction(int nth)
     {
+        var shell = (Shell)Shell;
+        var host = shell.Host;
+
         int index = nth > 0 ? nth - 1 : nth;
-        string code = GetCodeText(index);
+        string code = GetCodeText(shell, index);
+
         if (code is null)
         {
-            Shell.Host.MarkupLine("[olive]No code snippet available for copy.[/]");
+            host.MarkupLine("[olive]No code snippet available for copy.[/]");
             return;
         }
 
         Clipboard.SetText(code);
-        Shell.Host.MarkupLine("[cyan]Code snippet copied to clipboard.[/]");
+        host.MarkupLine("[cyan]Code snippet copied to clipboard.[/]");
+        shell.OnUserAction(new CodePayload(UserAction.CodeCopy, code));
     }
 
     private void SaveAction(FileInfo file, bool append)
     {
-        string code = GetCodeText(index: -1);
+        var shell = (Shell)Shell;
+        var host = shell.Host;
+
+        string code = GetCodeText(shell, index: -1);
         if (code is null)
         {
-            Shell.Host.MarkupLine("[olive]No code snippet available for save.[/]");
+            host.MarkupLine("[olive]No code snippet available for save.[/]");
             return;
         }
 
@@ -97,11 +104,12 @@ internal sealed class CodeCommand : CommandBase
             writer.Write(code);
             writer.Flush();
 
-            Shell.Host.MarkupLine("[cyan]Code snippet saved to the file.[/]");
+            host.MarkupLine("[cyan]Code snippet saved to the file.[/]");
+            shell.OnUserAction(new CodePayload(UserAction.CodeSave, code));
         }
         catch (Exception e)
         {
-            Shell.Host.MarkupErrorLine(e.Message);
+            host.MarkupErrorLine(e.Message);
         }
     }
 }

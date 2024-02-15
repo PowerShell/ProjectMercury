@@ -77,10 +77,13 @@ public sealed class OpenAIAgent : ILLMAgent
     }
 
     /// <inheritdoc/>
-    public IEnumerable<CommandBase> GetCommands()
-    {
-        return null;
-    }
+    public IEnumerable<CommandBase> GetCommands() => null;
+
+    /// <inheritdoc/>
+    public bool CanAcceptFeedback(UserAction action) => false;
+
+    /// <inheritdoc/>
+    public void OnUserAction(UserActionPayload actionPayload) {}
 
     /// <inheritdoc/>
     public async Task<bool> Chat(string input, IShell shell)

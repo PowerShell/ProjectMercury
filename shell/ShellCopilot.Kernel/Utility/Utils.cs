@@ -71,6 +71,46 @@ internal static class Utils
         };
     }
 
+    /// <summary>
+    /// Check if the <paramref name="left"/> contains <paramref name="right"/> regardless of
+    /// the leading and trailing space characters on each line if both are multi-line strings.
+    /// </summary>
+    internal static bool Contains(string left, string right)
+    {
+        ReadOnlySpan<char> leftSpan = left.AsSpan();
+        if (leftSpan.IndexOf('\n') is -1)
+        {
+            // The 'left' is not a multi-line string, then a direct 'Contains' call is enough.
+            return leftSpan.Contains(right.AsSpan().Trim(), StringComparison.Ordinal);
+        }
+
+        // The 'left' is a multi-line string. If the 'right' is also a multi-line string,
+        // we want to check line by line regardless the leading and trailing space chars
+        // on each line.
+        int start, index = -1;
+        while (true)
+        {
+            start = index + 1;
+            index = right.IndexOf('\n', start);
+            if (index is -1)
+            {
+                if (start == right.Length)
+                {
+                    break;
+                }
+
+                return leftSpan.Contains(right.AsSpan(start).Trim(), StringComparison.Ordinal);
+            }
+
+            if (!leftSpan.Contains(right.AsSpan(start, index - start).Trim(), StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     internal static void SetDefaultKeyHandlers()
     {
         PSConsoleReadLine.SetKeyHandler(

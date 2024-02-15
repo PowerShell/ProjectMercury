@@ -423,8 +423,9 @@ internal sealed class Host : IHost
         RequireStdin(operation);
         RequireStdoutOrStderr(operation);
 
+        prompt = prompt.Contains("[/]") ? prompt : $"[orange3 on italic]{prompt.EscapeMarkup()}[/]";
         IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
-        var confirmation = new ConfirmationPrompt($"[orange3 on italic]{prompt.EscapeMarkup()}[/]") { DefaultValue = defaultValue };
+        var confirmation = new ConfirmationPrompt(prompt) { DefaultValue = defaultValue };
 
         return await confirmation.ShowAsync(ansiConsole, cancellationToken).ConfigureAwait(false);
     }
@@ -442,6 +443,23 @@ internal sealed class Host : IHost
         return await new TextPrompt<string>(prompt)
             .PromptStyle(Color.Red)
             .Secret()
+            .ShowAsync(ansiConsole, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<string> PromptForTextAsync(string prompt, bool optional, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(prompt);
+        string operation = "prompt for text";
+
+        RequireStdin(operation);
+        RequireStdoutOrStderr(operation);
+
+        IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
+        string promptToUse = optional ? $"[grey][[Optional]][/] {prompt}" : prompt;
+        return await new TextPrompt<string>(promptToUse) { AllowEmpty = optional }
+            .PromptStyle(Style.Plain)
             .ShowAsync(ansiConsole, cancellationToken)
             .ConfigureAwait(false);
     }

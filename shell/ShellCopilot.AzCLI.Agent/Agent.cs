@@ -53,7 +53,7 @@ public sealed class AzCLIAgent : ILLMAgent
             };
         }
 
-        _scopes = new[] { "api://62009369-df36-4df2-b7d7-b3e784b3ed55/" };
+        _scopes = ["api://62009369-df36-4df2-b7d7-b3e784b3ed55/"];
         _jsonOptions = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -63,9 +63,13 @@ public sealed class AzCLIAgent : ILLMAgent
         SettingFile = Path.Combine(_configRoot, SettingFileName);
     }
 
-    public IEnumerable<CommandBase> GetCommands()
+    public IEnumerable<CommandBase> GetCommands() => null;
+
+    public bool CanAcceptFeedback(UserAction action) => true;
+
+    public void OnUserAction(UserActionPayload actionPayload)
     {
-        return null;
+        // Send telemetry about the user action.
     }
 
     public async Task<bool> Chat(string input, IShell shell)

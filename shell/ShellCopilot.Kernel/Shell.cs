@@ -93,6 +93,25 @@ internal sealed class Shell : IShell
         return Host.MarkdownRender.GetAllCodeBlocks();
     }
 
+    internal void OnUserAction(UserActionPayload actionPayload)
+    {
+        if (actionPayload.Action is UserAction.CodeCopy)
+        {
+            var codePayload = (CodePayload)actionPayload;
+            _textToIgnore.Add(codePayload.Code);
+        }
+
+        var agent = ActiveAgent;
+        if (agent.Impl.CanAcceptFeedback(actionPayload.Action))
+        {
+            var state = Tuple.Create(agent.Impl, actionPayload);
+            ThreadPool.QueueUserWorkItem(
+                callBack: static tuple => tuple.Item1.OnUserAction(tuple.Item2),
+                state: state,
+                preferLocal: false);
+        }
+    }
+
     /// <summary>
     /// Load a plugin assembly file and process the agents defined in it.
     /// </summary>
@@ -345,6 +364,19 @@ internal sealed class Shell : IShell
         if (input.Contains(copiedText))
         {
             return null;
+        }
+
+        // If clipboard content was copied from the code from the last response (whole or partial)
+        // by mouse clicking, we should ignore it and don't show the prompt.
+        if (GetCodeBlockFromLastResponse() is List<string> codes)
+        {
+            foreach (string code in codes)
+            {
+                if (Utils.Contains(code, copiedText))
+                {
+                    return null;
+                }
+            }
         }
 
         string textToShow = copiedText;

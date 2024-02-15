@@ -7,7 +7,7 @@ internal class CodeBlockVisitor : IVTRenderVisitor
 {
     internal CodeBlockVisitor()
     {
-        CodeBlock = new List<string>();
+        CodeBlock = [];
     }
 
     internal List<string> CodeBlock { get; }
