@@ -19,6 +19,12 @@ internal sealed class DislikeCommand : CommandBase
         var shell = (Shell)Shell;
         Host host = shell.Host;
 
+        if (shell.LastAgent is null)
+        {
+            host.MarkupErrorLine($"No previous response available to rate on.");
+            return;
+        }
+
         try
         {
             host.MarkupLine("[cyan]Thanks for your feedback. Please share more about your experience.[/]\n");
@@ -40,6 +46,7 @@ internal sealed class DislikeCommand : CommandBase
                     shell.CancellationToken)
                 .GetAwaiter().GetResult();
 
+            host.MarkupLine("[cyan]Thanks again for your feedback![/]");
             shell.OnUserAction(new DislikePayload(share, shortFeedback, longFeedback));
         }
         catch (OperationCanceledException)

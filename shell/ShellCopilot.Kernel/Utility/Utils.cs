@@ -2,9 +2,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.PowerShell;
+using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Kernel;
 
@@ -91,14 +93,14 @@ internal static class Utils
         while (true)
         {
             start = index + 1;
+            if (start == right.Length)
+            {
+                break;
+            }
+
             index = right.IndexOf('\n', start);
             if (index is -1)
             {
-                if (start == right.Length)
-                {
-                    break;
-                }
-
                 return leftSpan.Contains(right.AsSpan(start).Trim(), StringComparison.Ordinal);
             }
 
@@ -109,6 +111,85 @@ internal static class Utils
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Extract code blocks from the passed-in text.
+    /// </summary>
+    internal static List<CodeBlock> ExtractCodeBlocks(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return null;
+        }
+
+        int start, index = -1;
+        bool inCodeBlock = false;
+        string language = null;
+        StringBuilder code = null;
+        List<CodeBlock> codeBlocks = null;
+
+        do
+        {
+            start = index + 1;
+            if (start == text.Length)
+            {
+                // Break out if we already reached end of the text.
+                break;
+            }
+
+            index = text.IndexOf('\n', start);
+            ReadOnlySpan<char> line = index is -1
+                ? text.AsSpan(start)
+                : text.AsSpan(start, index - start + 1);
+
+            // Trim the line before checking for code fence.
+            ReadOnlySpan<char> lineTrimmed = line.Trim();
+            if (lineTrimmed.StartsWith("```"))
+            {
+                if (inCodeBlock)
+                {
+                    if (lineTrimmed.Length is 3)
+                    {
+                        // Current line is the ending code fence.
+                        codeBlocks.Add(new CodeBlock(code.ToString(), language));
+
+                        code.Clear();
+                        language = null;
+                        inCodeBlock = false;
+                        continue;
+                    }
+
+                    // It's not the ending code fence, so keep appending to code.
+                    code.Append(line);
+                }
+                else
+                {
+                    // Current line is the starting code fence.
+                    code ??= new StringBuilder();
+                    codeBlocks ??= [];
+                    inCodeBlock = true;
+                    language = lineTrimmed.Length > 3 ? lineTrimmed[3..].ToString() : null;
+                }
+
+                continue;
+            }
+
+            if (inCodeBlock)
+            {
+                // Append the line when we are within a code block.
+                code.Append(line);
+            }
+        }
+        while (index is not -1);
+
+        if (inCodeBlock && code.Length > 0)
+        {
+            // It's possbile that the ending code fence is missing.
+            codeBlocks.Add(new CodeBlock(code.ToString(), language));
+        }
+
+        return codeBlocks;
     }
 
     internal static void SetDefaultKeyHandlers()
@@ -132,7 +213,7 @@ internal static class Utils
                 PSConsoleReadLine.Insert("/code copy 1");
                 PSConsoleReadLine.AcceptLine();
             },
-            "CopyCodeFirst",
+            "CopyCodeOne",
             "Copy the 1st code snippet from the last response to clipboard.");
 
         PSConsoleReadLine.SetKeyHandler(
@@ -143,7 +224,7 @@ internal static class Utils
                 PSConsoleReadLine.Insert("/code copy 2");
                 PSConsoleReadLine.AcceptLine();
             },
-            "CopyCodeSecond",
+            "CopyCodeTwo",
             "Copy the 2nd code snippet from the last response to clipboard.");
 
         PSConsoleReadLine.SetKeyHandler(
@@ -154,7 +235,7 @@ internal static class Utils
                 PSConsoleReadLine.Insert("/code copy 3");
                 PSConsoleReadLine.AcceptLine();
             },
-            "CopyCodeThird",
+            "CopyCodeThree",
             "Copy the 3rd code snippet from the last response to clipboard.");
 
         PSConsoleReadLine.SetKeyHandler(
@@ -165,7 +246,7 @@ internal static class Utils
                 PSConsoleReadLine.Insert("/code copy 4");
                 PSConsoleReadLine.AcceptLine();
             },
-            "CopyCodeThird",
+            "CopyCodeFour",
             "Copy the 4th code snippet from the last response to clipboard.");
 
         PSConsoleReadLine.SetKeyHandler(
@@ -176,8 +257,52 @@ internal static class Utils
                 PSConsoleReadLine.Insert("/code copy 5");
                 PSConsoleReadLine.AcceptLine();
             },
-            "CopyCodeThird",
+            "CopyCodeFive",
             "Copy the 5th code snippet from the last response to clipboard.");
+
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+6" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy 6");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeSix",
+            "Copy the 6th code snippet from the last response to clipboard.");
+
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+7" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy 7");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeSeven",
+            "Copy the 7th code snippet from the last response to clipboard.");
+
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+8" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy 8");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeEight",
+            "Copy the 8th code snippet from the last response to clipboard.");
+
+        PSConsoleReadLine.SetKeyHandler(
+            new[] { "Ctrl+9" },
+            (key, arg) =>
+            {
+                PSConsoleReadLine.RevertLine();
+                PSConsoleReadLine.Insert("/code copy 9");
+                PSConsoleReadLine.AcceptLine();
+            },
+            "CopyCodeNine",
+            "Copy the 9th code snippet from the last response to clipboard.");
     }
 
     private static void CreateFolderWithRightPermission(string dirPath)

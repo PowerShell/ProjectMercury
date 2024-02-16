@@ -16,13 +16,49 @@ internal sealed class Shell : IShell
     private readonly HashSet<string> _textToIgnore;
     private CancellationTokenSource _cancellationSource;
 
+    /// <summary>
+    /// Indicates if we want to exit the shell.
+    /// </summary>
     internal bool Exit { set; get; }
+
+    /// <summary>
+    /// Indicates if we want to regenerate for the last query.
+    /// </summary>
     internal bool Regenerate { set; get; }
+
+    /// <summary>
+    /// The last query sent by user.
+    /// </summary>
     internal string LastQuery { private set; get; }
+
+    /// <summary>
+    /// The agent that served the last query.
+    /// </summary>
+    internal LLMAgent LastAgent { private set; get; }
+
+    /// <summary>
+    /// Gets the host.
+    /// </summary>
     internal Host Host { get; }
+
+    /// <summary>
+    /// Gets the command runner.
+    /// </summary>
     internal CommandRunner CommandRunner { get; }
+
+    /// <summary>
+    /// Gets the agent list.
+    /// </summary>
     internal List<LLMAgent> Agents => _agents;
+
+    /// <summary>
+    /// Gets the cancellation token.
+    /// </summary>
     internal CancellationToken CancellationToken => _cancellationSource.Token;
+
+    /// <summary>
+    /// Gets the currently active agent.
+    /// </summary>
     internal LLMAgent ActiveAgent => _activeAgentStack.TryPeek(out var agent) ? agent : null;
 
     #region IShell implementation
@@ -48,6 +84,7 @@ internal sealed class Shell : IShell
         Exit = false;
         Regenerate = false;
         LastQuery = null;
+        LastAgent = null;
         Host = new Host();
 
         if (interactive)
@@ -88,7 +125,7 @@ internal sealed class Shell : IShell
     /// Get all code blocks from the last LLM response.
     /// </summary>
     /// <returns></returns>
-    internal List<string> GetCodeBlockFromLastResponse()
+    internal List<CodeBlock> GetCodeBlockFromLastResponse()
     {
         return Host.MarkdownRender.GetAllCodeBlocks();
     }
@@ -101,10 +138,9 @@ internal sealed class Shell : IShell
             _textToIgnore.Add(codePayload.Code);
         }
 
-        var agent = ActiveAgent;
-        if (agent.Impl.CanAcceptFeedback(actionPayload.Action))
+        if (LastAgent.Impl.CanAcceptFeedback(actionPayload.Action))
         {
-            var state = Tuple.Create(agent.Impl, actionPayload);
+            var state = Tuple.Create(LastAgent.Impl, actionPayload);
             ThreadPool.QueueUserWorkItem(
                 callBack: static tuple => tuple.Item1.OnUserAction(tuple.Item2),
                 state: state,
@@ -368,11 +404,11 @@ internal sealed class Shell : IShell
 
         // If clipboard content was copied from the code from the last response (whole or partial)
         // by mouse clicking, we should ignore it and don't show the prompt.
-        if (GetCodeBlockFromLastResponse() is List<string> codes)
+        if (GetCodeBlockFromLastResponse() is List<CodeBlock> codeBlocks)
         {
-            foreach (string code in codes)
+            foreach (CodeBlock code in codeBlocks)
             {
-                if (Utils.Contains(code, copiedText))
+                if (Utils.Contains(code.Code, copiedText))
                 {
                     return null;
                 }
@@ -521,6 +557,7 @@ internal sealed class Shell : IShell
                     // Use the current active agent for the query.
                     agent = ActiveAgent;
                     LastQuery = input;
+                    LastAgent = agent;
 
                     // TODO: Consider `WaitAsync(CancellationToken)` to handle an agent not responding to ctr+c.
                     // One problem to use `WaitAsync` is to make sure we give reasonable time for the agent to handle the cancellation.

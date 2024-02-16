@@ -36,7 +36,7 @@ internal sealed class CodeCommand : CommandBase
 
     private static string GetCodeText(Shell shell, int index)
     {
-        List<string> code = shell.GetCodeBlockFromLastResponse();
+        List<CodeBlock> code = shell.GetCodeBlockFromLastResponse();
 
         if (code is null || code.Count is 0 || index >= code.Count)
         {
@@ -55,14 +55,14 @@ internal sealed class CodeCommand : CommandBase
                     sb.Append('\n');
                 }
 
-                sb.Append(code[i]).Append('\n');
+                sb.Append(code[i].Code).Append('\n');
             }
 
             return sb.ToString();
         }
 
         // Otherwise, return the specific code block.
-        return code[index];
+        return code[index].Code;
     }
 
     private void CopyAction(int nth)

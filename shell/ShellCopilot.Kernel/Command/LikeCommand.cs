@@ -15,6 +15,13 @@ internal sealed class LikeCommand : CommandBase
     {
         var shell = (Shell)Shell;
         Host host = shell.Host;
+
+        if (shell.LastAgent is null)
+        {
+            host.MarkupErrorLine($"No previous response available to rate on.");
+            return;
+        }
+
         try
         {
             bool share = host

@@ -1,8 +1,8 @@
-﻿using ShellCopilot.Abstraction;
-using Spectre.Console;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using ShellCopilot.Abstraction;
+using Spectre.Console;
 
 namespace ShellCopilot.Kernel;
 
@@ -18,6 +18,8 @@ internal sealed class DummyStreamRender : IStreamRender
     }
 
     public string AccumulatedContent => _buffer.ToString();
+
+    public List<CodeBlock> CodeBlocks => Utils.ExtractCodeBlocks(_buffer.ToString());
 
     public void Refresh(string newChunk)
     {
@@ -62,6 +64,17 @@ internal sealed partial class FancyStreamRender : IStreamRender
     }
 
     public string AccumulatedContent => _accumulatedContent;
+
+    public List<CodeBlock> CodeBlocks
+    {
+        get
+        {
+            // Create a new list to return, so as to prevent agents from changing
+            // the list that is used internally by 'CodeBlockVisitor'.
+            var blocks = _markdownRender.GetAllCodeBlocks();
+            return blocks is null ? null : new List<CodeBlock>(blocks);
+        }
+    }
 
     public void Dispose()
     {
