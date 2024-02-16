@@ -86,7 +86,7 @@ public sealed class AzCLIAgent : ILLMAgent
             if (ex is CredentialUnavailableException)
             {
                 host.MarkupErrorLine($"Access token not available. Query cannot be served.");
-                host.MarkupErrorLine($"The '{Name}' agent depends on the Azure CLI credential to aquire access token. Please run 'az login' from a command-line shell to setup account.");
+                host.MarkupErrorLine($"The '{Name}' agent depends on the Azure CLI credential to acquire access token. Please run 'az login' from a command-line shell to setup account.");
             }
             else
             {
