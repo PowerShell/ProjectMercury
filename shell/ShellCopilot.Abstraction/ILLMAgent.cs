@@ -113,6 +113,19 @@ public interface ILLMAgent : IDisposable
     /// </summary>
     /// <returns>An enumerable collection of <see cref="CommandBase"/> objects representing the available commands.</returns>
     IEnumerable<CommandBase> GetCommands();
+
+    /// <summary>
+    /// Gets a value indicating whether the agent accepts a specific user action feedback.
+    /// </summary>
+    /// <param name="action">The user action.</param>
+    bool CanAcceptFeedback(UserAction action);
+
+    /// <summary>
+    /// A user action was taken against the last response from this agent.
+    /// </summary>
+    /// <param name="action">Type of the action.</param>
+    /// <param name="actionPayload"></param>
+    void OnUserAction(UserActionPayload actionPayload);
 }
 
 public interface IOrchestrator : ILLMAgent

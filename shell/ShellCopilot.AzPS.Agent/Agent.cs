@@ -56,10 +56,10 @@ public sealed class AzPSAgent : ILLMAgent
         SettingFile = Path.Combine(_configRoot, SettingFileName);
     }
 
-    public IEnumerable<CommandBase> GetCommands()
-    {
-        return null;
-    }
+    public IEnumerable<CommandBase> GetCommands() => null;
+
+    public bool CanAcceptFeedback(UserAction action) => false;
+    public void OnUserAction(UserActionPayload actionPayload) {}
 
     public async Task<bool> Chat(string input, IShell shell)
     {

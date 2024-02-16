@@ -149,7 +149,18 @@ public interface IHost
     /// <summary>
     /// Prompt for secret asynchronously.
     /// </summary>
+    /// <param name="prompt">The prompt to use.</param>
+    /// <param name="cancellationToken">Token to cancel operation.</param>
     Task<string> PromptForSecretAsync(string prompt, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Prompt for text input asynchronously.
+    /// </summary>
+    /// <param name="prompt">The prompt to use.</param>
+    /// <param name="optional">Indicates if the text input request is optional.</param>
+    /// <param name="cancellationToken">Token to cancel operation.</param>
+    /// <returns></returns>
+    Task<string> PromptForTextAsync(string prompt, bool optional, CancellationToken cancellationToken);
 }
 
 /// <summary>
