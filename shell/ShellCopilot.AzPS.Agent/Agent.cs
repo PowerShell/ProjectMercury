@@ -1,6 +1,9 @@
-﻿using System.Text;
+﻿using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Azure.Core;
+using Azure.Identity;
 using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.AzPS.Agent;
@@ -13,14 +16,17 @@ public sealed class AzPSAgent : ILLMAgent
     public string SettingFile { private set; get; } = null;
 
     private const string SettingFileName = "az-ps.agent.json";
-    private const string Endpoint = "https://wyunchi-tmp-container-app.delightfulsea-cb0824ab.eastus.azurecontainerapps.io/api/azure-powershell/copilot/streaming";
+    private const string Endpoint = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
 
     private bool _isInteractive;
     private string _configRoot;
     private RenderingStyle _renderingStyle;
     private Dictionary<string, string> _context;
     private HttpClient _client;
+    private string[] _scopes;
+    private AccessToken? _accessToken;
     private JsonSerializerOptions _jsonOptions;
+    private AzurePowerShellCredentialOptions _credOptions;
 
     public void Dispose()
     {
@@ -45,8 +51,14 @@ public sealed class AzPSAgent : ILLMAgent
                 ["Tenant"] = tenantId,
                 ["Subscription"] = subscriptionId,
             };
+
+            if (tenantId is not null)
+            {
+                _credOptions = new() { TenantId = tenantId };
+            }
         }
 
+        _scopes = ["https://management.core.windows.net/"];
         _jsonOptions = new()
         {
             WriteIndented = true,
@@ -66,11 +78,35 @@ public sealed class AzPSAgent : ILLMAgent
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
 
-        var requestData = new Query { SemanticQuestion = input };
+        try
+        {
+            RefreshToken(token);
+        }
+        catch (OperationCanceledException)
+        {
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (ex is CredentialUnavailableException)
+            {
+                host.MarkupErrorLine($"Access token not available. Query cannot be served.");
+                host.MarkupErrorLine($"The '{Name}' agent depends on the Azure PowerShell credential to acquire access token. Please run 'Connect-AzAccount' from a command-line shell to setup account.");
+            }
+            else
+            {
+                host.MarkupErrorLine($"Failed to get the access token. {ex.Message}");
+            }
+
+            return false;
+        }
+
+        var requestData = new Query { Messages = [ new() { Role = "User", Content = input } ], IsStreaming = true };
         var json = JsonSerializer.Serialize(requestData, _jsonOptions);
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = content };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Value.Token);
 
         // The AzPS endpoint can return status information in the streaming manner, so we can
         // update the status message while waiting for the answer payload to come back.
@@ -126,12 +162,12 @@ public sealed class AzPSAgent : ILLMAgent
             {
                 while ((line = await reader.ReadLineAsync(token)) is not null)
                 {
-                    if (line.Contains("Finished Generate Answer", StringComparison.Ordinal))
+                    var chunkData = JsonSerializer.Deserialize<ChunkData>(line, _jsonOptions);
+                    if (chunkData.Status.Equals("Finished Generate Answer", StringComparison.Ordinal))
                     {
                         break;
                     }
 
-                    var chunkData = JsonSerializer.Deserialize<ChunkData>(line, _jsonOptions);
                     streamingRender.Refresh(chunkData.Message);
                 }
             }
@@ -144,6 +180,21 @@ public sealed class AzPSAgent : ILLMAgent
         }
 
         return true;
+    }
+
+    private void RefreshToken(CancellationToken cancellationToken)
+    {
+        bool needRefresh = !_accessToken.HasValue;
+        if (!needRefresh)
+        {
+            needRefresh = DateTimeOffset.UtcNow + TimeSpan.FromMinutes(2) > _accessToken.Value.ExpiresOn;
+        }
+
+        if (needRefresh)
+        {
+            _accessToken = new AzurePowerShellCredential(_credOptions)
+                .GetToken(new TokenRequestContext(_scopes), cancellationToken);
+        }
     }
 }
 
@@ -176,10 +227,18 @@ internal class ReaderWrapper : IDisposable
     }
 }
 
+internal class ChatMessage
+{
+    public string Role { get; set; }
+    public string Content { get; set; }
+}
+
 internal class Query
 {
-    [JsonPropertyName("semantic_question")]
-    public string SemanticQuestion { get; set; }
+    public List<ChatMessage> Messages { get; set; }
+
+    [JsonPropertyName("is_streaming")]
+    public bool IsStreaming { get; set; }
 }
 
 internal class ChunkData
