@@ -61,41 +61,44 @@ public sealed class AzCLIAgent : ILLMAgent
                 func: async context => await _chatService.GetChatResponseAsync(context, input, token)
             ).ConfigureAwait(false);
 
-            if (azResponse.Error is not null)
+            if (azResponse is not null)
             {
-                host.MarkupErrorLine(azResponse.Error);
-                return true;
-            }
-
-            if (azResponse.Data.Count is 0)
-            {
-                host.MarkupErrorLine("Sorry, no response received.");
-                return true;
-            }
-
-            var data = azResponse.Data[0];
-            _text.Clear();
-            _text.AppendLine(data.Description).AppendLine();
-
-            if (data.CommandSet.Count > 0)
-            {
-                _text.AppendLine("Action step(s):").AppendLine();
-
-                for (int i = 0; i < data.CommandSet.Count; i++)
+                if (azResponse.Error is not null)
                 {
-                    Action action = data.CommandSet[i];
-                    _text.AppendLine($"{i+1}. {action.Reason}")
-                        .AppendLine()
-                        .AppendLine("```sh")
-                        .AppendLine(action.Example)
-                        .AppendLine("```")
-                        .AppendLine();
+                    host.MarkupErrorLine(azResponse.Error);
+                    return true;
                 }
 
-                _text.AppendLine("Make sure to replace the placeholder values with your specific details.");
-            }
+                if (azResponse.Data.Count is 0)
+                {
+                    host.MarkupErrorLine("Sorry, no response received.");
+                    return true;
+                }
 
-            host.RenderFullResponse(_text.ToString());
+                var data = azResponse.Data[0];
+                _text.Clear();
+                _text.AppendLine(data.Description).AppendLine();
+
+                if (data.CommandSet.Count > 0)
+                {
+                    _text.AppendLine("Action step(s):").AppendLine();
+
+                    for (int i = 0; i < data.CommandSet.Count; i++)
+                    {
+                        Action action = data.CommandSet[i];
+                        _text.AppendLine($"{i+1}. {action.Reason}")
+                            .AppendLine()
+                            .AppendLine("```sh")
+                            .AppendLine(action.Example)
+                            .AppendLine("```")
+                            .AppendLine();
+                    }
+
+                    _text.AppendLine("Make sure to replace the placeholder values with your specific details.");
+                }
+
+                host.RenderFullResponse(_text.ToString());
+            }
         }
         catch (RefreshTokenException ex)
         {
