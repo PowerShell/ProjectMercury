@@ -21,6 +21,7 @@ internal class ChatService
     private Settings _settings;
     private OpenAIClient _client;
     private List<ChatRequestMessage> _chatHistory;
+    private ChatCompletionsOptions _chatOptions;
 
     internal ChatService(bool isInteractive, string historyRoot, Settings settings)
     {
@@ -38,6 +39,25 @@ internal class ChatService
         }
 
         _chatHistory.Add(new ChatRequestSystemMessage(response));
+    }
+
+    internal void AddToolCallToHistory(Response<ChatCompletions> response)
+    {
+        ChatChoice responseChoice = response.Value.Choices[0];
+        if (responseChoice.FinishReason == CompletionsFinishReason.ToolCalls)
+        {
+            // Add the assistant message with tool calls to the conversation history
+            ChatRequestAssistantMessage toolCallHistoryMessage = new(responseChoice.Message);
+            _chatHistory.Add(toolCallHistoryMessage);
+
+            // Add a new tool message for each tool call that is resolved
+            foreach (ChatCompletionsToolCall toolCall in responseChoice.Message.ToolCalls)
+            {
+                _chatHistory.Add(GetToolCallResponseMessage(toolCall));
+            }
+
+            // Now make a new request with all the messages thus far, including the original
+        };
     }
 
     internal void RefreshSettings(Settings settings)
@@ -193,7 +213,8 @@ internal class ChatService
         // Those settings seem to be important enough, as the Semantic Kernel plugin specifies
         // those settings (see the URL below). We can use default values when not defined.
         // https://github.com/microsoft/semantic-kernel/blob/main/samples/skills/FunSkill/Joke/config.json
-        ChatCompletionsOptions chatOptions = new()
+
+        _chatOptions = new()
         {
             DeploymentName = _gptToUse.Deployment,
             ChoiceCount = 1,
@@ -210,10 +231,10 @@ internal class ChatService
         ReduceChatHistoryAsNeeded(history, new ChatRequestSystemMessage(input));
         foreach (ChatRequestMessage message in history)
         {
-            chatOptions.Messages.Add(message);
+            _chatOptions.Messages.Add(message);
         }
 
-        return chatOptions;
+        return _chatOptions;
     }
 
     public async Task<Response<ChatCompletions>> GetChatCompletionsAsync(string input, CancellationToken cancellationToken = default)
@@ -261,6 +282,25 @@ internal class ChatService
         catch (OperationCanceledException)
         {
             return null;
+        }
+    }
+
+    public ChatRequestToolMessage GetToolCallResponseMessage(ChatCompletionsToolCall toolCall)
+    {
+        var functionToolCall = toolCall as ChatCompletionsFunctionToolCall;
+        if (functionToolCall?.Name == Tools.getWeatherTool.Name)
+        {
+            // Validate and process the JSON arguments for the function call
+            string unvalidatedArguments = functionToolCall.Arguments;
+            var functionResultData = (object)null; // GetYourFunctionResultData(unvalidatedArguments);
+                                                   // Here, replacing with an example as if returned from "GetYourFunctionResultData"
+            functionResultData = "31 celsius";
+            return new ChatRequestToolMessage(functionResultData.ToString(), toolCall.Id);
+        }
+        else
+        {
+            // Handle other or unexpected calls
+            throw new NotImplementedException();
         }
     }
 }

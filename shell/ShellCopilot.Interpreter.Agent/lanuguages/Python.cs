@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Diagnostics;
 using ShellCopilot.Abstraction;
+using System.Security.Claims;
 
 public class Python
 {
@@ -9,10 +10,12 @@ public class Python
     private string[] _error { get; set; }
     private string[] _output { get; set; }
     private int _languageLength = "python\n".Length;
+    private string tempFile;
 
     public Python(string code)
     {
         _code = code.Remove(0, _languageLength);
+        tempFile = System.IO.Path.GetTempFileName();
     }
 
     public async Task<string[]> Run()
@@ -27,7 +30,7 @@ public class Python
         else
         { 
             // write the code to a file
-            string tempFile = System.IO.Path.GetTempFileName();
+            tempFile = System.IO.Path.GetTempFileName();
             System.IO.File.WriteAllText(tempFile, _code);
 
             // execute the file
@@ -60,6 +63,11 @@ public class Python
                 return _error;
             }
         }
+    }
+    public void AppendToTempFile(string code)
+    {
+        code = code.Remove(0, _languageLength);
+        System.IO.File.AppendAllText(tempFile, code);
     }
 
     static bool IsPythonInstalled()

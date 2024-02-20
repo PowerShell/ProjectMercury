@@ -9,10 +9,21 @@ public class PowerShell
     private string[] _error { get; set; }
     private string[] _output { get; set; }
     private int _languageLength = "powershell\n".Length;
+    private int _languageLengthBash = "bash\n".Length;
 
     public PowerShell(string code)
 	{
         _code = code.Remove(0, _languageLength);
+    }
+
+    public PowerShell(string language, string code)
+    {
+        if(code.Contains("powershell"))
+            _code = code.Remove(0, _languageLength);
+        else if(code.Contains("bash"))
+            _code = code.Remove(0, _languageLengthBash);
+        else
+            _code = code;
     }
 
     public async Task<string[]> Run()

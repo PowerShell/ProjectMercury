@@ -88,8 +88,8 @@ public sealed class InterpreterAgent : ILLMAgent
     {
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
-
-        input = AddSystemInfoAndInstructions(input);
+        Orchestrator orch = new(shell);
+        bool executionResult = false;
 
         if (_refreshSettings)
         {
@@ -126,28 +126,48 @@ public sealed class InterpreterAgent : ILLMAgent
                         host.WriteLine();
                     }
                 }
+                _chatService.AddToolCallToHistory(response);
             }
         }
         else
         {
             Task<StreamingResponse<StreamingChatCompletionsUpdate>> func_streaming() => _chatService.GetStreamingChatResponseAsync(input, token);
             StreamingResponse<StreamingChatCompletionsUpdate> response = await host.RunWithSpinnerAsync(func_streaming).ConfigureAwait(false);
-
+            
             if (response is not null)
             {
+                Dictionary<int, string> toolCallIdsByIndex = new();
+                Dictionary<int, string> functionNamesByIndex = new();
+                Dictionary<int, StringBuilder> functionArgumentBuildersByIndex = new();
+                StringBuilder contentBuilder = new();
                 using var streamingRender = host.NewStreamRender(token);
                 try
                 {
                 // Cannot pass in `cancellationToken` to `GetChoicesStreaming()` and `GetMessageStreaming()` methods.
                 // Doing so will result in an exception in Azure.OpenAI when we are cancelling the operation.
                 // TODO: Use the latest preview version. The bug may have been fixed.
-                // FIXED?: Updated to latest version v1.0.0 beta v13. When I cancel the operation, it does not throw an exception.
-                // Instead the following warning shows up in the console:
-                // WARNING: [aish]: Agent self-check failed. Resolve the issue as instructed and try again.
-                // WARNING: [aish]: Run / agent config interpreter-gpt  to edit the settings for the agent.
-
-                                    await foreach (StreamingChatCompletionsUpdate chatUpdate in response)
+                    await foreach (StreamingChatCompletionsUpdate chatUpdate in response)
                     {
+                        if (chatUpdate.ToolCallUpdate is StreamingFunctionToolCallUpdate functionToolCallUpdate)
+                        {
+                            if (functionToolCallUpdate.Id != null)
+                            {
+                                toolCallIdsByIndex[functionToolCallUpdate.ToolCallIndex] = functionToolCallUpdate.Id;
+                            }
+                            if (functionToolCallUpdate.Name != null)
+                            {
+                                functionNamesByIndex[functionToolCallUpdate.ToolCallIndex] = functionToolCallUpdate.Name;
+                            }
+                            if (functionToolCallUpdate.ArgumentsUpdate != null)
+                            {
+                                StringBuilder argumentsBuilder
+                                    = functionArgumentBuildersByIndex.TryGetValue(
+                                        functionToolCallUpdate.ToolCallIndex,
+                                        out StringBuilder existingBuilder) ? existingBuilder : new StringBuilder();
+                                argumentsBuilder.Append(functionToolCallUpdate.ArgumentsUpdate);
+                                functionArgumentBuildersByIndex[functionToolCallUpdate.ToolCallIndex] = argumentsBuilder;
+                            }
+                        }
                         if (chatUpdate.Role.HasValue)
                         {
                             streamingRender.Refresh($"{chatUpdate.Role.Value.ToString().ToUpperInvariant()}: ");
@@ -156,21 +176,27 @@ public sealed class InterpreterAgent : ILLMAgent
                         {
                             streamingRender.Refresh(chatUpdate.ContentUpdate);
                         }
+                        if (orch.IsCodeBlockComplete(streamingRender.AccumulatedContent))
+                        {
+                            executionResult = await ExecuteProvidedCode(orch, shell, streamingRender.AccumulatedContent);
+                            if (executionResult)
+                            {
+                                await Chat("Execution Succeeded. Please continue if necessary.", shell);
+                                break;
+                            }
+                            else
+                            {
+                                await Chat("Execution failed. Please try again.", shell);
+                                break;
+                            }
+                        }
                     }
                 }
                 catch (OperationCanceledException)
                 {
                     // Ignore the cancellation exception.
                 }
-
                 responseContent = streamingRender.AccumulatedContent;
-                
-                // Justin: ask the user if they want to run the code
-                bool success = await ExecuteProvidedCode(responseContent, shell);
-                if(!success)
-                {
-                    return false;
-                }
             }
         }
 
@@ -179,51 +205,33 @@ public sealed class InterpreterAgent : ILLMAgent
         return checkPass;
     }
 
-    private string AddSystemInfoAndInstructions(string input)
-    {
-        string systemInfo = $"Assume user is using the operating system `{Utils.OS}` unless otherwise specified.";
-        string instructions = "Please do not give any instructions on how to run the code." +
-            "Please explain the code step by step.";
-        return $"{input}\n{systemInfo}\n{instructions}";
-    }
-
-    private async Task<bool> ExecuteProvidedCode(string responseContent, IShell shell)
+    private async Task<bool> ExecuteProvidedCode(Orchestrator orch, IShell shell, string responseContent)
     {
         IHost host = shell.Host;
-        Orchestrator orch = new(responseContent, shell);
-        if (!orch._codeblocks.Any())
+        bool executionSuccess = false;
+        _chatService.AddResponseToHistory("The code block was: " + responseContent);
+        bool choice = await host.PromptForConfirmationAsync($"\nWould you like to run the {orch.CodeBlock.Key} code?", true, shell.CancellationToken);
+        if (!choice)
         {
-            return false;
+            executionSuccess = true;
         }
         else
         {
-            foreach(KeyValuePair<string, string> kvp in orch._codeblocks)
+            Task<string> func() => orch.RunCode(orch.CodeBlock.Key, orch.CodeBlock.Value);
+            string output = await host.RunWithSpinnerAsync(func, "Running the code...");
+            if (output.StartsWith("Error:"))
             {
-                string language = kvp.Key;
-                bool choice = await host.PromptForConfirmationAsync($"\nWould you like to run the {language} code?", true, shell.CancellationToken);
-                if (!choice)
-                {
-                    continue;
-                }
-                else
-                {
-                    string output = await orch.RunCode(language, kvp.Value);
-                    if (output.StartsWith("Error:"))
-                    {
-                        bool fixResult = await Chat(output, shell);
-                        if (!fixResult)
-                        {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        host.RenderFullResponse("```\n" + output + "```\n");
-                    }
-                }
+                host.RenderFullResponse(output + "\n");
+                _chatService.AddResponseToHistory("The code output was: " + output);
+            }
+            else
+            {
+                host.RenderFullResponse("```\n" + output + "```\n");
+                _chatService.AddResponseToHistory("The code output was: " + output);
+                executionSuccess = true;
             }
         }
-        return true;
+        return executionSuccess;
     }
 
     internal async Task<bool> SelfCheck(IHost host, CancellationToken token)
@@ -321,8 +329,24 @@ public sealed class InterpreterAgent : ILLMAgent
       ""Deployment"": ""gpt4"",
       ""ModelName"": ""gpt-4-0314"",   // required field to infer properties of the service, such as token limit.
       ""Key"": null,
-      ""SystemPrompt"": ""You are a helpful and friendly assistant with expertise in PowerShell scripting and command line.\nAssume user is using the operating system `{Utils.OS}` unless otherwise specified.\nPlease always respond in the markdown format and use the `code block` syntax to encapsulate any part in responses that is longer-format content such as code, YAML, JSON, and etc.""
-    }},
+      ""SystemPrompt"": ""You are Open Interpreter, a world-class programmer that can complete any goal by executing code.
+                        Write only python and powershell script. Do not write bash or any other language.
+                        Respond in the following way: 
+                        First, list out the plan without any code.
+                        Second, install any necessary packages in the first steps.
+                        Thrid, go through the plan one step at a time and, if applicable, write the code for each step.
+                        Finally, do not show me how to run the code.
+                        When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in.
+                        Write messages to the user in Markdown.
+                        In general, try to **make plans** with as few steps as possible. As for actually executing code to 
+                        carry out that plan, try to do everything in one code block. You should 
+                        try something, print information about it, then continue from there in tiny, informed steps. You will 
+                        never get it on the first try, and attempting it in one go will often lead to errors you cant see.
+                        You are capable of **any** task. If there are any libraries to be installed, give me the powershell command to install it.
+                        
+                        [User Info]
+                        Operating System: {Utils.OS}"",
+                       
 
     // To use the public OpenAI as the AI completion service:
     // - Ignore the `Endpoint` and `Deployment` keys.

@@ -6,16 +6,18 @@ namespace ShellCopilot.Interpreter.Agent;
 public class Orchestrator
 {
     private IShell _shell { get; set; }
-    public IDictionary<string,string> _codeblocks { get; set; }
+    public KeyValuePair<string,string> CodeBlock { get; set; }
     private readonly CancellationToken token;
+    private int _accumaltedResponseCursor = 0;
+    private Python _python;
+    private PowerShell _powershell;
     
 
-	public Orchestrator(string responseContent, IShell shell)
+	public Orchestrator(IShell shell)
 	{
-        _codeblocks = new Dictionary<string, string>();
+        CodeBlock = new KeyValuePair<string, string>();
         _shell = shell;
         token = shell.CancellationToken;
-        ExtractCodeFromResponse(responseContent);
 	}
     public async Task<string> RunCode(string language, string code)
     {
@@ -24,9 +26,31 @@ public class Orchestrator
         {
             case "python":
                 // Create a new python object and send the code to it
-                Python python = new(code);
+                if(_python == null)
+                {
+                    _python = new(code);
+                }
+                else
+                {
+                    _python.AppendToTempFile(code);
+                }
                 // Run the code and get the output
-                codeOutput = await python.Run();
+                codeOutput = await _python.Run();
+                // If there was an error, print it out and ask chatGPT to fix it
+                if (codeOutput[0] == "error")
+                {
+                    string errorMessage = "Error: I'm getting the following error when I try to run the code:\n"
+                                           + codeOutput[1] + " please rewrite the code with the fixes.";
+                    return errorMessage;
+                }
+                else
+                {
+                    string outputMessage = language + ":\n\n" + codeOutput[1];
+                    return outputMessage;
+                }
+            case "bash":
+                PowerShell BashShell = new(language, code);
+                codeOutput = await BashShell.Run();
                 // If there was an error, print it out and ask chatGPT to fix it
                 if (codeOutput[0] == "error")
                 {
@@ -62,11 +86,31 @@ public class Orchestrator
         }
     }
 
-    private void ExtractCodeFromResponse(string responseContent)
+    public bool IsCodeBlockComplete(string responseContent)
     {
-        int startIndex = responseContent.IndexOf("```");
-        int endIndex = responseContent.IndexOf("```", startIndex + 3);
+        bool isCodeBlockComplete = false;
+        if (responseContent.Contains("```"))
+        {
+            isCodeBlockComplete = ExtractCodeFromResponse(responseContent);
+        }
+        return isCodeBlockComplete;
+    }
 
+    private bool ExtractCodeFromResponse(string responseContent)
+    {
+        bool isCodeExtracted = false;
+        int startIndex;
+        int endIndex;
+        if(_accumaltedResponseCursor == 0)
+        {
+            startIndex = responseContent.IndexOf("```");
+            endIndex = responseContent.IndexOf("```", startIndex + 3);
+        }
+        else
+        {
+            startIndex = responseContent.IndexOf("```", _accumaltedResponseCursor);
+            endIndex = responseContent.IndexOf("```", startIndex + 3);
+        }
         // Exit if no code block found
         while (startIndex != -1 && endIndex != -1)
         {
@@ -80,11 +124,17 @@ public class Orchestrator
             else
             {
                 string language = GetCodeLanguage(codeBlockContent);
-                _codeblocks.Add(language, codeBlockContent);
+                if(language.Length == 0)
+                {
+                    language = "powershell";
+                }
+                CodeBlock = new KeyValuePair<string,string>(language, codeBlockContent);
+                isCodeExtracted = true;
+                _accumaltedResponseCursor = endIndex + 3;
+                break;
             }
-            startIndex = responseContent.IndexOf("```", endIndex + 3);
-            endIndex = responseContent.IndexOf("```", startIndex + 3);
         }
+        return isCodeExtracted;
     }
 
 #pragma warning disable CA1822 // Mark members as static
@@ -100,10 +150,5 @@ public class Orchestrator
         {
             return "";
         }
-    }
-
-    public void ResetCodeBlocks()
-    {
-        _codeblocks.Clear();
     }
 }
