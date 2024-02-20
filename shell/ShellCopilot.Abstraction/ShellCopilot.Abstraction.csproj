@@ -8,7 +8,7 @@
     <GenerateDependencyFile>false</GenerateDependencyFile>
 
     <PackageId>ShellCopilot.Abstraction</PackageId>
-    <Version>0.1.0-beta.3</Version>
+    <Version>0.1.0-beta.4</Version>
     <Authors>Microsoft</Authors>
     <Company>Your Company</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

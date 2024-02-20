@@ -26,6 +26,11 @@ public enum UserAction
     /// User ran the 'dislike' command.
     /// </summary>
     Dislike,
+
+    /// <summary>
+    /// User ran the 'retry' command.
+    /// </summary>
+    Retry,
 }
 
 public abstract class UserActionPayload
@@ -70,8 +75,21 @@ public sealed class DislikePayload : UserActionPayload
     public DislikePayload(bool share, string shortFeedback, string longFeedback)
         : base(UserAction.Dislike)
     {
+        ArgumentException.ThrowIfNullOrEmpty(shortFeedback);
         ShareConversation = share;
         ShortFeedback = shortFeedback;
         LongFeedback = longFeedback;
+    }
+}
+
+public sealed class RetryPayload : UserActionPayload
+{
+    public string LastQuery { get; }
+
+    public RetryPayload(string lastQuery)
+        : base(UserAction.Retry)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(lastQuery);
+        LastQuery = lastQuery;
     }
 }

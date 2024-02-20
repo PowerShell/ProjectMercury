@@ -22,5 +22,6 @@ internal sealed class RetryCommand : CommandBase
         }
 
         shell.Regenerate = true;
+        shell.OnUserAction(new RetryPayload(shell.LastQuery));
     }
 }
