@@ -14,6 +14,7 @@ internal sealed class Shell : IShell
     private readonly Stack<LLMAgent> _activeAgentStack;
     private readonly ShellWrapper _wrapper;
     private readonly HashSet<string> _textToIgnore;
+    private readonly Setting _setting;
     private CancellationTokenSource _cancellationSource;
 
     /// <summary>
@@ -76,7 +77,9 @@ internal sealed class Shell : IShell
         _isInteractive = interactive;
         _wrapper = wrapper;
         _prompt = wrapper?.Prompt ?? Utils.DefaultAppName;
-        _agents = new List<LLMAgent>();
+
+        _agents = [];
+        _setting = new Setting();
         _activeAgentStack = new Stack<LLMAgent>();
         _textToIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         _cancellationSource = new CancellationTokenSource();
@@ -221,11 +224,12 @@ internal sealed class Shell : IShell
         try
         {
             LLMAgent chosenAgent = null;
-            if (_wrapper is not null)
+            string active = _wrapper?.Agent ?? _setting.ActiveAgent;
+            if (!string.IsNullOrEmpty(active))
             {
                 foreach (LLMAgent agent in _agents)
                 {
-                    if (agent.Impl.Name.Equals(_wrapper.Agent, StringComparison.OrdinalIgnoreCase))
+                    if (agent.Impl.Name.Equals(active, StringComparison.OrdinalIgnoreCase))
                     {
                         chosenAgent = agent;
                         break;
@@ -234,7 +238,7 @@ internal sealed class Shell : IShell
 
                 if (chosenAgent is null)
                 {
-                    Host.MarkupWarningLine($"The configured active agent '{_wrapper.Agent}' is not available.\n");
+                    Host.MarkupWarningLine($"The configured active agent '{active}' is not available.\n");
                 }
             }
 
@@ -389,6 +393,12 @@ internal sealed class Shell : IShell
 
     private async Task<string> GetClipboardContent(string input)
     {
+        if (!_setting.UseClipboardContent)
+        {
+            // Skip it when this feature is disabled.
+            return null;
+        }
+
         string copiedText = Clipboard.GetText().Trim();
         if (string.IsNullOrEmpty(copiedText) || _textToIgnore.Contains(copiedText))
         {
