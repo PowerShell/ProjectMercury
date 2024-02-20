@@ -200,7 +200,7 @@ internal class ChatService
             MaxTokens = MaxResponseToken,
         };
 
-        List<ChatMessage> history = _isInteractive ? _chatHistory : new List<ChatMessage>();
+        List<ChatMessage> history = _isInteractive ? _chatHistory : [];
         if (history.Count is 0)
         {
             history.Add(new ChatMessage(ChatRole.System, _gptToUse.SystemPrompt));
