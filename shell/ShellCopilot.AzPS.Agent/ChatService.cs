@@ -45,7 +45,7 @@ internal class ChatService : IDisposable
         }
     }
 
-    internal void RefreshToken(CancellationToken cancellationToken)
+    private void RefreshToken(CancellationToken cancellationToken)
     {
         try
         {
