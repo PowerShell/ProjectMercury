@@ -5,9 +5,9 @@ using Azure.Core;
 using Azure.Identity;
 using ShellCopilot.Abstraction;
 
-namespace ShellCopilot.AzPS.Agent;
+namespace ShellCopilot.Azure.PowerShell;
 
-internal class ChatService : IDisposable
+internal class AzPSChatService : IDisposable
 {
     private const string Endpoint = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
 
@@ -19,7 +19,7 @@ internal class ChatService : IDisposable
 
     private AccessToken? _accessToken;
 
-    internal ChatService(bool isInteractive, string tenant)
+    internal AzPSChatService(bool isInteractive, string tenant)
     {
         _interactive = isInteractive;
         _scopes = ["https://management.core.windows.net/"];
@@ -63,7 +63,7 @@ internal class ChatService : IDisposable
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            throw new RefreshTokenException(e);
+            throw new RefreshTokenException("Failed to refresh the Azure PowerShell login token", e);
         }
     }
 

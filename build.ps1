@@ -22,14 +22,12 @@ function GetProjectFile($dir)
 $shell_dir = Join-Path $PSScriptRoot "shell"
 $app_dir = Join-Path $shell_dir "ShellCopilot.App"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
-$az_cli_agent_dir = Join-Path $shell_dir "ShellCopilot.AzCLI.Agent"
-$az_ps_agent_dir = Join-Path $shell_dir "ShellCopilot.AzPS.Agent"
+$az_agent_dir = Join-Path $shell_dir "ShellCopilot.Azure.Agent"
 
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $Configuration.ToLower()
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.OpenAI.Agent"
-$az_cli_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.AzCLI.Agent"
-$az_ps_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.AzPS.Agent"
+$az_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Azure.Agent"
 
 if ($Clean) {
     $out_path = Join-Path $PSScriptRoot "out"
@@ -58,15 +56,9 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "`n[Build the AzCLI agent ...]`n" -ForegroundColor Green
-    $az_cli_csproj = GetProjectFile $az_cli_agent_dir
-    dotnet publish $az_cli_csproj -c $Configuration -o $az_cli_out_dir
-}
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "`n[Build the AzPS agent ...]`n" -ForegroundColor Green
-    $az_ps_csproj = GetProjectFile $az_ps_agent_dir
-    dotnet publish $az_ps_csproj -c $Configuration -o $az_ps_out_dir
+    Write-Host "`n[Build the Azure agent ...]`n" -ForegroundColor Green
+    $az_csproj = GetProjectFile $az_agent_dir
+    dotnet publish $az_csproj -c $Configuration -o $az_out_dir
 }
 
 if ($LASTEXITCODE -eq 0) {

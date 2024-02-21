@@ -5,9 +5,9 @@ using Azure.Core;
 using Azure.Identity;
 using ShellCopilot.Abstraction;
 
-namespace ShellCopilot.AzCLI.Agent;
+namespace ShellCopilot.Azure.CLI;
 
-internal class ChatService : IDisposable
+internal class AzCLIChatService : IDisposable
 {
     private const string Endpoint = "https://azclitools-copilot-dogfood.azure-api.net/azcli/copilot";
 
@@ -15,7 +15,7 @@ internal class ChatService : IDisposable
     private readonly string[] _scopes;
     private AccessToken? _accessToken;
 
-    internal ChatService()
+    internal AzCLIChatService()
     {
         _client = new HttpClient();
         _scopes = ["api://62009369-df36-4df2-b7d7-b3e784b3ed55/"];
@@ -45,7 +45,7 @@ internal class ChatService : IDisposable
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            throw new RefreshTokenException(e);
+            throw new RefreshTokenException("Failed to refresh the Azure CLI login token", e);
         }
     }
 

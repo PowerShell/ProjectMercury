@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace ShellCopilot.AzCLI.Agent;
+namespace ShellCopilot.Azure;
 
 internal static class Utils
 {
@@ -16,4 +16,12 @@ internal static class Utils
     }
 
     internal static JsonSerializerOptions JsonOptions => s_jsonOptions;
+}
+
+internal class RefreshTokenException : Exception
+{
+    internal RefreshTokenException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }
