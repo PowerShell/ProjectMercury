@@ -1,7 +1,7 @@
 ﻿using Azure.Identity;
 using ShellCopilot.Abstraction;
 
-namespace ShellCopilot.AzPS.Agent;
+namespace ShellCopilot.Azure.PowerShell;
 
 public sealed class AzPSAgent : ILLMAgent
 {
@@ -14,7 +14,7 @@ public sealed class AzPSAgent : ILLMAgent
 
     private string _configRoot;
     private RenderingStyle _renderingStyle;
-    private ChatService _chatService;
+    private AzPSChatService _chatService;
 
     public void Dispose()
     {
@@ -40,7 +40,7 @@ public sealed class AzPSAgent : ILLMAgent
             };
         }
 
-        _chatService = new ChatService(config.IsInteractive, tenantId);
+        _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
 
     public IEnumerable<CommandBase> GetCommands() => null;

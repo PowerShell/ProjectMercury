@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ShellCopilot.AzPS.Agent;
+namespace ShellCopilot.Azure.PowerShell;
 
 internal class ChatMessage
 {
@@ -53,13 +53,5 @@ internal class ChunkReader : IDisposable
     public void Dispose()
     {
         _reader?.Dispose();
-    }
-}
-
-internal class RefreshTokenException : Exception
-{
-    internal RefreshTokenException(Exception innerException)
-        : base("Failed to refresh the Azure PowerShell login token", innerException)
-    {
     }
 }

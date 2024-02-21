@@ -1,4 +1,4 @@
-namespace ShellCopilot.AzCLI.Agent;
+namespace ShellCopilot.Azure.CLI;
 
 internal class Query
 {
@@ -27,12 +27,4 @@ internal class AzCliResponse
     public string Error { get; set; }
     public string Api_version { get; set; }
     public List<ResponseData> Data { get; set; }
-}
-
-internal class RefreshTokenException : Exception
-{
-    internal RefreshTokenException(Exception innerException)
-        : base("Failed to refresh the Azure PowerShell login token", innerException)
-    {
-    }
 }

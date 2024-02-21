@@ -2,7 +2,7 @@ using System.Text;
 using Azure.Identity;
 using ShellCopilot.Abstraction;
 
-namespace ShellCopilot.AzCLI.Agent;
+namespace ShellCopilot.Azure.CLI;
 
 public sealed class AzCLIAgent : ILLMAgent
 {
@@ -12,7 +12,7 @@ public sealed class AzCLIAgent : ILLMAgent
     public string SettingFile { private set; get; } = null;
 
     private const string SettingFileName = "az-cli.agent.json";
-    private ChatService _chatService;
+    private AzCLIChatService _chatService;
     private StringBuilder _text;
 
     public void Dispose()
@@ -23,7 +23,7 @@ public sealed class AzCLIAgent : ILLMAgent
     public void Initialize(AgentConfig config)
     {
         _text = new StringBuilder();
-        _chatService = new ChatService();
+        _chatService = new AzCLIChatService();
 
         if (config.Context is not null)
         {
