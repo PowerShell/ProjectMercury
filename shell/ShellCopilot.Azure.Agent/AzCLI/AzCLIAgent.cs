@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Azure.Identity;
 using ShellCopilot.Abstraction;
 
@@ -76,6 +77,14 @@ public sealed class AzCLIAgent : ILLMAgent
                 }
 
                 var data = azResponse.Data[0];
+                var history = _chatService.ChatHistory;
+                while (history.Count > Utils.HistoryCount - 2)
+                {
+                    history.RemoveAt(0);
+                }
+                history.Add(new ChatMessage { Role = "user", Content = input });
+                history.Add(new ChatMessage { Role = "assistant", Content = JsonSerializer.Serialize(data, Utils.JsonOptions) });
+
                 _text.Clear();
                 _text.AppendLine(data.Description).AppendLine();
 

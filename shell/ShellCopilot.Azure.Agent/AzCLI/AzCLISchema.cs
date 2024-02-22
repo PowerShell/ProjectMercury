@@ -3,6 +3,7 @@ namespace ShellCopilot.Azure.CLI;
 internal class Query
 {
     public string Question { get; set; }
+    public List<ChatMessage> History { get; set; }
     public int Top_num { get; set; }
 }
 

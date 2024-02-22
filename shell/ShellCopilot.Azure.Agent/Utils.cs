@@ -16,6 +16,11 @@ internal static class Utils
     }
 
     internal static JsonSerializerOptions JsonOptions => s_jsonOptions;
+
+    /// <summary>
+    /// Keep 3 conversation iterations as the context information.
+    /// </summary>
+    internal const int HistoryCount = 6;
 }
 
 internal class RefreshTokenException : Exception
@@ -24,4 +29,10 @@ internal class RefreshTokenException : Exception
         : base(message, innerException)
     {
     }
+}
+
+internal class ChatMessage
+{
+    public string Role { get; set; }
+    public string Content { get; set; }
 }
