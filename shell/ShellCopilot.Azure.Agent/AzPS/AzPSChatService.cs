@@ -41,6 +41,10 @@ internal class AzPSChatService : IDisposable
     {
         if (!string.IsNullOrEmpty(response))
         {
+            while (_chatHistory.Count > Utils.HistoryCount - 1)
+            {
+                _chatHistory.RemoveAt(0);
+            }
             _chatHistory.Add(new ChatMessage() { Role = "assistant", Content = response });
         }
     }

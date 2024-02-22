@@ -13,14 +13,18 @@ internal class AzCLIChatService : IDisposable
 
     private readonly HttpClient _client;
     private readonly string[] _scopes;
+    private readonly List<ChatMessage> _chatHistory;
     private AccessToken? _accessToken;
 
     internal AzCLIChatService()
     {
         _client = new HttpClient();
         _scopes = ["api://62009369-df36-4df2-b7d7-b3e784b3ed55/"];
+        _chatHistory = [];
         _accessToken = null;
     }
+
+    internal List<ChatMessage> ChatHistory => _chatHistory;
 
     public void Dispose()
     {
@@ -51,7 +55,12 @@ internal class AzCLIChatService : IDisposable
 
     private HttpRequestMessage PrepareForChat(string input)
     {
-        var requestData = new Query { Question = input, Top_num = 1 };
+        var requestData = new Query
+        {
+            Question = input,
+            History = _chatHistory,
+            Top_num = 1
+        };
         var json = JsonSerializer.Serialize(requestData, Utils.JsonOptions);
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
