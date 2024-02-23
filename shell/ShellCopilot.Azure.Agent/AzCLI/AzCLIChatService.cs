@@ -77,7 +77,7 @@ internal class AzCLIChatService : IDisposable
             context?.Status("Refreshing Token ...");
             RefreshToken(cancellationToken);
 
-            context?.Status("Thinking ...");
+            context?.Status("Generating ...");
             HttpRequestMessage request = PrepareForChat(input);
             HttpResponseMessage response = await _client.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
