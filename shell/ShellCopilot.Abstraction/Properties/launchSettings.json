@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "ShellCopilot.Abstraction": {
+      "commandName": "Project"
+    },
+    "Profile 1": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\norizhang\\source\\repos\\ShellCopilot\\out\\debug\\aish.exe"
+    }
+  }
+}

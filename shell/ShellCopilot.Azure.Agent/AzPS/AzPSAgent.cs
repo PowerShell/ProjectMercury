@@ -1,5 +1,8 @@
 ﻿using Azure.Identity;
 using ShellCopilot.Abstraction;
+using ShellCopilot.Azure.Agent.Telemetry;
+using System.Diagnostics;
+using System.Net;
 
 namespace ShellCopilot.Azure.PowerShell;
 
@@ -15,6 +18,8 @@ public sealed class AzPSAgent : ILLMAgent
     private string _configRoot;
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
+    protected MetricHelper _metricHelper;
+    protected AzPSTrace _trace;
 
     public void Dispose()
     {
@@ -23,9 +28,12 @@ public sealed class AzPSAgent : ILLMAgent
 
     public void Initialize(AgentConfig config)
     {
+
         _renderingStyle = config.RenderingStyle;
         _configRoot = config.ConfigurationRoot;
         SettingFile = Path.Combine(_configRoot, SettingFileName);
+        _metricHelper = new MetricHelper();
+        _trace  = new AzPSTrace();
 
         string tenantId = null;
         if (config.Context is not null)
@@ -88,6 +96,8 @@ public sealed class AzPSAgent : ILLMAgent
             }
 
             _chatService.AddResponseToHistory(streamingRender.AccumulatedContent);
+            _trace.CommandType = "AzPS Question";
+            _metricHelper.LogTelemetry("https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming", _trace);
         }
         catch (RefreshTokenException ex)
         {

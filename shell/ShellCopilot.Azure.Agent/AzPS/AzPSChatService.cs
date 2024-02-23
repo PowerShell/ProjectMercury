@@ -4,6 +4,7 @@ using System.Text.Json;
 using Azure.Core;
 using Azure.Identity;
 using ShellCopilot.Abstraction;
+using ShellCopilot.Azure.Agent.Telemetry;
 
 namespace ShellCopilot.Azure.PowerShell;
 
@@ -79,6 +80,7 @@ internal class AzPSChatService : IDisposable
         var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = content };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Value.Token);
+        
         return request;
     }
 
@@ -123,6 +125,8 @@ internal class AzPSChatService : IDisposable
                     return new ChunkReader(reader, chunk);
                 }
             }
+
+
         }
         catch (OperationCanceledException)
         {
