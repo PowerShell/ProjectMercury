@@ -4,7 +4,6 @@ using System.Text.Json;
 using Azure.Core;
 using Azure.Identity;
 using ShellCopilot.Abstraction;
-using ShellCopilot.Azure.Agent.Telemetry;
 
 namespace ShellCopilot.Azure.PowerShell;
 
@@ -93,6 +92,7 @@ internal class AzPSChatService : IDisposable
 
             context?.Status("Thinking ...");
             HttpRequestMessage request = PrepareForChat(input, streaming: true);
+            // Header add a correlation id 
             HttpResponseMessage response = await _client.SendAsync(
                 request,
                 HttpCompletionOption.ResponseHeadersRead,
@@ -100,6 +100,7 @@ internal class AzPSChatService : IDisposable
             response.EnsureSuccessStatusCode();
 
             Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            // get status from response? 
             StreamReader reader = new(stream);
 
             string line;

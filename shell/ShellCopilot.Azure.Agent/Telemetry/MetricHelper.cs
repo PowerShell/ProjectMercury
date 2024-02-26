@@ -13,7 +13,7 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace ShellCopilot.Azure.Agent.Telemetry
+namespace ShellCopilot.Azure
 {
     public class MetricHelper
     {
@@ -56,19 +56,26 @@ namespace ShellCopilot.Azure.Agent.Telemetry
             var res = new HttpClient().GetAsync(url).Result.StatusCode; // this dependency will be captured by Application Insights.
             logger.LogWarning("Response from bing is:" + res); // this will be captured by Application Insights.
             Dictionary<string, string> eventProperties = new Dictionary<string, string>();
-            //LoadTelemetryClientContext(qos, client.Context);
-            //PopulatePropertiesFromQos(qos, eventProperties);
+            // LoadTelemetryClientContext(qos, client.Context);
+            // PopulatePropertiesFromQos(qos, eventProperties);
             // qos.Exception contains exception message which may contain Users specific data.
             // We should not collect users specific data.
-            if (trace?.CommandType!=null)
+            eventProperties.Add("EventType", trace.EventType);
+            if (trace?.EventType!=null)
             {
-                eventProperties.Add("CommandType", trace.CommandType);
+                eventProperties.Add("EventType", trace.EventType);
+            }
+            if (trace?.Command != null)
+            {
+                eventProperties.Add("Command", trace.Command.ToString());
             }
             // eventProperties.Add("StackTrace", "");
             // eventProperties.Add("ExceptionType", "");
-            logger.LogTrace("logTraceTest", eventProperties);
+            // logger.LogTrace("logTraceTest", eventProperties);
 
-            telemetryClient.TrackEvent("sampleevent", eventProperties);
+            telemetryClient.TrackTrace("shellCopilot", eventProperties);
+            // telemetryClient.TrackTrace();
+            // telemetryClient.TrackRequest("shellCopilotEvent");
 
             // Explicitly call Flush() followed by sleep is required in Console Apps.
             // This is to ensure that even if application terminates, telemetry is sent to the back-end.

@@ -1,12 +1,11 @@
 ﻿using Azure.Identity;
 using ShellCopilot.Abstraction;
-using ShellCopilot.Azure.Agent.Telemetry;
 using System.Diagnostics;
 using System.Net;
 
 namespace ShellCopilot.Azure.PowerShell;
 
-public sealed class AzPSAgent : ILLMAgent
+public sealed class AzAgent : ILLMAgent
 {
     public string Name => "az-ps";
     public string Description => "An AI assistant to provide Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple Azure resources.";
@@ -52,8 +51,16 @@ public sealed class AzPSAgent : ILLMAgent
     }
 
     public IEnumerable<CommandBase> GetCommands() => null;
-    public bool CanAcceptFeedback(UserAction action) => false;
-    public void OnUserAction(UserActionPayload actionPayload) {}
+    public bool CanAcceptFeedback(UserAction action) => true;
+    public void OnUserAction(UserActionPayload actionPayload) 
+    {
+        // if (!actionPayload.ShareConversation) { return; }
+        // Telemetry
+        _trace.Handler = "Azure PowerShell";
+        _trace.EventType = "Feedback";
+        _trace.Command = actionPayload.Action.ToString();
+        _metricHelper.LogTelemetry("https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming", _trace);
+    }
 
     public async Task<bool> Chat(string input, IShell shell)
     {
@@ -96,7 +103,9 @@ public sealed class AzPSAgent : ILLMAgent
             }
 
             _chatService.AddResponseToHistory(streamingRender.AccumulatedContent);
-            _trace.CommandType = "AzPS Question";
+            _trace.Handler = "Azure PowerShell";
+            _trace.EventType = "Question";
+            _trace.Command = "Question"; 
             _metricHelper.LogTelemetry("https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming", _trace);
         }
         catch (RefreshTokenException ex)
