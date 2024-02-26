@@ -18,7 +18,7 @@ public sealed class AzAgent : ILLMAgent
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
     private MetricHelper _metricHelper;
-    public AzPSTrace _trace;
+    public AzTrace _trace;
 
     public void Dispose()
     {
@@ -32,7 +32,7 @@ public sealed class AzAgent : ILLMAgent
         _configRoot = config.ConfigurationRoot;
         SettingFile = Path.Combine(_configRoot, SettingFileName);
         _metricHelper = new MetricHelper();
-        _trace  = new AzPSTrace();
+        _trace  = new AzTrace();
 
         string tenantId = null;
         if (config.Context is not null)

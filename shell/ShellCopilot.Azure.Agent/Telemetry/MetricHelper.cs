@@ -17,7 +17,7 @@ namespace ShellCopilot.Azure
 {
     public class MetricHelper
     {
-        public void LogTelemetry(string url, AzPSTrace trace = null)
+        public void LogTelemetry(string url, AzTrace trace = null)
         {
             // Create the DI container.
             IServiceCollection services = new ServiceCollection();
@@ -53,14 +53,23 @@ namespace ShellCopilot.Azure
             // Obtain TelemetryClient instance from DI, for additional manual tracking or to flush.
             var telemetryClient = serviceProvider.GetRequiredService<TelemetryClient>();
 
+            /* Example code for http request - saved in Trace table as well
             var res = new HttpClient().GetAsync(url).Result.StatusCode; // this dependency will be captured by Application Insights.
             logger.LogWarning("Response from bing is:" + res); // this will be captured by Application Insights.
-            Dictionary<string, string> eventProperties = new Dictionary<string, string>();
+            */
+
             // LoadTelemetryClientContext(qos, client.Context);
             // PopulatePropertiesFromQos(qos, eventProperties);
             // qos.Exception contains exception message which may contain Users specific data.
-            // We should not collect users specific data.
-            eventProperties.Add("EventType", trace.EventType);
+            Dictionary<string, string> eventProperties = new Dictionary<string, string>
+            {
+                { "InstallationID", trace.InstallationID!=null?trace.InstallationID.ToString():null },
+                { "Handler", trace.Handler!=null?trace.Handler:null },
+                { "EventType", trace.EventType!=null?trace.EventType:null },
+                { "Duration", trace.Duration!=null?trace.Duration.ToString():null },
+                { "Command", trace.Command!=null?trace.Command:null }
+            };
+            /*
             if (trace?.EventType!=null)
             {
                 eventProperties.Add("EventType", trace.EventType);
@@ -68,7 +77,7 @@ namespace ShellCopilot.Azure
             if (trace?.Command != null)
             {
                 eventProperties.Add("Command", trace.Command.ToString());
-            }
+            }*/
             // eventProperties.Add("StackTrace", "");
             // eventProperties.Add("ExceptionType", "");
             // logger.LogTrace("logTraceTest", eventProperties);
@@ -89,7 +98,7 @@ namespace ShellCopilot.Azure
         public void Initialize(ITelemetry telemetry)
         {
             // Replace with actual properties.
-            (telemetry as ISupportProperties).Properties["MyCustomKey"] = "MyCustomValue";
+            (telemetry as ISupportProperties).Properties["CorrelationID"] = Guid.NewGuid().ToString();
         }
     }
 
