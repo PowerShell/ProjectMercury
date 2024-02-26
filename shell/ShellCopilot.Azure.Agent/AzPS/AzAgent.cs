@@ -17,8 +17,8 @@ public sealed class AzAgent : ILLMAgent
     private string _configRoot;
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
-    protected MetricHelper _metricHelper;
-    protected AzPSTrace _trace;
+    private MetricHelper _metricHelper;
+    public AzPSTrace _trace;
 
     public void Dispose()
     {
