@@ -127,8 +127,6 @@ internal class AzPSChatService : IDisposable
                     return new ChunkReader(reader, chunk);
                 }
             }
-
-
         }
         catch (OperationCanceledException)
         {

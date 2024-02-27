@@ -1,18 +1,12 @@
-﻿using Azure.Identity;
-
-using Microsoft.ApplicationInsights;
+﻿using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
-using Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel;
 using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Net;
-using System.Net.Http;
-using System.Threading.Tasks;
+
 
 namespace ShellCopilot.Azure
 {
@@ -78,13 +72,8 @@ namespace ShellCopilot.Azure
                 { "EndTime", trace.EndTime ?.ToString() },
             };
 
-            // eventProperties.Add("StackTrace", "");
-            // eventProperties.Add("ExceptionType", "");
-            // logger.LogTrace("logTraceTest", eventProperties);
 
             telemetryClient.TrackTrace("shellCopilot", eventProperties);
-            // telemetryClient.TrackTrace();
-            // telemetryClient.TrackRequest("shellCopilotEvent");
 
             // Explicitly call Flush() followed by sleep is required in Console Apps.
             // This is to ensure that even if application terminates, telemetry is sent to the back-end.
