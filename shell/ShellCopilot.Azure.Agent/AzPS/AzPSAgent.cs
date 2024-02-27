@@ -30,14 +30,14 @@ public sealed class AzPSAgent : ILLMAgent
         _renderingStyle = config.RenderingStyle;
         _configRoot = config.ConfigurationRoot;
         SettingFile = Path.Combine(_configRoot, SettingFileName);
-        _metricHelper = new MetricHelper();
-        _trace  = new AzTrace();
+        
 
         string tenantId = null;
+        string subscriptionId = null;
         if (config.Context is not null)
         {
             config.Context.TryGetValue("tenant", out tenantId);
-            config.Context.TryGetValue("subscription", out string subscriptionId);
+            config.Context.TryGetValue("subscription", out subscriptionId);
 
             AgentInfo = new Dictionary<string, string>
             {
@@ -46,6 +46,12 @@ public sealed class AzPSAgent : ILLMAgent
             };
         }
 
+        _metricHelper = new MetricHelper();
+        _trace = new AzTrace()
+        {
+            TenantID = Guid.Parse(tenantId),
+            SubscriptionID = Guid.Parse(subscriptionId)
+        };
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
 
@@ -59,13 +65,14 @@ public sealed class AzPSAgent : ILLMAgent
             var detailedFeedback = actionPayload.GetType().GetProperty("ShortFeedback").GetValue(actionPayload) + " : " + actionPayload.GetType().GetProperty("LongFeedback").GetValue(actionPayload);
             _trace.DetailedMessage = detailedFeedback.ToString();
         }
-        // Record conversation
+        // Whether to record conversation
         if (actionPayload.Action == UserAction.Dislike || actionPayload.Action == UserAction.Like)
         {
-            if (actionPayload.GetType().GetProperty("ShareConversation").GetValue(actionPayload).Equals(true))
+            if (actionPayload.GetType().GetProperty("ShareConversation").GetValue(actionPayload).Equals(false))
             {
-                // to record the last question/ answer
-                // this needs the chatHistory of AzPSChatService to be public
+                // to clear Question and Answer
+                _trace.Question = null;
+                _trace.Answer = null;
             }
         }
 

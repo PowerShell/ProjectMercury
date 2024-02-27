@@ -32,7 +32,9 @@ namespace ShellCopilot.Azure
         public DateTime? StartTime;
         public DateTime? EndTime;
         public Guid? CorrelationID = Guid.NewGuid(); // CorrelationId from client side.
-        public Guid? InstallationID = GetInstallationID(); 
+        public Guid? InstallationID = GetInstallationID();
+        public Guid? SubscriptionID;
+        public Guid? TenantID;
         public string? EventType;
         public string? Command;
         public string? Question; // Must be filtered
