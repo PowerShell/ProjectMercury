@@ -5,7 +5,7 @@ using System.Net;
 
 namespace ShellCopilot.Azure.PowerShell;
 
-public sealed class AzAgent : ILLMAgent
+public sealed class AzPSAgent : ILLMAgent
 {
     public string Name => "az-ps";
     public string Description => "An AI assistant to provide Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple Azure resources.";
