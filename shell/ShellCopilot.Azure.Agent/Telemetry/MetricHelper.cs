@@ -65,6 +65,7 @@ namespace ShellCopilot.Azure
 
             Dictionary<string, string> eventProperties = new()
             {
+                { "CorrelationID", trace.CorrelationID ?.ToString() },
                 { "InstallationID", trace.InstallationID ?.ToString() },
                 { "Handler", trace.Handler ?? null },
                 { "EventType", trace.EventType ?? null },
