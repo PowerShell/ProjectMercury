@@ -67,23 +67,24 @@ internal class AzPSChatService : IDisposable
         }
     }
 
-    private HttpRequestMessage PrepareForChat(string input, bool streaming)
+    private HttpRequestMessage PrepareForChat(string input, bool streaming, Guid? CorrelationID = null, Dictionary<string, string> AgentInfo = null)
     {
         List<ChatMessage> messages = _interactive ? _chatHistory : [];
         messages.Add(new ChatMessage() { Role = "user", Content = input });
 
-        var requestData = new Query { Messages = messages, IsStreaming = streaming };
+        var requestData = new Query { Messages = messages, IsStreaming = streaming, AgentInfo = AgentInfo };
         var json = JsonSerializer.Serialize(requestData, Utils.JsonOptions);
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = content };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Value.Token);
-        
+        request.Headers.Add("CorrelationId", CorrelationID.ToString());
+
         return request;
     }
 
-    internal async Task<ChunkReader> GetStreamingChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken)
+    internal async Task<ChunkReader> GetStreamingChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken, Guid? CorrelationID = null, Dictionary<string, string> AgentInfo = null)
     {
         try
         {
@@ -91,7 +92,7 @@ internal class AzPSChatService : IDisposable
             RefreshToken(cancellationToken);
 
             context?.Status("Thinking ...");
-            HttpRequestMessage request = PrepareForChat(input, streaming: true);
+            HttpRequestMessage request = PrepareForChat(input, streaming: true, CorrelationID, AgentInfo);
             // Header add a correlation id 
             HttpResponseMessage response = await _client.SendAsync(
                 request,

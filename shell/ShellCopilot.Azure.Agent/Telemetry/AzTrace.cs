@@ -19,6 +19,11 @@ namespace ShellCopilot.Azure
 
             return new Guid(array.installationId.Value);
         }
+
+        public void RefreshCorrelationID()
+        {
+            CorrelationID = Guid.NewGuid();
+        }
         
 #nullable enable
         private bool? _enableAzureDataCollection = null;
@@ -26,7 +31,7 @@ namespace ShellCopilot.Azure
         public TimeSpan? Duration;
         public DateTime? StartTime;
         public DateTime? EndTime;
-        public Guid? CorrelationID; // CorrelationId from client side.
+        public Guid? CorrelationID = Guid.NewGuid(); // CorrelationId from client side.
         public Guid? InstallationID = GetInstallationID(); 
         public string? EventType;
         public string? Command;

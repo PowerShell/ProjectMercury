@@ -10,6 +10,7 @@ using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -17,11 +18,15 @@ namespace ShellCopilot.Azure
 {
     public class MetricHelper
     {
+        public static string Endpoint;
         public void LogTelemetry(string url, AzTrace trace = null)
         {
+            // Identify the Endpoint
+            Endpoint = url;
+            
             // Create the DI container.
             IServiceCollection services = new ServiceCollection();
-
+            
             // Add custom TelemetryInitializer
             services.AddSingleton<ITelemetryInitializer, MyCustomTelemetryInitializer>();
 
@@ -92,7 +97,7 @@ namespace ShellCopilot.Azure
         public void Initialize(ITelemetry telemetry)
         {
             // Replace with actual properties.
-            (telemetry as ISupportProperties).Properties["CorrelationID"] = Guid.NewGuid().ToString();
+            (telemetry as ISupportProperties).Properties["Endpoint"] = MetricHelper.Endpoint;
         }
     }
 

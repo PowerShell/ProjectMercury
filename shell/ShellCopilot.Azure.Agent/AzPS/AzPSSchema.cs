@@ -12,6 +12,7 @@ internal class ChatMessage
 internal class Query
 {
     public List<ChatMessage> Messages { get; set; }
+    public Dictionary<string, string> AgentInfo { get; set; }
 
     [JsonPropertyName("is_streaming")]
     public bool IsStreaming { get; set; }

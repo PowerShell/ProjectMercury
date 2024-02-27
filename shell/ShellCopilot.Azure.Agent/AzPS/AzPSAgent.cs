@@ -1,7 +1,6 @@
 ﻿using Azure.Identity;
 using ShellCopilot.Abstraction;
 using System.Diagnostics;
-using System.Net;
 
 namespace ShellCopilot.Azure.PowerShell;
 
@@ -43,7 +42,7 @@ public sealed class AzPSAgent : ILLMAgent
             AgentInfo = new Dictionary<string, string>
             {
                 ["Tenant"] = tenantId,
-                ["Subscription"] = subscriptionId,
+                ["Subscription"] = subscriptionId
             };
         }
 
@@ -76,8 +75,16 @@ public sealed class AzPSAgent : ILLMAgent
         _metricHelper.LogTelemetry(AzPSChatService.Endpoint, _trace);
     }
 
+    public void RecordQuestionTelemetry()
+    {
+
+    }
+
     public async Task<bool> Chat(string input, IShell shell)
     {
+        // For each Chat input, refresh correlation ID
+        _trace.RefreshCorrelationID();
+
         // Measure time spent
         var watch = Stopwatch.StartNew();
         _trace.StartTime = DateTime.Now;
@@ -91,7 +98,7 @@ public sealed class AzPSAgent : ILLMAgent
             // update the status message while waiting for the answer payload to come back.
             using ChunkReader chunkReader = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
-                func: async context => await _chatService.GetStreamingChatResponseAsync(context, input, token)
+                func: async context => await _chatService.GetStreamingChatResponseAsync(context, input, token, _trace.CorrelationID, AgentInfo)
             ).ConfigureAwait(false);
 
             if (chunkReader is null)
@@ -124,6 +131,8 @@ public sealed class AzPSAgent : ILLMAgent
 
             // Measure time spent
             watch.Stop();
+
+            // TODO: extract into RecordQuestionTelemetry()
             _trace.EndTime = DateTime.Now;
             _trace.Duration = TimeSpan.FromTicks(watch.ElapsedTicks);
             _trace.Handler = "Azure PowerShell";
