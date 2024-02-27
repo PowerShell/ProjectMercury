@@ -14,9 +14,7 @@ namespace ShellCopilot.Azure
         
         public static Guid GetInstallationID()
         {
-            string userName = System.Security.Principal.WindowsIdentity.GetCurrent().Name.Split("\\")[1];
-            string json = new StreamReader($"C:/Users/{userName}/.Azure/azureProfile.json").ReadToEnd();
-
+            string json = new StreamReader(Environment.ExpandEnvironmentVariables(@"%USERPROFILE%/.Azure/azureProfile.json")).ReadToEnd();
             dynamic array = JsonConvert.DeserializeObject(json);
 
             return new Guid(array.installationId.Value);
@@ -35,9 +33,13 @@ namespace ShellCopilot.Azure
         public string? Question; // Must be filtered
         public string? Answer; // Must be filtered
         /// <summary>
+        /// Detailed information containing additional Information - may contain:
+        /// Reason of dislike
+        /// </summary>
+        public string? DetailedMessage; 
+        /// <summary>
         /// Agent Information - may contain:
         /// Handler Version
-        /// InstallationId
         /// Product Version
         /// .net/python Version
         /// </summary>

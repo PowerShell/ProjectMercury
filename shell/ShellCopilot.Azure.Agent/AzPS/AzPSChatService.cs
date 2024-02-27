@@ -9,7 +9,7 @@ namespace ShellCopilot.Azure.PowerShell;
 
 internal class AzPSChatService : IDisposable
 {
-    private const string Endpoint = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
+    public const string Endpoint = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
 
     private readonly bool _interactive;
     private readonly string[] _scopes;

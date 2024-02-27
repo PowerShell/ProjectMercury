@@ -58,26 +58,20 @@ namespace ShellCopilot.Azure
             logger.LogWarning("Response from bing is:" + res); // this will be captured by Application Insights.
             */
 
-            // LoadTelemetryClientContext(qos, client.Context);
-            // PopulatePropertiesFromQos(qos, eventProperties);
-            // qos.Exception contains exception message which may contain Users specific data.
-            Dictionary<string, string> eventProperties = new Dictionary<string, string>
+            Dictionary<string, string> eventProperties = new()
             {
-                { "InstallationID", trace.InstallationID!=null?trace.InstallationID.ToString():null },
-                { "Handler", trace.Handler!=null?trace.Handler:null },
-                { "EventType", trace.EventType!=null?trace.EventType:null },
-                { "Duration", trace.Duration!=null?trace.Duration.ToString():null },
-                { "Command", trace.Command!=null?trace.Command:null }
+                { "InstallationID", trace.InstallationID ?.ToString() },
+                { "Handler", trace.Handler ?? null },
+                { "EventType", trace.EventType ?? null },
+                { "Duration", trace.Duration?.ToString() },
+                { "Command", trace.Command ?? null },
+                { "DetailedMessage", trace.DetailedMessage ?? null },
+                { "Question", trace.Question ?? null },
+                { "Answer", trace.Answer ?? null },
+                { "StartTime", trace.StartTime?.ToString() },
+                { "EndTime", trace.EndTime ?.ToString() },
             };
-            /*
-            if (trace?.EventType!=null)
-            {
-                eventProperties.Add("EventType", trace.EventType);
-            }
-            if (trace?.Command != null)
-            {
-                eventProperties.Add("Command", trace.Command.ToString());
-            }*/
+
             // eventProperties.Add("StackTrace", "");
             // eventProperties.Add("ExceptionType", "");
             // logger.LogTrace("logTraceTest", eventProperties);
