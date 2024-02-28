@@ -9,8 +9,8 @@ public class Orchestrator
     public KeyValuePair<string,string> CodeBlock { get; set; }
     private readonly CancellationToken token;
     private int _accumaltedResponseCursor = 0;
-    private Python _python;
-    private PowerShell _powershell;
+    public Python _python { get; }
+    public PowerShell _powershell;
     
 
 	public Orchestrator(IShell shell)
@@ -18,6 +18,8 @@ public class Orchestrator
         CodeBlock = new KeyValuePair<string, string>();
         _shell = shell;
         token = shell.CancellationToken;
+        // Create a persistent python object to store the code and run it
+        _python = new Python();
 	}
     public async Task<string> RunCode(string language, string code)
     {
@@ -25,15 +27,7 @@ public class Orchestrator
         switch (language)
         {
             case "python":
-                // Create a new python object and send the code to it
-                if(_python == null)
-                {
-                    _python = new(code);
-                }
-                else
-                {
-                    _python.AppendToTempFile(code);
-                }
+                _python.PreprocessCode(code);
                 // Run the code and get the output
                 codeOutput = await _python.Run();
                 // If there was an error, print it out and ask chatGPT to fix it
@@ -45,11 +39,11 @@ public class Orchestrator
                 }
                 else
                 {
-                    string outputMessage = language + ":\n\n" + codeOutput[1];
+                    string outputMessage = codeOutput[1];
                     return outputMessage;
                 }
             case "bash":
-                PowerShell BashShell = new(language, code);
+                PowerShell BashShell = new(code);
                 codeOutput = await BashShell.Run();
                 // If there was an error, print it out and ask chatGPT to fix it
                 if (codeOutput[0] == "error")
@@ -60,7 +54,7 @@ public class Orchestrator
                 }
                 else
                 {
-                    string outputMessage = language + ":\n\n" + codeOutput[1];
+                    string outputMessage = codeOutput[1];
                     return outputMessage;
                 }
             case "powershell":
@@ -77,7 +71,7 @@ public class Orchestrator
                 }
                 else
                 {
-                    string outputMessage = language + ":\n\n" + codeOutput[1];
+                    string outputMessage = codeOutput[1];
                     return outputMessage;
                 }
             default:
@@ -99,8 +93,9 @@ public class Orchestrator
     private bool ExtractCodeFromResponse(string responseContent)
     {
         bool isCodeExtracted = false;
-        int startIndex;
-        int endIndex;
+        int startIndex = -1;
+        int endIndex = -1;
+        _accumaltedResponseCursor = 0;
         if(_accumaltedResponseCursor == 0)
         {
             startIndex = responseContent.IndexOf("```");
@@ -112,7 +107,7 @@ public class Orchestrator
             endIndex = responseContent.IndexOf("```", startIndex + 3);
         }
         // Exit if no code block found
-        while (startIndex != -1 && endIndex != -1)
+        while (startIndex != -1 && endIndex != -1 && startIndex < responseContent.Length)
         {
             // Find the first set of backticks
             string codeBlockContent = responseContent.Substring(startIndex + 3, endIndex - startIndex - 3);

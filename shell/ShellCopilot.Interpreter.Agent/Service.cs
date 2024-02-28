@@ -31,14 +31,14 @@ internal class ChatService
         _chatHistory = new List<ChatRequestMessage>();
     }
 
-    internal void AddResponseToHistory(string response)
+    internal void AddResponseToHistory(ChatRequestMessage response)
     {
-        if (string.IsNullOrEmpty(response))
+        if (response is null)
         {
             return;
         }
 
-        _chatHistory.Add(new ChatRequestSystemMessage(response));
+        _chatHistory.Add(response);
     }
 
     internal void AddToolCallToHistory(Response<ChatCompletions> response)
@@ -160,8 +160,8 @@ internal class ChatService
         int tokensPerName = modelDetail.TokensPerName;
 
         int tokenNumber = 0;
-        foreach (ChatRequestSystemMessage message in messages)
-        {
+        foreach (ChatRequestAssistantMessage message in messages.OfType<ChatRequestAssistantMessage>())
+        {      
             tokenNumber += tokensPerMessage;
             tokenNumber += encoding.Encode(message.Role.ToString()).Count;
             tokenNumber += encoding.Encode(message.Content).Count;
@@ -199,7 +199,7 @@ internal class ChatService
         }
     }
 
-    private ChatCompletionsOptions PrepareForChat(string input)
+    private ChatCompletionsOptions PrepareForChat(ChatRequestMessage input)
     {
         // Refresh the client in case the active model was changed.
         RefreshOpenAIClient();
@@ -228,7 +228,7 @@ internal class ChatService
             history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt));
         }
 
-        ReduceChatHistoryAsNeeded(history, new ChatRequestSystemMessage(input));
+        ReduceChatHistoryAsNeeded(history, input);
         foreach (ChatRequestMessage message in history)
         {
             _chatOptions.Messages.Add(message);
@@ -237,7 +237,7 @@ internal class ChatService
         return _chatOptions;
     }
 
-    public async Task<Response<ChatCompletions>> GetChatCompletionsAsync(string input, CancellationToken cancellationToken = default)
+    public async Task<Response<ChatCompletions>> GetChatCompletionsAsync(ChatRequestMessage input, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -261,7 +261,7 @@ internal class ChatService
         }
     }
 
-    public async Task<StreamingResponse<StreamingChatCompletionsUpdate>> GetStreamingChatResponseAsync(string input, CancellationToken cancellationToken = default)
+    public async Task<StreamingResponse<StreamingChatCompletionsUpdate>> GetStreamingChatResponseAsync(ChatRequestMessage input, CancellationToken cancellationToken = default)
     {
         try
         {

@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Azure.AI.OpenAI;
 using ShellCopilot.Abstraction;
 using Azure;
+using System.Diagnostics;
 
 namespace ShellCopilot.Interpreter.Agent;
 
@@ -83,13 +84,11 @@ public sealed class InterpreterAgent : ILLMAgent
         return null;
     }
 
-    /// <inheritdoc/>
-    public async Task<bool> Chat(string input, IShell shell)
+    private async Task<List<string>> SmartChat(string input, IShell shell, Orchestrator orch)
     {
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
-        Orchestrator orch = new(shell);
-        bool executionResult = false;
+        List<string> executionResult = new();
 
         if (_refreshSettings)
         {
@@ -98,17 +97,11 @@ public sealed class InterpreterAgent : ILLMAgent
             _refreshSettings = false;
         }
 
-        bool checkPass = await SelfCheck(host, token);
-        if (!checkPass)
-        {
-            host.MarkupWarningLine($"[[{Name}]]: Cannot serve the query due to the missing configuration. Please properly update the setting file.");
-            return checkPass;
-        }
-
         string responseContent = null;
         if (_renderingStyle is RenderingStyle.FullResponsePreferred)
         {
-            Task<Response<ChatCompletions>> func_non_streaming() => _chatService.GetChatCompletionsAsync(input, token);
+            ChatRequestUserMessage chatRequestUserMessage = new(input);
+            Task<Response<ChatCompletions>> func_non_streaming() => _chatService.GetChatCompletionsAsync(chatRequestUserMessage, token);
             Response<ChatCompletions> response = await host.RunWithSpinnerAsync(func_non_streaming).ConfigureAwait(false);
 
             if (response is not null)
@@ -117,7 +110,7 @@ public sealed class InterpreterAgent : ILLMAgent
                 host.RenderFullResponse(responseContent);
 
                 ChatChoice responseChoice = response.Value.Choices[0];
-                if(responseChoice.FinishReason is CompletionsFinishReason FinishReason)
+                if (responseChoice.FinishReason is CompletionsFinishReason FinishReason)
                 {
                     string warning = GetWarningBasedOnFinishReason(FinishReason);
                     if (warning is not null)
@@ -131,9 +124,10 @@ public sealed class InterpreterAgent : ILLMAgent
         }
         else
         {
-            Task<StreamingResponse<StreamingChatCompletionsUpdate>> func_streaming() => _chatService.GetStreamingChatResponseAsync(input, token);
+            ChatRequestUserMessage chatRequestUserMessage = new(input);
+            Task<StreamingResponse<StreamingChatCompletionsUpdate>> func_streaming() => _chatService.GetStreamingChatResponseAsync(chatRequestUserMessage, token);
             StreamingResponse<StreamingChatCompletionsUpdate> response = await host.RunWithSpinnerAsync(func_streaming).ConfigureAwait(false);
-            
+
             if (response is not null)
             {
                 Dictionary<int, string> toolCallIdsByIndex = new();
@@ -143,9 +137,8 @@ public sealed class InterpreterAgent : ILLMAgent
                 using var streamingRender = host.NewStreamRender(token);
                 try
                 {
-                // Cannot pass in `cancellationToken` to `GetChoicesStreaming()` and `GetMessageStreaming()` methods.
-                // Doing so will result in an exception in Azure.OpenAI when we are cancelling the operation.
-                // TODO: Use the latest preview version. The bug may have been fixed.
+                    // Cannot pass in `cancellationToken` to `GetChoicesStreaming()` and `GetMessageStreaming()` methods.
+                    // Doing so will result in an exception in Azure.Open
                     await foreach (StreamingChatCompletionsUpdate chatUpdate in response)
                     {
                         if (chatUpdate.ToolCallUpdate is StreamingFunctionToolCallUpdate functionToolCallUpdate)
@@ -168,70 +161,185 @@ public sealed class InterpreterAgent : ILLMAgent
                                 functionArgumentBuildersByIndex[functionToolCallUpdate.ToolCallIndex] = argumentsBuilder;
                             }
                         }
-                        if (chatUpdate.Role.HasValue)
-                        {
-                            streamingRender.Refresh($"{chatUpdate.Role.Value.ToString().ToUpperInvariant()}: ");
-                        }
                         if (!string.IsNullOrEmpty(chatUpdate.ContentUpdate))
                         {
                             streamingRender.Refresh(chatUpdate.ContentUpdate);
-                        }
-                        if (orch.IsCodeBlockComplete(streamingRender.AccumulatedContent))
-                        {
-                            executionResult = await ExecuteProvidedCode(orch, shell, streamingRender.AccumulatedContent);
-                            if (executionResult)
-                            {
-                                await Chat("Execution Succeeded. Please continue if necessary.", shell);
-                                break;
-                            }
-                            else
-                            {
-                                await Chat("Execution failed. Please try again.", shell);
-                                break;
-                            }
                         }
                     }
                 }
                 catch (OperationCanceledException)
                 {
                     // Ignore the cancellation exception.
+                    throw;
                 }
                 responseContent = streamingRender.AccumulatedContent;
             }
         }
 
-        _chatService.AddResponseToHistory(responseContent);
+        if (orch.IsCodeBlockComplete(responseContent))
+        {
+            _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
+            return await ExecuteProvidedCode(orch, shell, responseContent);
+        }
+
+        _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
+        executionResult.Add("No Code was given");
+        executionResult.Add(responseContent);
+        return executionResult;
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> Chat(string input, IShell shell)
+    {
+        IHost host = shell.Host;
+        CancellationToken token = shell.CancellationToken;
+        Orchestrator orch = new(shell);
+        bool checkPass = await SelfCheck(host, token);
+        if (!checkPass)
+        {
+            host.MarkupWarningLine($"[[{Name}]]: Cannot serve the query due to the missing configuration. Please properly update the setting file.");
+            return checkPass;
+        }
+        List<string> UserResponseOptions = new List<string>
+        {
+            "\nFix the error before proceeding to the next step. If the code needs user input then ask directly in english.",
+            "\nPlease continue to the next step and only the next step. Do not reiterate all the steps again. Do not response with more than 1 step.",
+            "\nProceed. You CAN run code on my machine. " +
+            "Wait for me to send you the output of the code before telling me the entire task I asked for is done, " +
+            "say exactly 'The task is done.' If you need some specific " +
+            "information (like username or password) say EXACTLY 'Please provide more information.' " +
+            "If it's impossible, say 'The task is impossible.' (If I haven't provided a task, say exactly " +
+            "'Let me know what you'd like to do next.') Otherwise keep going.",
+        };
+        bool chatCompleted = false;
+        string previousCode = "";
+        input += "\nList out the plan without any code.";
+        
+        while(!chatCompleted)
+        {
+            Stopwatch timer = new();
+            timer.Restart();
+            timer.Start();
+            try
+            {
+                // TODO: come up with a better system for results sent to and from languages to orchestrator to chat
+                // Needs to be more readable and less error prone
+                // TODO: Edit line 251 for a more coherent output report to GPT
+                // first element is the error or output, second element is the code language
+                List<string> chatResult = await SmartChat(input, shell, orch);
+                string resultCode = chatResult[0];
+                string executionResult = chatResult[1];
+                _chatService.AddResponseToHistory(new ChatRequestUserMessage("This is a test."));
+
+                // If there is an error, fix it and continue
+                if (resultCode.StartsWith("Error:"))
+                {
+                    input = resultCode + UserResponseOptions[0] + UserResponseOptions[2];
+                    orch = new(shell);
+                    if (previousCode.Equals(executionResult))
+                    {
+                        input = "You have already told me to fix the error. Please provide more information." + UserResponseOptions[2];
+                    }
+                    else
+                    {
+                        previousCode = executionResult;
+                    }
+                }
+                // If code runs, continue to the next step
+                else if(resultCode.StartsWith("Success:"))
+                {
+                    input = $"The Following was the output from {executionResult}: " + resultCode + "\n" + "Is this the output you were expecting? If not please fix it. If so then do the following: " + UserResponseOptions[1];
+                }
+                else if(resultCode.Equals("Did not run code"))
+                {
+                    input = UserResponseOptions[1];
+                }
+                else if(resultCode.StartsWith("No Code was given"))
+                {
+                    if(executionResult.Contains("done"))
+                    {
+                        chatCompleted = true;
+                        bool saveChoice = await host.PromptForConfirmationAsync("Would you like to save the python file?", true, token);
+                        if (!saveChoice)
+                        {
+                            orch._python.DeleteTempFile();
+                        }
+                        else
+                        {
+                            host.WriteLine($"The file has been saved as {orch._python.GetTempFile()}.");
+                        }
+                    
+                    }
+                    else if(executionResult.Contains("The task is impossible."))
+                    {
+                        chatCompleted = true;
+                        bool saveChoice = await host.PromptForConfirmationAsync("Would you like to save the python file?", true, token);
+                        if (!saveChoice)
+                        {
+                            orch._python.DeleteTempFile();
+                        }
+                        else
+                        {
+                            host.WriteLine($"The file has been saved as {orch._python.GetTempFile()}.");
+                        }
+                    }
+                    else if(executionResult.Contains("Please provide"))
+                    {
+                        chatCompleted = true;
+                    }
+                    else if(executionResult.Contains("Let me know what you'd like to do next"))
+                    {
+                        chatCompleted = true;
+                    }
+                    else
+                    {
+                        input = UserResponseOptions[2];
+                    }
+                }
+                else
+                {
+                    input = UserResponseOptions[2];
+                }
+            }
+            catch(OperationCanceledException)
+            {
+                chatCompleted = true;
+            }
+            timer.Stop();
+            if(timer.ElapsedMilliseconds < 8000)
+            {
+                await Task.Delay(8000 - (int)timer.ElapsedMilliseconds);
+            }
+        }
 
         return checkPass;
     }
 
-    private async Task<bool> ExecuteProvidedCode(Orchestrator orch, IShell shell, string responseContent)
+    private async Task<List<string>> ExecuteProvidedCode(Orchestrator orch, IShell shell, string responseContent)
     {
         IHost host = shell.Host;
-        bool executionSuccess = false;
-        _chatService.AddResponseToHistory("The code block was: " + responseContent);
+        List<string> executionResult = new();
         bool choice = await host.PromptForConfirmationAsync($"\nWould you like to run the {orch.CodeBlock.Key} code?", true, shell.CancellationToken);
         if (!choice)
         {
-            executionSuccess = true;
+            executionResult.Add("Did not run code");
         }
         else
         {
             Task<string> func() => orch.RunCode(orch.CodeBlock.Key, orch.CodeBlock.Value);
             string output = await host.RunWithSpinnerAsync(func, "Running the code...");
+            host.RenderFullResponse("```\n" + output + "\n");
             if (output.StartsWith("Error:"))
             {
-                host.RenderFullResponse(output + "\n");
-                _chatService.AddResponseToHistory("The code output was: " + output);
+                executionResult.Add("Error: " + output);
             }
             else
             {
-                host.RenderFullResponse("```\n" + output + "```\n");
-                _chatService.AddResponseToHistory("The code output was: " + output);
-                executionSuccess = true;
+                executionResult.Add("Success: " + output);
             }
         }
-        return executionSuccess;
+        executionResult.Add(orch.CodeBlock.Value);
+        return executionResult;
     }
 
     internal async Task<bool> SelfCheck(IHost host, CancellationToken token)
