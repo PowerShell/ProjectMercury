@@ -108,7 +108,7 @@ internal sealed class Host : IHost
         }
         else
         {
-            _stderrConsole.MarkupLine(Formatter.Error(value));
+            _stderrConsole.MarkupLine(Formatter.Error(value.EscapeMarkup()));
         }
 
         return this;

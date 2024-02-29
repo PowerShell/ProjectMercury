@@ -611,11 +611,8 @@ internal sealed class Shell : IShell
     {
         if (ActiveAgent is null)
         {
-            string settingCommand = Formatter.InlineCode($"{Utils.AppName} --settings");
-            string helpCommand = Formatter.InlineCode($"{Utils.AppName} --help");
-
-            Host.MarkupErrorLine($"No active agent was configured.");
-            Host.MarkupErrorLine($"Run {settingCommand} to configure the active agent. Run {helpCommand} for details.");
+            Host.MarkupErrorLine("No active agent was configured.");
+            Host.MarkupErrorLine($"Run '{Utils.AppName} --settings' to configure the active agent. Run '{Utils.AppName} --help' for details.");
 
             return;
         }
@@ -630,7 +627,7 @@ internal sealed class Shell : IShell
         }
         catch (ShellCopilotException exception)
         {
-            Host.MarkupErrorLine(exception.Message.EscapeMarkup());
+            Host.MarkupErrorLine(exception.Message);
         }
     }
 }
