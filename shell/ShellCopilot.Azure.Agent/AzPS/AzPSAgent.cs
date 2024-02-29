@@ -2,6 +2,7 @@
 using ShellCopilot.Abstraction;
 using System.Text.Json;
 using System.Diagnostics;
+using System.Linq;
 
 namespace ShellCopilot.Azure.PowerShell;
 
@@ -60,6 +61,16 @@ public sealed class AzPSAgent : ILLMAgent
 
     public void OnUserAction(UserActionPayload actionPayload) 
     {
+        _trace.Handler = "Azure PowerShell";
+        _trace.EventType = "Feedback";
+        _trace.Command = actionPayload.Action.ToString();
+
+        // Append history in HistoryMessage
+        foreach (var chat in _chatService._chatHistory)
+        {
+            _trace.HistoryMessage.Add(chat);
+        }
+
         // DisLike Action
         if (actionPayload.Action == UserAction.Dislike)
         {
@@ -81,11 +92,6 @@ public sealed class AzPSAgent : ILLMAgent
             }
         }
 
-        _trace.Handler = "Azure PowerShell";
-        _trace.EventType = "Feedback";
-        _trace.Command = actionPayload.Action.ToString();
-        _trace.HistoryMessage = JsonSerializer.Serialize(_chatService._chatHistory);
-
         ClearTimeInformation();
         _metricHelper.LogTelemetry(AzPSChatService.Endpoint, _trace);
 
@@ -106,7 +112,7 @@ public sealed class AzPSAgent : ILLMAgent
 
     public void ClearHistory()
     {
-        _trace.HistoryMessage = null;
+        _trace.HistoryMessage = [];
     }
 
     public void ClearDetailedMessage()

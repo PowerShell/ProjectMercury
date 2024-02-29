@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using ShellCopilot.Azure.PowerShell;
+using System.Text.Json;
 
 namespace ShellCopilot.Azure
 {
@@ -33,7 +34,7 @@ namespace ShellCopilot.Azure
         public string? Command;
         // public string? Question; // Must be filtered
         // public string? Answer; // Must be filtered
-        public string? HistoryMessage;
+        public List<ChatMessage> HistoryMessage = [];
         /// <summary>
         /// Detailed information containing additional Information - may contain:
         /// Reason of dislike

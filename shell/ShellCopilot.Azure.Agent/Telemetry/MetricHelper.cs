@@ -6,6 +6,7 @@ using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPuls
 using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 
 namespace ShellCopilot.Azure
@@ -66,7 +67,7 @@ namespace ShellCopilot.Azure
                 { "Duration", trace.Duration?.ToString() },
                 { "Command", trace.Command ?? null },
                 { "DetailedMessage", trace.DetailedMessage ?? null },
-                { "HistoryMessage", trace.HistoryMessage ?? null },
+                { "HistoryMessage", JsonSerializer.Serialize(trace.HistoryMessage) ?? null },
                 // { "Question", trace.Question ?? null },
                 // { "Answer", trace.Answer ?? null },
                 { "StartTime", trace.StartTime?.ToString() },
