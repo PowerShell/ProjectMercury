@@ -14,7 +14,7 @@ internal class AzPSChatService : IDisposable
     private readonly bool _interactive;
     private readonly string[] _scopes;
     private readonly HttpClient _client;
-    private readonly List<ChatMessage> _chatHistory;
+    public readonly List<ChatMessage> _chatHistory;
     private readonly AzurePowerShellCredentialOptions _credOptions;
 
     private AccessToken? _accessToken;

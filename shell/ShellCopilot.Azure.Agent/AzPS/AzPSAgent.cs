@@ -1,5 +1,6 @@
 ﻿using Azure.Identity;
 using ShellCopilot.Abstraction;
+using System.Text.Json;
 using System.Diagnostics;
 
 namespace ShellCopilot.Azure.PowerShell;
@@ -26,12 +27,10 @@ public sealed class AzPSAgent : ILLMAgent
 
     public void Initialize(AgentConfig config)
     {
-
         _renderingStyle = config.RenderingStyle;
         _configRoot = config.ConfigurationRoot;
         SettingFile = Path.Combine(_configRoot, SettingFileName);
         
-
         string tenantId = null;
         string subscriptionId = null;
         if (config.Context is not null)
@@ -49,42 +48,70 @@ public sealed class AzPSAgent : ILLMAgent
         _metricHelper = new MetricHelper();
         _trace = new AzTrace()
         {
-            TenantID = Guid.Parse(tenantId),
-            SubscriptionID = Guid.Parse(subscriptionId)
+            TenantID = tenantId == null ? null : Guid.Parse(tenantId),
+            SubscriptionID = subscriptionId == null ? null : Guid.Parse(subscriptionId)
         };
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
 
     public IEnumerable<CommandBase> GetCommands() => null;
+
     public bool CanAcceptFeedback(UserAction action) => true;
+
     public void OnUserAction(UserActionPayload actionPayload) 
     {
-        // Record user feedback
+        // DisLike Action
         if (actionPayload.Action == UserAction.Dislike)
         {
-            var detailedFeedback = actionPayload.GetType().GetProperty("ShortFeedback").GetValue(actionPayload) + " : " + actionPayload.GetType().GetProperty("LongFeedback").GetValue(actionPayload);
+            DislikePayload dislikePayload = (DislikePayload)actionPayload;
+            var detailedFeedback = String.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
             _trace.DetailedMessage = detailedFeedback.ToString();
-        }
-        // Whether to record conversation
-        if (actionPayload.Action == UserAction.Dislike || actionPayload.Action == UserAction.Like)
-        {
-            if (actionPayload.GetType().GetProperty("ShareConversation").GetValue(actionPayload).Equals(false))
+            if (!dislikePayload.ShareConversation)
             {
-                // to clear Question and Answer
-                _trace.Question = null;
-                _trace.Answer = null;
+                ClearHistory();
+            }
+        }
+        // Like Action
+        if (actionPayload.Action == UserAction.Like)
+        {
+            LikePayload likePayload = (LikePayload)actionPayload;
+            if (!likePayload.ShareConversation)
+            {
+                ClearHistory();
             }
         }
 
         _trace.Handler = "Azure PowerShell";
         _trace.EventType = "Feedback";
         _trace.Command = actionPayload.Action.ToString();
+        _trace.HistoryMessage = JsonSerializer.Serialize(_chatService._chatHistory);
+
+        ClearTimeInformation();
         _metricHelper.LogTelemetry(AzPSChatService.Endpoint, _trace);
+
+        ClearDetailedMessage();
     }
 
     public void RecordQuestionTelemetry()
     {
 
+    }
+
+    public void ClearTimeInformation()
+    {
+        _trace.Duration = null;
+        _trace.StartTime = null;
+        _trace.EndTime = null;
+    }
+
+    public void ClearHistory()
+    {
+        _trace.HistoryMessage = null;
+    }
+
+    public void ClearDetailedMessage()
+    {
+        _trace.DetailedMessage = null;
     }
 
     public async Task<bool> Chat(string input, IShell shell)
@@ -145,8 +172,8 @@ public sealed class AzPSAgent : ILLMAgent
             _trace.Handler = "Azure PowerShell";
             _trace.EventType = "Question";
             _trace.Command = "Question";
-            _trace.Question = input;
-            _trace.Answer = streamingRender.AccumulatedContent;
+            // _trace.Question = input;
+            // _trace.Answer = streamingRender.AccumulatedContent;
             _metricHelper.LogTelemetry(AzPSChatService.Endpoint, _trace);
         }
         catch (RefreshTokenException ex)

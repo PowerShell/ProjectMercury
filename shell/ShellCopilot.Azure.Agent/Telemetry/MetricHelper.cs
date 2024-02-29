@@ -66,8 +66,9 @@ namespace ShellCopilot.Azure
                 { "Duration", trace.Duration?.ToString() },
                 { "Command", trace.Command ?? null },
                 { "DetailedMessage", trace.DetailedMessage ?? null },
-                { "Question", trace.Question ?? null },
-                { "Answer", trace.Answer ?? null },
+                { "HistoryMessage", trace.HistoryMessage ?? null },
+                // { "Question", trace.Question ?? null },
+                // { "Answer", trace.Answer ?? null },
                 { "StartTime", trace.StartTime?.ToString() },
                 { "EndTime", trace.EndTime ?.ToString() },
             };

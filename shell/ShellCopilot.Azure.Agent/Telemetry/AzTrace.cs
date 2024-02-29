@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
 
 namespace ShellCopilot.Azure
 {
@@ -6,12 +6,12 @@ namespace ShellCopilot.Azure
     public class AzTrace
     {
         
-        public static Guid GetInstallationID()
+        public static string GetInstallationID()
         {
             string json = new StreamReader(Environment.ExpandEnvironmentVariables(@"%USERPROFILE%/.Azure/azureProfile.json")).ReadToEnd();
-            dynamic array = JsonConvert.DeserializeObject(json);
-
-            return new Guid(array.installationId.Value);
+            var array = JsonSerializer.Deserialize<JsonElement>(json);
+            
+            return array.GetProperty("installationId").GetString();
         }
 
         public void RefreshCorrelationID()
@@ -26,13 +26,14 @@ namespace ShellCopilot.Azure
         public DateTime? StartTime;
         public DateTime? EndTime;
         public Guid? CorrelationID = Guid.NewGuid(); // CorrelationId from client side.
-        public Guid? InstallationID = GetInstallationID();
+        public string? InstallationID = GetInstallationID();
         public Guid? SubscriptionID;
         public Guid? TenantID;
         public string? EventType;
         public string? Command;
-        public string? Question; // Must be filtered
-        public string? Answer; // Must be filtered
+        // public string? Question; // Must be filtered
+        // public string? Answer; // Must be filtered
+        public string? HistoryMessage;
         /// <summary>
         /// Detailed information containing additional Information - may contain:
         /// Reason of dislike
