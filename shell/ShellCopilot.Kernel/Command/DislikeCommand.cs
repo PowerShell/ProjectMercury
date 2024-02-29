@@ -21,7 +21,7 @@ internal sealed class DislikeCommand : CommandBase
 
         if (shell.LastAgent is null)
         {
-            host.MarkupErrorLine($"No previous response available to rate on.");
+            host.WriteErrorLine("No previous response available to rate on.");
             return;
         }
 

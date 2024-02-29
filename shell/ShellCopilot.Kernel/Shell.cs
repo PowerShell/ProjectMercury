@@ -211,7 +211,7 @@ internal sealed class Shell : IShell
             }
             catch (Exception ex)
             {
-                Host.MarkupErrorLine($"Failed to load the agent '{name}': {ex.Message}\n");
+                Host.WriteErrorLine($"Failed to load the agent '{name}': {ex.Message}\n");
             }
         }
 
@@ -368,7 +368,7 @@ internal sealed class Shell : IShell
         string commandLine = input[1..].Trim();
         if (commandLine == string.Empty)
         {
-            Host.MarkupErrorLine("Command is missing.");
+            Host.WriteErrorLine("Command is missing.");
             return;
         }
 
@@ -378,7 +378,7 @@ internal sealed class Shell : IShell
         }
         catch (Exception e)
         {
-            Host.MarkupErrorLine(e.Message);
+            Host.WriteErrorLine(e.Message);
         }
     }
 
@@ -555,7 +555,7 @@ internal sealed class Shell : IShell
 
                             agent.OrchestratorRoleDisabled = true;
                             Host.WriteLine()
-                                .MarkupErrorLine($"Operation failed: {ex.Message}")
+                                .WriteErrorLine($"Operation failed: {ex.Message}")
                                 .WriteLine()
                                 .MarkupNoteLine($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Impl.Name}[/] for the query.");
                         }
@@ -588,13 +588,13 @@ internal sealed class Shell : IShell
                     }
 
                     Host.WriteErrorLine()
-                        .MarkupErrorLine($"Agent failed to generate a response: {ex.Message}")
+                        .WriteErrorLine($"Agent failed to generate a response: {ex.Message}")
                         .WriteErrorLine();
                 }
             }
             catch (ShellCopilotException e)
             {
-                Host.MarkupErrorLine(e.Message);
+                Host.WriteErrorLine(e.Message);
                 if (e.HandlerAction is ExceptionHandlerAction.Stop)
                 {
                     break;
@@ -611,11 +611,8 @@ internal sealed class Shell : IShell
     {
         if (ActiveAgent is null)
         {
-            string settingCommand = Formatter.InlineCode($"{Utils.AppName} --settings");
-            string helpCommand = Formatter.InlineCode($"{Utils.AppName} --help");
-
-            Host.MarkupErrorLine($"No active agent was configured.");
-            Host.MarkupErrorLine($"Run {settingCommand} to configure the active agent. Run {helpCommand} for details.");
+            Host.WriteErrorLine("No active agent was configured.");
+            Host.WriteErrorLine($"Run '{Utils.AppName} --settings' to configure the active agent. Run '{Utils.AppName} --help' for details.");
 
             return;
         }
@@ -626,11 +623,11 @@ internal sealed class Shell : IShell
         }
         catch (OperationCanceledException)
         {
-            Host.MarkupErrorLine("Operation was aborted.");
+            Host.WriteErrorLine("Operation was aborted.");
         }
         catch (ShellCopilotException exception)
         {
-            Host.MarkupErrorLine(exception.Message.EscapeMarkup());
+            Host.WriteErrorLine(exception.Message);
         }
     }
 }

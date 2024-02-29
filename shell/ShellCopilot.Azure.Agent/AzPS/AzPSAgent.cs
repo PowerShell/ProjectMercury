@@ -94,12 +94,12 @@ public sealed class AzPSAgent : ILLMAgent
             Exception inner = ex.InnerException;
             if (inner is CredentialUnavailableException)
             {
-                host.MarkupErrorLine($"Access token not available. Query cannot be served.");
-                host.MarkupErrorLine($"The '{Name}' agent depends on the Azure PowerShell credential to acquire access token. Please run 'Connect-AzAccount' from a command-line shell to setup account.");
+                host.WriteErrorLine($"Access token not available. Query cannot be served.");
+                host.WriteErrorLine($"The '{Name}' agent depends on the Azure PowerShell credential to acquire access token. Please run 'Connect-AzAccount' from a command-line shell to setup account.");
             }
             else
             {
-                host.MarkupErrorLine($"Failed to get the access token. {inner.Message}");
+                host.WriteErrorLine($"Failed to get the access token. {inner.Message}");
             }
 
             return false;
