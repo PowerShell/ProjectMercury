@@ -5,28 +5,86 @@ namespace ShellCopilot.Abstraction;
 /// </summary>
 public class ShellWrapper
 {
+    private string _name;
+    private string _banner;
+    private string _version;
+    private string _prompt;
+
     /// <summary>
     /// Name of the application to run from command line, e.g. 'az copilot'
+    /// Set the name when you want to use a different configuration folder for Shell Copilot instead of the default.
     /// </summary>
-    public string Name { set; get; }
+    public string Name
+    {
+        set
+        {
+            // Normalize the empty string to be null.
+            _name = string.IsNullOrEmpty(value) ? null : value;
+        }
+
+        get
+        {
+            return _name;
+        }
+    }
 
     /// <summary>
     /// Banner text to use.
+    /// Shell Copilot will show the default banner if this is not set.
     /// </summary>
-    public string Banner { set; get; }
+    public string Banner
+    {
+        set
+        {
+            // Normalize the empty string to be null.
+            _banner = string.IsNullOrEmpty(value) ? null : value;
+        }
+
+        get
+        {
+            return _banner;
+        }
+    }
 
     /// <summary>
     /// Version to show.
+    /// Shell Copilot will show the default version if this is not set.
     /// </summary>
-    public string Version { set; get; }
+    public string Version
+    {
+        set
+        {
+            // Normalize the empty string to be null.
+            _version = string.IsNullOrEmpty(value) ? null : value;
+        }
+
+        get
+        {
+            return _version;
+        }
+    }
 
     /// <summary>
     /// The prompt text to use.
+    /// Shell Copilot will use the default prompt if this is not set.
     /// </summary>
-    public string Prompt { set; get; }
+    public string Prompt
+    {
+        set
+        {
+            // Normalize the empty string to be null.
+            _prompt = string.IsNullOrEmpty(value) ? null : value;
+        }
+
+        get
+        {
+            return _prompt;
+        }
+    }
 
     /// <summary>
     /// The default agent to use, which should be available along with Shell Copilot.
+    /// This key is required to be set properly.
     /// </summary>
     public string Agent { set; get; }
 

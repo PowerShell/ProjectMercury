@@ -76,7 +76,7 @@ internal sealed class Shell : IShell
     {
         _isInteractive = interactive;
         _wrapper = wrapper;
-        _prompt = wrapper?.Prompt ?? Utils.DefaultAppName;
+        _prompt = wrapper?.Prompt ?? Utils.DefaultPrompt;
 
         _agents = [];
         _setting = new Setting();
@@ -92,10 +92,7 @@ internal sealed class Shell : IShell
 
         if (interactive)
         {
-            string banner = wrapper is null
-                ? "Shell Copilot (v0.1)"
-                : $"{wrapper.Banner} ({wrapper.Version})";
-
+            string banner = $"{wrapper?.Banner ?? "Microsoft Copilot"} ({wrapper?.Version ?? "v0.1"})";
             Host.WriteLine(banner).WriteLine();
             CommandRunner = new CommandRunner(this);
             SetReadLineExperience();
