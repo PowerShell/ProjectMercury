@@ -69,7 +69,15 @@ internal sealed class Host : IHost
     /// <inheritdoc/>
     public IHost WriteErrorLine(string value)
     {
-        Console.Error.WriteLine(value);
+        if (Console.IsErrorRedirected || string.IsNullOrEmpty(value))
+        {
+            Console.Error.WriteLine(value);
+        }
+        else
+        {
+            _stderrConsole.MarkupLine(Formatter.Error(value.EscapeMarkup()));
+        }
+
         return this;
     }
 
@@ -94,21 +102,6 @@ internal sealed class Host : IHost
         else
         {
             AnsiConsole.MarkupLine(value);
-        }
-
-        return this;
-    }
-
-    /// <inheritdoc/>
-    public IHost MarkupErrorLine(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            Console.Error.WriteLine();
-        }
-        else
-        {
-            _stderrConsole.MarkupLine(Formatter.Error(value.EscapeMarkup()));
         }
 
         return this;

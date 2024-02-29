@@ -17,7 +17,7 @@ internal sealed class RetryCommand : CommandBase
 
         if (shell.LastQuery is null)
         {
-            shell.Host.MarkupErrorLine("No previous query available.");
+            shell.Host.WriteErrorLine("No previous query available.");
             return;
         }
 

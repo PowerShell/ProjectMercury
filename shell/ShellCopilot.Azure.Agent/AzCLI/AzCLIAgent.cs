@@ -66,13 +66,13 @@ public sealed class AzCLIAgent : ILLMAgent
             {
                 if (azResponse.Error is not null)
                 {
-                    host.MarkupErrorLine(azResponse.Error);
+                    host.WriteErrorLine(azResponse.Error);
                     return true;
                 }
 
                 if (azResponse.Data.Count is 0)
                 {
-                    host.MarkupErrorLine("Sorry, no response received.");
+                    host.WriteErrorLine("Sorry, no response received.");
                     return true;
                 }
 
@@ -114,12 +114,12 @@ public sealed class AzCLIAgent : ILLMAgent
             Exception inner = ex.InnerException;
             if (inner is CredentialUnavailableException)
             {
-                host.MarkupErrorLine($"Access token not available. Query cannot be served.");
-                host.MarkupErrorLine($"The '{Name}' agent depends on the Azure CLI credential to acquire access token. Please run 'az login' from a command-line shell to setup account.");
+                host.WriteErrorLine($"Access token not available. Query cannot be served.");
+                host.WriteErrorLine($"The '{Name}' agent depends on the Azure CLI credential to acquire access token. Please run 'az login' from a command-line shell to setup account.");
             }
             else
             {
-                host.MarkupErrorLine($"Failed to get the access token. {inner.Message}");
+                host.WriteErrorLine($"Failed to get the access token. {inner.Message}");
             }
 
             return false;

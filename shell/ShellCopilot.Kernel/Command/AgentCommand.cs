@@ -71,7 +71,7 @@ internal sealed class AgentCommand : CommandBase
         }
         catch (Exception ex)
         {
-            shell.Host.MarkupErrorLine(ex.Message);
+            shell.Host.WriteErrorLine(ex.Message);
         }
     }
 
@@ -91,7 +91,7 @@ internal sealed class AgentCommand : CommandBase
         var current = chosenAgent.Impl;
         if (current.SettingFile is null)
         {
-            shell.Host.MarkupErrorLine($"The agent '{current.Name}' doesn't support configuration.");
+            shell.Host.WriteErrorLine($"The agent '{current.Name}' doesn't support configuration.");
             return;
         }
 
@@ -107,7 +107,7 @@ internal sealed class AgentCommand : CommandBase
         }
         catch (Exception ex)
         {
-            shell.Host.MarkupErrorLine(ex.Message);
+            shell.Host.WriteErrorLine(ex.Message);
         }
     }
 
@@ -124,7 +124,7 @@ internal sealed class AgentCommand : CommandBase
     private static void AgentNotFound(string name, Shell shell)
     {
         string availableAgentNames = string.Join(',', shell.Agents.Select(AgentName));
-        shell.Host.MarkupErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}");
+        shell.Host.WriteErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}");
     }
 
     private IEnumerable<string> AgentCompleter(CompletionContext context)
