@@ -30,7 +30,7 @@ public sealed class AzPSAgent : ILLMAgent
         _renderingStyle = config.RenderingStyle;
         _configRoot = config.ConfigurationRoot;
         SettingFile = Path.Combine(_configRoot, SettingFileName);
-        
+
         string tenantId = null;
         string subscriptionId = null;
         if (config.Context is not null)
