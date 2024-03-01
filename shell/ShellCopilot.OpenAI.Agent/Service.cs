@@ -196,7 +196,7 @@ internal class ChatService
         ChatCompletionsOptions chatOptions = new()
         {
             ChoiceCount = 1,
-            Temperature = (float)0.7,
+            Temperature = 0,
             MaxTokens = MaxResponseToken,
         };
 

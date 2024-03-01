@@ -1,12 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\shell.common.props" />
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
-    <!-- Disable deps.json generation -->
-    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <AssemblyName>ShellCopilot.Kernel</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
