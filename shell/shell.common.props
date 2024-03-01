@@ -13,9 +13,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
     <NeutralLanguage>en-US</NeutralLanguage>
-
-    <!-- Disable deps.json generation -->
-    <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
