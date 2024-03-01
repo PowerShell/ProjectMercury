@@ -68,10 +68,8 @@ namespace ShellCopilot.Azure
                 { "Command", trace.Command ?? null },
                 { "DetailedMessage", trace.DetailedMessage ?? null },
                 { "HistoryMessage", JsonSerializer.Serialize(trace.HistoryMessage) ?? null },
-                // { "Question", trace.Question ?? null },
-                // { "Answer", trace.Answer ?? null },
                 { "StartTime", trace.StartTime?.ToString() },
-                { "EndTime", trace.EndTime ?.ToString() },
+                { "EndTime", trace.EndTime?.ToString() },
             };
 
 

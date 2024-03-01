@@ -67,7 +67,7 @@ internal class AzPSChatService : IDisposable
         }
     }
 
-    private HttpRequestMessage PrepareForChat(string input, bool streaming, Guid? CorrelationID = null, Dictionary<string, string> AgentInfo = null)
+    private HttpRequestMessage PrepareForChat(string input, bool streaming, string? CorrelationID = null, Dictionary<string, string> AgentInfo = null)
     {
         List<ChatMessage> messages = _interactive ? _chatHistory : [];
         messages.Add(new ChatMessage() { Role = "user", Content = input });
@@ -79,12 +79,12 @@ internal class AzPSChatService : IDisposable
         var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = content };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Value.Token);
-        request.Headers.Add("CorrelationId", CorrelationID.ToString());
+        request.Headers.Add("CorrelationId", CorrelationID);
 
         return request;
     }
 
-    internal async Task<ChunkReader> GetStreamingChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken, Guid? CorrelationID = null, Dictionary<string, string> AgentInfo = null)
+    internal async Task<ChunkReader> GetStreamingChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken, string? CorrelationID = null, Dictionary<string, string> AgentInfo = null)
     {
         try
         {

@@ -3,10 +3,8 @@ using System.Text.Json;
 
 namespace ShellCopilot.Azure
 {
-    
     public class AzTrace
     {
-        
         public static string GetInstallationID()
         {
             string json = new StreamReader(Environment.ExpandEnvironmentVariables(@"%USERPROFILE%/.Azure/azureProfile.json")).ReadToEnd();
@@ -15,31 +13,24 @@ namespace ShellCopilot.Azure
             return array.GetProperty("installationId").GetString();
         }
 
-        public void RefreshCorrelationID()
-        {
-            CorrelationID = Guid.NewGuid();
-        }
-        
-#nullable enable
-        private bool? _enableAzureDataCollection = null;
-        public string? Handler; // "Azure PowerShell / Azure CLI"
+        public string Handler; // "Azure PowerShell / Azure CLI"
+        public string CorrelationID = Guid.NewGuid().ToString(); // CorrelationId from client side.
+
+        // private bool _enableAzureDataCollection = null;
         public TimeSpan? Duration;
         public DateTime? StartTime;
         public DateTime? EndTime;
-        public Guid? CorrelationID = Guid.NewGuid(); // CorrelationId from client side.
         public string? InstallationID = GetInstallationID();
         public Guid? SubscriptionID;
         public Guid? TenantID;
         public string? EventType;
         public string? Command;
-        // public string? Question; // Must be filtered
-        // public string? Answer; // Must be filtered
-        public List<ChatMessage> HistoryMessage = [];
         /// <summary>
         /// Detailed information containing additional Information - may contain:
         /// Reason of dislike
         /// </summary>
-        public string? DetailedMessage; 
+        public string? DetailedMessage;
+        internal List<HistoryMessage> HistoryMessage = [];
         /// <summary>
         /// Agent Information - may contain:
         /// Handler Version
@@ -48,5 +39,13 @@ namespace ShellCopilot.Azure
         /// </summary>
         public Dictionary<string, string>? ExtendedProperties;
         public AzTrace() { }
+    }
+
+    // TODO: inherit from ChatMessage in PSSchema
+    internal class HistoryMessage
+    {
+        public string Role { get; set; }
+        public string Content { get; set; }
+        public string CorrelationID { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using ShellCopilot.Abstraction;
 using System.Text.Json;
 using System.Diagnostics;
 using System.Linq;
+using System;
 
 namespace ShellCopilot.Azure.PowerShell;
 
@@ -19,11 +20,17 @@ public sealed class AzPSAgent : ILLMAgent
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
     private MetricHelper _metricHelper;
-    public AzTrace _trace;
+    private List<HistoryMessage> _historyMessage = [];
+    private string _correlationID;
 
     public void Dispose()
     {
         _chatService.Dispose();
+    }
+
+    public void RefreshCorrelationID()
+    {
+        _correlationID = Guid.NewGuid().ToString();
     }
 
     public void Initialize(AgentConfig config)
@@ -47,11 +54,6 @@ public sealed class AzPSAgent : ILLMAgent
         }
 
         _metricHelper = new MetricHelper();
-        _trace = new AzTrace()
-        {
-            TenantID = tenantId == null ? null : Guid.Parse(tenantId),
-            SubscriptionID = subscriptionId == null ? null : Guid.Parse(subscriptionId)
-        };
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
 
@@ -61,22 +63,12 @@ public sealed class AzPSAgent : ILLMAgent
 
     public void OnUserAction(UserActionPayload actionPayload) 
     {
-        _trace.Handler = "Azure PowerShell";
-        _trace.EventType = "Feedback";
-        _trace.Command = actionPayload.Action.ToString();
-
-        // Append history in HistoryMessage
-        foreach (var chat in _chatService._chatHistory)
-        {
-            _trace.HistoryMessage.Add(chat);
-        }
-
         // DisLike Action
+        string DetailedMessage = null;
         if (actionPayload.Action == UserAction.Dislike)
         {
             DislikePayload dislikePayload = (DislikePayload)actionPayload;
-            var detailedFeedback = String.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
-            _trace.DetailedMessage = detailedFeedback.ToString();
+            DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
             if (!dislikePayload.ShareConversation)
             {
                 ClearHistory();
@@ -91,11 +83,23 @@ public sealed class AzPSAgent : ILLMAgent
                 ClearHistory();
             }
         }
+        // Other Actions
+        if (actionPayload.Action != UserAction.Like && actionPayload.Action != UserAction.Dislike)
+        {
+            ClearHistory();
+        }
 
-        ClearTimeInformation();
-        _metricHelper.LogTelemetry(AzPSChatService.Endpoint, _trace);
-
-        ClearDetailedMessage();
+        // TODO: Extract into RecrodActionTelemetry : RecordTelemetry()
+        _metricHelper.LogTelemetry(AzPSChatService.Endpoint,
+                new AzTrace()
+                {
+                    Command = actionPayload.Action.ToString(),
+                    CorrelationID = _correlationID,
+                    EventType = "Feedback",
+                    Handler = "Azure PowerShell",
+                    DetailedMessage = DetailedMessage,
+                    HistoryMessage = _historyMessage
+                });
     }
 
     public void RecordQuestionTelemetry()
@@ -103,31 +107,19 @@ public sealed class AzPSAgent : ILLMAgent
 
     }
 
-    public void ClearTimeInformation()
-    {
-        _trace.Duration = null;
-        _trace.StartTime = null;
-        _trace.EndTime = null;
-    }
-
     public void ClearHistory()
     {
-        _trace.HistoryMessage = [];
-    }
-
-    public void ClearDetailedMessage()
-    {
-        _trace.DetailedMessage = null;
+        _historyMessage = [];
     }
 
     public async Task<bool> Chat(string input, IShell shell)
     {
         // For each Chat input, refresh correlation ID
-        _trace.RefreshCorrelationID();
+        RefreshCorrelationID();
 
         // Measure time spent
         var watch = Stopwatch.StartNew();
-        _trace.StartTime = DateTime.Now;
+        var StartTime = DateTime.Now;
 
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
@@ -138,7 +130,7 @@ public sealed class AzPSAgent : ILLMAgent
             // update the status message while waiting for the answer payload to come back.
             using ChunkReader chunkReader = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
-                func: async context => await _chatService.GetStreamingChatResponseAsync(context, input, token, _trace.CorrelationID, AgentInfo)
+                func: async context => await _chatService.GetStreamingChatResponseAsync(context, input, token, _correlationID, AgentInfo)
             ).ConfigureAwait(false);
 
             if (chunkReader is null)
@@ -172,15 +164,30 @@ public sealed class AzPSAgent : ILLMAgent
             // Measure time spent
             watch.Stop();
 
-            // TODO: extract into RecordQuestionTelemetry()
-            _trace.EndTime = DateTime.Now;
-            _trace.Duration = TimeSpan.FromTicks(watch.ElapsedTicks);
-            _trace.Handler = "Azure PowerShell";
-            _trace.EventType = "Question";
-            _trace.Command = "Question";
-            // _trace.Question = input;
-            // _trace.Answer = streamingRender.AccumulatedContent;
-            _metricHelper.LogTelemetry(AzPSChatService.Endpoint, _trace);
+            // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
+            var EndTime = DateTime.Now;
+            var Duration = TimeSpan.FromTicks(watch.ElapsedTicks);
+
+            // Append last Q&A history in HistoryMessage
+            for (var index = _chatService._chatHistory.Count-1; index > _chatService._chatHistory.Count - 3; index--)
+            {
+                _historyMessage.Add(new HistoryMessage
+                {
+                    CorrelationID = _correlationID,
+                    Role = _chatService._chatHistory[index].Role,
+                    Content = _chatService._chatHistory[index].Content
+                });
+            }
+            
+            _metricHelper.LogTelemetry(AzPSChatService.Endpoint, 
+                new AzTrace() {
+                    CorrelationID = _correlationID,
+                    Duration = Duration,
+                    EndTime = EndTime,
+                    EventType = "Question",
+                    Handler = "Azure PowerShell",
+                    StartTime = StartTime
+                });
         }
         catch (RefreshTokenException ex)
         {

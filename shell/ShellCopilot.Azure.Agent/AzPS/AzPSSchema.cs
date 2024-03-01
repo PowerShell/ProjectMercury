@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace ShellCopilot.Azure.PowerShell;
 
-public class ChatMessage
+internal class ChatMessage
 {
     public string Role { get; set; }
     public string Content { get; set; }
