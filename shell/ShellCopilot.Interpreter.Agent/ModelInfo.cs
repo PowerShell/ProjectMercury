@@ -33,6 +33,20 @@ internal class ModelInfo
         ["gpt-35-turbo-16k-0613"] = GPT35_16K,
     };
 
+    private static readonly Dictionary<string, ModelInfo> function_callingModels = new()
+    {
+        ["gpt-4"] = GPT4, 
+        ["gpt-4-turbo-preview"] = GPT4, 
+        ["gpt-4-0125-preview"] = GPT4, 
+        ["gpt-4-1106-preview"] = GPT4, 
+        ["gpt-4-0613"] = GPT4, 
+        
+        ["gpt-3.5-turbo"] = GPT35_0613, 
+        ["gpt-3.5-turbo-0125"] = GPT35_0613, 
+        ["gpt-3.5-turbo-1106"] = GPT35_0613, 
+        ["gpt-3.5-turbo-0613"] = GPT35_0613,
+    };
+
     private ModelInfo(int tokenLimit, int tokensPerMessage, int tokensPerName)
     {
         TokenLimit = tokenLimit;
@@ -69,5 +83,9 @@ internal class ModelInfo
     internal static IEnumerable<string> SupportedModels()
     {
         return s_modelMap.Keys.SkipWhile(n => n.StartsWith("gpt-35")).OrderDescending();
+    }
+    internal static bool IsFunctionCallingModel(string name)
+    {
+        return function_callingModels.ContainsKey(name);
     }
 }

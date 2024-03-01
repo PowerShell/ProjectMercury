@@ -1,23 +1,22 @@
 ﻿using ShellCopilot.Abstraction;
+using Newtonsoft.Json;
 
 
 namespace ShellCopilot.Interpreter.Agent;
 
 public class Orchestrator
 {
-    private IShell _shell { get; set; }
-    public KeyValuePair<string,string> CodeBlock { get; set; }
+    public KeyValuePair<string, string> CodeBlock;
     private readonly CancellationToken token;
     private int _accumaltedResponseCursor = 0;
     public Python _python { get; }
     public PowerShell _powershell;
     
 
-	public Orchestrator(IShell shell)
+	public Orchestrator(CancellationToken cancellationToken)
 	{
         CodeBlock = new KeyValuePair<string, string>();
-        _shell = shell;
-        token = shell.CancellationToken;
+        token = cancellationToken;
         // Create a persistent python object to store the code and run it
         _python = new Python();
 	}
@@ -88,6 +87,24 @@ public class Orchestrator
             isCodeBlockComplete = ExtractCodeFromResponse(responseContent);
         }
         return isCodeBlockComplete;
+    }
+
+    public bool FunctionCallCodeBlock(string responseContent)
+    {
+        // responseContent is a string representing a dictionary.
+        Dictionary<string, string> toolCallArguments = JsonConvert.DeserializeObject<Dictionary<string, string>>(responseContent); 
+        string language = "";
+        if (!string.IsNullOrEmpty(toolCallArguments["language"]))
+        {
+            language = toolCallArguments["language"];
+        }
+        if (!string.IsNullOrWhiteSpace(language))
+        {
+            CodeBlock = new KeyValuePair<string, string>(language, toolCallArguments["code"]);
+            return true;
+        }
+        return false;
+        
     }
 
     private bool ExtractCodeFromResponse(string responseContent)

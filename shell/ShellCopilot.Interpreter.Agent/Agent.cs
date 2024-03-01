@@ -5,6 +5,7 @@ using Azure.AI.OpenAI;
 using ShellCopilot.Abstraction;
 using Azure;
 using System.Diagnostics;
+using Newtonsoft.Json;
 
 namespace ShellCopilot.Interpreter.Agent;
 
@@ -89,6 +90,9 @@ public sealed class InterpreterAgent : ILLMAgent
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
         List<string> executionResult = new();
+        Dictionary<int, string> toolCallIdsByIndex = new();
+        Dictionary<int, string> functionNamesByIndex = new();
+        Dictionary<int, StringBuilder> functionArgumentBuildersByIndex = new();
 
         if (_refreshSettings)
         {
@@ -119,7 +123,7 @@ public sealed class InterpreterAgent : ILLMAgent
                         host.WriteLine();
                     }
                 }
-                _chatService.AddToolCallToHistory(response);
+                // _chatService.AddToolCallToHistory(response);
             }
         }
         else
@@ -127,13 +131,9 @@ public sealed class InterpreterAgent : ILLMAgent
             ChatRequestUserMessage chatRequestUserMessage = new(input);
             Task<StreamingResponse<StreamingChatCompletionsUpdate>> func_streaming() => _chatService.GetStreamingChatResponseAsync(chatRequestUserMessage, token);
             StreamingResponse<StreamingChatCompletionsUpdate> response = await host.RunWithSpinnerAsync(func_streaming).ConfigureAwait(false);
-
+            
             if (response is not null)
             {
-                Dictionary<int, string> toolCallIdsByIndex = new();
-                Dictionary<int, string> functionNamesByIndex = new();
-                Dictionary<int, StringBuilder> functionArgumentBuildersByIndex = new();
-                StringBuilder contentBuilder = new();
                 using var streamingRender = host.NewStreamRender(token);
                 try
                 {
@@ -141,24 +141,27 @@ public sealed class InterpreterAgent : ILLMAgent
                     // Doing so will result in an exception in Azure.Open
                     await foreach (StreamingChatCompletionsUpdate chatUpdate in response)
                     {
-                        if (chatUpdate.ToolCallUpdate is StreamingFunctionToolCallUpdate functionToolCallUpdate)
+                        if (_chatService.IsFunctionCallingModel())
                         {
-                            if (functionToolCallUpdate.Id != null)
+                            if (chatUpdate.ToolCallUpdate is StreamingFunctionToolCallUpdate functionToolCallUpdate)
                             {
-                                toolCallIdsByIndex[functionToolCallUpdate.ToolCallIndex] = functionToolCallUpdate.Id;
-                            }
-                            if (functionToolCallUpdate.Name != null)
-                            {
-                                functionNamesByIndex[functionToolCallUpdate.ToolCallIndex] = functionToolCallUpdate.Name;
-                            }
-                            if (functionToolCallUpdate.ArgumentsUpdate != null)
-                            {
-                                StringBuilder argumentsBuilder
-                                    = functionArgumentBuildersByIndex.TryGetValue(
-                                        functionToolCallUpdate.ToolCallIndex,
-                                        out StringBuilder existingBuilder) ? existingBuilder : new StringBuilder();
-                                argumentsBuilder.Append(functionToolCallUpdate.ArgumentsUpdate);
-                                functionArgumentBuildersByIndex[functionToolCallUpdate.ToolCallIndex] = argumentsBuilder;
+                                if (functionToolCallUpdate.Id != null)
+                                {
+                                    toolCallIdsByIndex[functionToolCallUpdate.ToolCallIndex] = functionToolCallUpdate.Id;
+                                }
+                                if (functionToolCallUpdate.Name != null)
+                                {
+                                    functionNamesByIndex[functionToolCallUpdate.ToolCallIndex] = functionToolCallUpdate.Name;
+                                }
+                                if (functionToolCallUpdate.ArgumentsUpdate != null)
+                                {
+                                    StringBuilder argumentsBuilder
+                                        = functionArgumentBuildersByIndex.TryGetValue(
+                                            functionToolCallUpdate.ToolCallIndex,
+                                            out StringBuilder existingBuilder) ? existingBuilder : new StringBuilder();
+                                    argumentsBuilder.Append(functionToolCallUpdate.ArgumentsUpdate);
+                                    functionArgumentBuildersByIndex[functionToolCallUpdate.ToolCallIndex] = argumentsBuilder;
+                                }
                             }
                         }
                         if (!string.IsNullOrEmpty(chatUpdate.ContentUpdate))
@@ -176,15 +179,61 @@ public sealed class InterpreterAgent : ILLMAgent
             }
         }
 
-        if (orch.IsCodeBlockComplete(responseContent))
+        if (_chatService.IsFunctionCallingModel())
         {
-            _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
-            return await ExecuteProvidedCode(orch, shell, responseContent);
+            ChatRequestAssistantMessage assistantHistoryMessage = new(responseContent);
+            foreach (KeyValuePair<int, string> indexIdPair in toolCallIdsByIndex)
+            {
+                ChatCompletionsFunctionToolCall toolCall = new ChatCompletionsFunctionToolCall(
+                                   id: indexIdPair.Value,
+                                   functionNamesByIndex[indexIdPair.Key],
+                                   functionArgumentBuildersByIndex[indexIdPair.Key].ToString());
+                assistantHistoryMessage.ToolCalls.Add(toolCall);
+                _chatService.AddResponseToHistory(assistantHistoryMessage);
+                string arguments = toolCall.Arguments;
+                string language = "";
+                string code = "";
+                if (arguments != null)
+                {
+                    Dictionary<string, string> argumentsDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(arguments);
+                    language = argumentsDict["language"];
+                    code = argumentsDict["code"];
+                    host.RenderFullResponse($"```{language}\n{code}\n```");
+                }
+                bool runChoice = await host.PromptForConfirmationAsync("Would you like to run the code?",true, token);
+                if( runChoice )
+                {
+                    ChatRequestToolMessage toolResponse = await _chatService.GetToolCallResponseMessage(toolCall, orch, shell.CancellationToken);
+                    if (toolResponse.Content is not null)
+                    {
+                        host.RenderFullResponse($"```{language}:\n{toolResponse.Content}\n```");
+                        _chatService.AddResponseToHistory(toolResponse);
+                        executionResult.Add(toolResponse.Content);
+                        executionResult.Add(code);
+                        return executionResult;
+                    }
+                }
+                else
+                {
+                    executionResult.Add("Did not run code");
+                    executionResult.Add(responseContent);
+                    return executionResult;
+                }
+            }
+            _chatService.AddResponseToHistory(assistantHistoryMessage);
+        }
+        else
+        {
+            if (orch.IsCodeBlockComplete(responseContent))
+            {
+                 _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
+                 return await ExecuteProvidedCode(orch, shell, responseContent);
+            }
         }
 
-        _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
-        executionResult.Add("No Code was given");
+        executionResult.Add("No code was given");
         executionResult.Add(responseContent);
+
         return executionResult;
     }
 
@@ -193,7 +242,7 @@ public sealed class InterpreterAgent : ILLMAgent
     {
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
-        Orchestrator orch = new(shell);
+        Orchestrator orch = new(token);
         bool checkPass = await SelfCheck(host, token);
         if (!checkPass)
         {
@@ -203,7 +252,7 @@ public sealed class InterpreterAgent : ILLMAgent
         List<string> UserResponseOptions = new List<string>
         {
             "\nFix the error before proceeding to the next step. If the code needs user input then ask directly in english.",
-            "\nPlease continue to the next step and only the next step. Do not reiterate all the steps again. Do not response with more than 1 step.",
+            "\nPlease continue to the next step and only the next step. Do not reiterate all the steps again. Do not response with more than 1 step. Use tools.",
             "\nProceed. You CAN run code on my machine. " +
             "Wait for me to send you the output of the code before telling me the entire task I asked for is done, " +
             "say exactly 'The task is done.' If you need some specific " +
@@ -235,7 +284,7 @@ public sealed class InterpreterAgent : ILLMAgent
                 if (resultCode.StartsWith("Error:"))
                 {
                     input = resultCode + UserResponseOptions[0] + UserResponseOptions[2];
-                    orch = new(shell);
+                    orch = new(token);
                     if (previousCode.Equals(executionResult))
                     {
                         input = "You have already told me to fix the error. Please provide more information." + UserResponseOptions[2];
@@ -254,7 +303,7 @@ public sealed class InterpreterAgent : ILLMAgent
                 {
                     input = UserResponseOptions[1];
                 }
-                else if(resultCode.StartsWith("No Code was given"))
+                else if(resultCode.StartsWith("No code was given"))
                 {
                     if(executionResult.Contains("done"))
                     {
@@ -268,6 +317,7 @@ public sealed class InterpreterAgent : ILLMAgent
                         {
                             host.WriteLine($"The file has been saved as {orch._python.GetTempFile()}.");
                         }
+                        continue;
                     
                     }
                     else if(executionResult.Contains("The task is impossible."))
@@ -282,14 +332,17 @@ public sealed class InterpreterAgent : ILLMAgent
                         {
                             host.WriteLine($"The file has been saved as {orch._python.GetTempFile()}.");
                         }
+                        continue;
                     }
-                    else if(executionResult.Contains("Please provide"))
+                    else if(executionResult.Contains("Please provide", StringComparison.CurrentCultureIgnoreCase))
                     {
                         chatCompleted = true;
+                        continue;
                     }
-                    else if(executionResult.Contains("Let me know what you'd like to do next"))
+                    else if(executionResult.Contains("Let me know what you'd like to do next", StringComparison.CurrentCultureIgnoreCase))
                     {
                         chatCompleted = true;
+                        continue;
                     }
                     else
                     {
@@ -391,7 +444,7 @@ public sealed class InterpreterAgent : ILLMAgent
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
             };
-            var data = JsonSerializer.Deserialize<ConfigData>(stream, options);
+            var data = System.Text.Json.JsonSerializer.Deserialize<ConfigData>(stream, options);
             settings = new Settings(data);
         }
 
@@ -407,7 +460,7 @@ public sealed class InterpreterAgent : ILLMAgent
             Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
         };
 
-        JsonSerializer.Serialize(stream, config.ToConfigData(), options);
+        System.Text.Json.JsonSerializer.Serialize(stream, config.ToConfigData(), options);
     }
 
     private void OnSettingFileChange(object sender, FileSystemEventArgs e)

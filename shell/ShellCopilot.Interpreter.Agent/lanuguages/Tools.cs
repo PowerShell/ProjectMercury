@@ -11,31 +11,32 @@ namespace ShellCopilot.Interpreter.Agent
 
         }
 
-        public static ChatCompletionsFunctionToolDefinition getWeatherTool = new ChatCompletionsFunctionToolDefinition()
+        public static ChatCompletionsFunctionToolDefinition RunCode = new()
         {
-            Name = "get_current_weather",
-            Description = "Get the current weather in a given location",
+            Name = "execute",
+            Description = "This function is able to run given python code. This will allow you to execute python code " +
+            "on my local machine.",
             Parameters = BinaryData.FromObjectAsJson(
             new
             {
                 Type = "object",
                 Properties = new
                 {
-                    Location = new
+                    Language = new
                     {
                         Type = "string",
-                        Description = "The city and state, e.g. San Francisco, CA",
+                        Description = "The programming language (required parameter to the `execute` function)",
+                        Enum = new[] { "python","powershell" },
                     },
-                    Unit = new
+                    Code = new
                     {
                         Type = "string",
-                        Enum = new[] { "celsius", "fahrenheit" },
+                        Description = "The code to be executed (required parameter to the `execute` function)",
                     }
                 },
-                Required = new[] { "location" },
+                Required = new[] { "language","code" }
             },
             new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
         };
-        
     }
 }

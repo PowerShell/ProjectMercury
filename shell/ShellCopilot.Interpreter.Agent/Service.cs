@@ -41,24 +41,24 @@ internal class ChatService
         _chatHistory.Add(response);
     }
 
-    internal void AddToolCallToHistory(Response<ChatCompletions> response)
-    {
-        ChatChoice responseChoice = response.Value.Choices[0];
-        if (responseChoice.FinishReason == CompletionsFinishReason.ToolCalls)
-        {
-            // Add the assistant message with tool calls to the conversation history
-            ChatRequestAssistantMessage toolCallHistoryMessage = new(responseChoice.Message);
-            _chatHistory.Add(toolCallHistoryMessage);
-
-            // Add a new tool message for each tool call that is resolved
-            foreach (ChatCompletionsToolCall toolCall in responseChoice.Message.ToolCalls)
-            {
-                _chatHistory.Add(GetToolCallResponseMessage(toolCall));
-            }
-
-            // Now make a new request with all the messages thus far, including the original
-        };
-    }
+    // internal void AddToolCallToHistory(Response<ChatCompletions> response)
+    // {
+    //     ChatChoice responseChoice = response.Value.Choices[0];
+    //     if (responseChoice.FinishReason == CompletionsFinishReason.ToolCalls)
+    //     {
+    //         // Add the assistant message with tool calls to the conversation history
+    //         ChatRequestAssistantMessage toolCallHistoryMessage = new(responseChoice.Message);
+    //         _chatHistory.Add(toolCallHistoryMessage);
+    // 
+    //         // Add a new tool message for each tool call that is resolved
+    //         foreach (ChatCompletionsToolCall toolCall in responseChoice.Message.ToolCalls)
+    //         {
+    //             _chatHistory.Add(GetToolCallResponseMessage(toolCall));
+    //         }
+    // 
+    //         // Now make a new request with all the messages thus far, including the original
+    //     };
+    // }
 
     internal void RefreshSettings(Settings settings)
     {
@@ -199,6 +199,11 @@ internal class ChatService
         }
     }
 
+    public bool IsFunctionCallingModel()
+    {
+        return ModelInfo.IsFunctionCallingModel(_gptToUse.ModelName);
+    }
+
     private ChatCompletionsOptions PrepareForChat(ChatRequestMessage input)
     {
         // Refresh the client in case the active model was changed.
@@ -214,17 +219,37 @@ internal class ChatService
         // those settings (see the URL below). We can use default values when not defined.
         // https://github.com/microsoft/semantic-kernel/blob/main/samples/skills/FunSkill/Joke/config.json
 
-        _chatOptions = new()
+        // Determine if the gpt model is a function calling model
+        bool isFunctionCallingModel = IsFunctionCallingModel();
+        if (isFunctionCallingModel)
         {
-            DeploymentName = _gptToUse.Deployment,
-            ChoiceCount = 1,
-            Temperature = (float)0.7,
-            MaxTokens = MaxResponseToken,
-        };
+            _chatOptions = new()
+            {
+                DeploymentName = _gptToUse.Deployment,
+                ChoiceCount = 1,
+                Temperature = (float)0.7,
+                MaxTokens = MaxResponseToken,
+                Tools = { Tools.RunCode },
+            };
+        }
+        else
+        {
+            _chatOptions = new()
+            {
+                DeploymentName = _gptToUse.Deployment,
+                ChoiceCount = 1,
+                Temperature = (float)0.7,
+                MaxTokens = MaxResponseToken,
+            };
+        }
 
         List<ChatRequestMessage> history = _isInteractive ? _chatHistory : new List<ChatRequestMessage>();
         if (history.Count is 0)
         {
+            if (isFunctionCallingModel)
+            {
+                history.Add(new ChatRequestSystemMessage("\nUse ONLY the function you have been provided with — 'execute(language, code)'."));
+            }
             history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt));
         }
 
@@ -285,17 +310,23 @@ internal class ChatService
         }
     }
 
-    public ChatRequestToolMessage GetToolCallResponseMessage(ChatCompletionsToolCall toolCall)
+    public async Task<ChatRequestToolMessage> GetToolCallResponseMessage(ChatCompletionsToolCall toolCall, Orchestrator orch, CancellationToken token)
     {
         var functionToolCall = toolCall as ChatCompletionsFunctionToolCall;
-        if (functionToolCall?.Name == Tools.getWeatherTool.Name)
+        if (functionToolCall?.Name == Tools.RunCode.Name)
         {
             // Validate and process the JSON arguments for the function call
             string unvalidatedArguments = functionToolCall.Arguments;
-            var functionResultData = (object)null; // GetYourFunctionResultData(unvalidatedArguments);
-                                                   // Here, replacing with an example as if returned from "GetYourFunctionResultData"
-            functionResultData = "31 celsius";
-            return new ChatRequestToolMessage(functionResultData.ToString(), toolCall.Id);
+            if (unvalidatedArguments.Contains("python") || unvalidatedArguments.Contains("powershell"))
+            {
+                if (orch.FunctionCallCodeBlock(unvalidatedArguments))
+                {
+                    string response = await orch.RunCode(orch.CodeBlock.Key, orch.CodeBlock.Value);
+                    return new ChatRequestToolMessage(response,toolCall.Id);
+                }
+            }
+            
+            return new ChatRequestToolMessage("Code did not run",toolCall.Id);
         }
         else
         {

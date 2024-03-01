@@ -22,7 +22,14 @@ public class Python
 
     public void PreprocessCode(string code)
     {
-        _code = code.Remove(0,_languageLength);
+        if (code.StartsWith("python"))
+        {
+            _code = code.Remove(0,_languageLength);
+        }
+        else
+        {
+            _code = code;
+        }
     }
 
     public async Task<string[]> Run()
