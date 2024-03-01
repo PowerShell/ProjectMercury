@@ -56,7 +56,7 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "`n[Build the Azure agent ...]`n" -ForegroundColor Green
+    Write-Host "`n[Build the Azure agents ...]`n" -ForegroundColor Green
     $az_csproj = GetProjectFile $az_agent_dir
     dotnet publish $az_csproj -c $Configuration -o $az_out_dir
 }

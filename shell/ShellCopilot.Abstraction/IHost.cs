@@ -23,7 +23,8 @@ public interface IHost
     IHost WriteErrorLine();
 
     /// <summary>
-    /// Write out the string literally to stderr with a new line.
+    /// Write out the error string to stderr with a new line.
+    /// Format the error string in red color when stderr is not redirected.
     /// </summary>
     IHost WriteErrorLine(string value);
 
@@ -36,11 +37,6 @@ public interface IHost
     /// Write out the markup string to stdout with a new line.
     /// </summary>
     IHost MarkupLine(string value);
-
-    /// <summary>
-    /// Write out an error to stderr with the passed-in markup string.
-    /// </summary>
-    IHost MarkupErrorLine(string value);
 
     /// <summary>
     /// Write out a note with the passed-in markup string.

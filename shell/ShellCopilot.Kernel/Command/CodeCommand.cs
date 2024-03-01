@@ -109,7 +109,7 @@ internal sealed class CodeCommand : CommandBase
         }
         catch (Exception e)
         {
-            host.MarkupErrorLine(e.Message);
+            host.WriteErrorLine(e.Message);
         }
     }
 }

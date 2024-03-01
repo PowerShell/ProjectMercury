@@ -50,7 +50,7 @@ internal class Settings
     {
         if (_gpts.Count is 0)
         {
-            host.MarkupErrorLine("No GPT instance is available to use. Please update the setting file to declare GPT instances and specify the active GPT to use.");
+            host.WriteErrorLine("No GPT instance is available to use. Please update the setting file to declare GPT instances and specify the active GPT to use.");
             return false;
         }
 

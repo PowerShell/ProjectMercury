@@ -41,6 +41,10 @@ internal class AzPSChatService : IDisposable
     {
         if (!string.IsNullOrEmpty(response))
         {
+            while (_chatHistory.Count > Utils.HistoryCount - 1)
+            {
+                _chatHistory.RemoveAt(0);
+            }
             _chatHistory.Add(new ChatMessage() { Role = "assistant", Content = response });
         }
     }
@@ -90,10 +94,9 @@ internal class AzPSChatService : IDisposable
         {
             context?.Status("Refreshing Token ...");
             RefreshToken(cancellationToken);
-
-            context?.Status("Thinking ...");
+            
+            context?.Status("Generating ...");
             HttpRequestMessage request = PrepareForChat(input, streaming: true, CorrelationID, AgentInfo);
-            // Header add a correlation id 
             HttpResponseMessage response = await _client.SendAsync(
                 request,
                 HttpCompletionOption.ResponseHeadersRead,
