@@ -37,6 +37,7 @@ Write-Verbose "RID: $RID"
 
 $shell_dir = Join-Path $PSScriptRoot "shell"
 $app_dir = Join-Path $shell_dir "ShellCopilot.App"
+$pkg_dir = Join-Path $shell_dir "ShellCopilot.Abstraction"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
 $az_agent_dir = Join-Path $shell_dir "ShellCopilot.Azure.Agent"
 
@@ -64,13 +65,15 @@ dotnet publish $app_csproj -c $Configuration -o $app_out_dir -r $RID --sc
 
 if ($LASTEXITCODE -eq 0) {
     ## Move the nuget package to the package folder.
-    Move-Item $app_out_dir/ShellCopilot.Abstraction.*.nupkg $pkg_out_dir -Force
+    Write-Host "`n[Deploy the NuGet package ...]`n" -ForegroundColor Green
+    $pkg_csproj = GetProjectFile $pkg_dir
+    dotnet pack $pkg_csproj -c $Configuration --no-build -o $pkg_out_dir
+}
 
-    if ($AgentToInclude -contains 'openai-gpt') {
-        Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
-        $open_ai_csproj = GetProjectFile $open_ai_agent_dir
-        dotnet publish $open_ai_csproj -c $Configuration -o $open_ai_out_dir
-    }
+if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'openai-gpt') {
+    Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
+    $open_ai_csproj = GetProjectFile $open_ai_agent_dir
+    dotnet publish $open_ai_csproj -c $Configuration -o $open_ai_out_dir
 }
 
 if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {
