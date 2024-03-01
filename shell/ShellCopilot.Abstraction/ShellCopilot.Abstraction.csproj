@@ -1,16 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\shell.common.props" />
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-
-    <!-- Disable deps.json generation -->
-    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <AssemblyName>ShellCopilot.Abstraction</AssemblyName>
 
     <PackageId>ShellCopilot.Abstraction</PackageId>
     <Version>0.1.0-beta.5</Version>
-    <Authors>Microsoft</Authors>
-    <Company>Your Company</Company>
+    <Company>Microsoft Corporation</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
     <Description>The abstraction layer SDK for building a plugin agent for Shell Copilot.</Description>
