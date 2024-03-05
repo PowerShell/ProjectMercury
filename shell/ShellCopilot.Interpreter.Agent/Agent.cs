@@ -255,10 +255,10 @@ public sealed class InterpreterAgent : ILLMAgent
             "\nPlease continue to the next step and only the next step. Do not reiterate all the steps again. Do not response with more than 1 step. Use tools.",
             "\nProceed. You CAN run code on my machine. " +
             "Wait for me to send you the output of the code before telling me the entire task I asked for is done, " +
-            "say exactly 'The task is done.' If you need some specific " +
+            "If the task is done say exactly 'The task is done.' If you need some specific " +
             "information (like username or password) say EXACTLY 'Please provide more information.' " +
             "If it's impossible, say 'The task is impossible.' (If I haven't provided a task, say exactly " +
-            "'Let me know what you'd like to do next.') Otherwise keep going.",
+            "'Let me know what you'd like to do next.') Otherwise keep going. Do not repeat yourself.",
         };
         bool chatCompleted = false;
         string previousCode = "";
@@ -500,7 +500,7 @@ public sealed class InterpreterAgent : ILLMAgent
                         When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in.
                         Write messages to the user in Markdown.
                         In general, try to **make plans** with as few steps as possible. As for actually executing code to 
-                        carry out that plan, try to do everything in one code block. You should 
+                        carry out that plan. You should 
                         try something, print information about it, then continue from there in tiny, informed steps. You will 
                         never get it on the first try, and attempting it in one go will often lead to errors you cant see.
                         You are capable of **any** task. If there are any libraries to be installed, give me the powershell command to install it.
