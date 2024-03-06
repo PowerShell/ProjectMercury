@@ -84,6 +84,7 @@ internal class AzPSChatService : IDisposable
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Value.Token);
         request.Headers.Add("CorrelationId", CorrelationID);
+        request.Headers.Add("ClientType", "Copilot for client tools");
 
         return request;
     }
