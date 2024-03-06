@@ -60,16 +60,16 @@ namespace ShellCopilot.Azure
 
             Dictionary<string, string> eventProperties = new()
             {
-                { "CorrelationID", trace.CorrelationID ?.ToString() },
-                { "InstallationID", trace.InstallationID ?.ToString() },
-                { "Handler", trace.Handler ?? null },
-                { "EventType", trace.EventType ?? null },
-                { "Duration", trace.Duration?.ToString() },
-                { "Command", trace.Command ?? null },
-                { "DetailedMessage", trace.DetailedMessage ?? null },
-                { "HistoryMessage", JsonSerializer.Serialize(trace.HistoryMessage) ?? null },
-                { "StartTime", trace.StartTime?.ToString() },
-                { "EndTime", trace.EndTime?.ToString() },
+                { "CorrelationID", trace?.CorrelationID ?.ToString() },
+                { "InstallationID", trace?.InstallationID ?.ToString() },
+                { "Handler", trace?.Handler ?? null },
+                { "EventType", trace?.EventType ?? null },
+                { "Duration", trace?.Duration?.ToString() },
+                { "Command", trace?.Command ?? null },
+                { "DetailedMessage", trace?.DetailedMessage ?? null },
+                { "HistoryMessage", JsonSerializer.Serialize(trace?.HistoryMessage) ?? null },
+                { "StartTime", trace?.StartTime?.ToString() },
+                { "EndTime", trace?.EndTime?.ToString() },
             };
 
 

@@ -109,7 +109,7 @@ public sealed class AzPSAgent : ILLMAgent
 
     public void ClearHistory()
     {
-        _historyMessage = [];
+        _historyMessage.Clear();
     }
 
     public async Task<bool> Chat(string input, IShell shell)
