@@ -107,7 +107,7 @@ internal class AzPSChatService : IDisposable
         {
             context?.Status("Refreshing Token ...");
             RefreshToken(cancellationToken);
-            
+
             context?.Status("Generating ...");
             HttpRequestMessage request = PrepareForChat(input, streaming: true);
             HttpResponseMessage response = await _client.SendAsync(
