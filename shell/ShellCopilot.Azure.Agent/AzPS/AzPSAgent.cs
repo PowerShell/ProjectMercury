@@ -1,9 +1,6 @@
 ﻿using Azure.Identity;
 using ShellCopilot.Abstraction;
-using System.Text.Json;
 using System.Diagnostics;
-using System.Linq;
-using System;
 
 namespace ShellCopilot.Azure.PowerShell;
 
@@ -25,17 +22,11 @@ public sealed class AzPSAgent : ILLMAgent
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
     private MetricHelper _metricHelper;
-    private List<HistoryMessage> _historyMessage = [];
-    private string _correlationID;
+    private List<HistoryMessage> _historyMessage;
 
     public void Dispose()
     {
         _chatService.Dispose();
-    }
-
-    public void RefreshCorrelationID()
-    {
-        _correlationID = Guid.NewGuid().ToString();
     }
 
     public void Initialize(AgentConfig config)
@@ -58,6 +49,7 @@ public sealed class AzPSAgent : ILLMAgent
             ["Privacy statement"] = "https://aka.ms/privacy",
         };
 
+        _historyMessage = [];
         _metricHelper = new MetricHelper();
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
@@ -99,7 +91,7 @@ public sealed class AzPSAgent : ILLMAgent
                 new AzTrace()
                 {
                     Command = actionPayload.Action.ToString(),
-                    CorrelationID = _correlationID,
+                    CorrelationID = _chatService.CorrelationID,
                     EventType = "Feedback",
                     Handler = "Azure PowerShell",
                     DetailedMessage = DetailedMessage,
@@ -119,12 +111,9 @@ public sealed class AzPSAgent : ILLMAgent
 
     public async Task<bool> Chat(string input, IShell shell)
     {
-        // For each Chat input, refresh correlation ID
-        RefreshCorrelationID();
-
         // Measure time spent
         var watch = Stopwatch.StartNew();
-        var StartTime = DateTime.Now;
+        var startTime = DateTime.Now;
 
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
@@ -135,7 +124,7 @@ public sealed class AzPSAgent : ILLMAgent
             // update the status message while waiting for the answer payload to come back.
             using ChunkReader chunkReader = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
-                func: async context => await _chatService.GetStreamingChatResponseAsync(context, input, token, _correlationID)
+                func: async context => await _chatService.GetStreamingChatResponseAsync(context, input, token)
             ).ConfigureAwait(false);
 
             if (chunkReader is null)
@@ -178,7 +167,7 @@ public sealed class AzPSAgent : ILLMAgent
             {
                 _historyMessage.Add(new HistoryMessage
                 {
-                    CorrelationID = _correlationID,
+                    CorrelationID = _chatService.CorrelationID,
                     Role = _chatService._chatHistory[index].Role,
                     Content = _chatService._chatHistory[index].Content
                 });
@@ -186,12 +175,12 @@ public sealed class AzPSAgent : ILLMAgent
             
             _metricHelper.LogTelemetry(AzPSChatService.Endpoint, 
                 new AzTrace() {
-                    CorrelationID = _correlationID,
+                    CorrelationID = _chatService.CorrelationID,
                     Duration = Duration,
                     EndTime = EndTime,
                     EventType = "Question",
                     Handler = "Azure PowerShell",
-                    StartTime = StartTime
+                    StartTime = startTime
                 });
         }
         catch (RefreshTokenException ex)
