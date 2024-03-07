@@ -102,13 +102,9 @@ internal class Program
             var options = Utils.GetJsonSerializerOptions();
 
             shellWrapper = JsonSerializer.Deserialize<ShellWrapper>(stream, options);
-            if (string.IsNullOrEmpty(shellWrapper.Name) || string.IsNullOrEmpty(shellWrapper.Banner) ||
-                string.IsNullOrEmpty(shellWrapper.Version) || string.IsNullOrEmpty(shellWrapper.Prompt) ||
-                string.IsNullOrEmpty(shellWrapper.Agent))
+            if (string.IsNullOrEmpty(shellWrapper.Agent))
             {
-                Console.Error.WriteLine("Invalid shell wrapper configuration. Make sure the following required keys are properly set:");
-                Console.Error.WriteLine($"{nameof(ShellWrapper.Name)}, {nameof(ShellWrapper.Banner)}, {nameof(ShellWrapper.Version)}, {nameof(ShellWrapper.Prompt)}, {nameof(ShellWrapper.Agent)}");
-
+                Console.Error.WriteLine($"Invalid shell wrapper configuration. Make sure the required key '{nameof(ShellWrapper.Agent)}' is properly set.");
                 shellWrapper = null;
                 return false;
             }

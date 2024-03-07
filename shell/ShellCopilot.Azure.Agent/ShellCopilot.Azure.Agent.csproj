@@ -18,7 +18,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.10.4" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.18.0" />
-    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-beta.5">
+    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-beta.6">
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

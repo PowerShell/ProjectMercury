@@ -39,6 +39,7 @@ internal sealed class Disposable : IDisposable
 internal static class Utils
 {
     internal const string DefaultAppName = "aish";
+    internal const string DefaultPrompt = "Copilot";
 
     internal static string AppName;
     internal static string ShellConfigHome;
