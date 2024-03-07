@@ -6,12 +6,19 @@
 [CmdletBinding()]
 param (
     [Parameter()]
-    [string]
-    $Configuration = "Debug",
+    [ValidateSet('Debug', 'Release')]
+    [string] $Configuration = "Debug",
 
     [Parameter()]
-    [switch]
-    $Clean
+    [ValidateSet('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')]
+    [string] $Runtime = [NullString]::Value,
+
+    [Parameter()]
+    [ValidateSet('openai-gpt', 'az-agent')]
+    [string[]] $AgentToInclude,
+
+    [Parameter()]
+    [switch] $Clean
 )
 
 function GetProjectFile($dir)
@@ -19,8 +26,18 @@ function GetProjectFile($dir)
     return Get-Item "$dir/*.csproj" | ForEach-Object FullName
 }
 
+$ErrorActionPreference = 'Stop'
+
+$AgentToInclude ??= @('openai-gpt', 'az-agent')
+$RID = $Runtime ?? (dotnet --info |
+    Select-String '^\s*RID:\s+(\w+-\w+)$' |
+    Select-Object -First 1 |
+    ForEach-Object { $_.Matches.Groups[1].Value })
+Write-Verbose "RID: $RID"
+
 $shell_dir = Join-Path $PSScriptRoot "shell"
 $app_dir = Join-Path $shell_dir "ShellCopilot.App"
+$pkg_dir = Join-Path $shell_dir "ShellCopilot.Abstraction"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
 $az_agent_dir = Join-Path $shell_dir "ShellCopilot.Azure.Agent"
 
@@ -44,18 +61,22 @@ if (-not (Test-Path $pkg_out_dir)) {
 
 Write-Host "`n[Build Shell Copilot ...]`n" -ForegroundColor Green
 $app_csproj = GetProjectFile $app_dir
-dotnet build $app_csproj -c $Configuration -o $app_out_dir
+dotnet publish $app_csproj -c $Configuration -o $app_out_dir -r $RID --sc
 
 if ($LASTEXITCODE -eq 0) {
     ## Move the nuget package to the package folder.
-    Move-Item $app_out_dir/ShellCopilot.Abstraction.*.nupkg $pkg_out_dir -Force
+    Write-Host "`n[Deploy the NuGet package ...]`n" -ForegroundColor Green
+    $pkg_csproj = GetProjectFile $pkg_dir
+    dotnet pack $pkg_csproj -c $Configuration --no-build -o $pkg_out_dir
+}
 
+if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'openai-gpt') {
     Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
     $open_ai_csproj = GetProjectFile $open_ai_agent_dir
     dotnet publish $open_ai_csproj -c $Configuration -o $open_ai_out_dir
 }
 
-if ($LASTEXITCODE -eq 0) {
+if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {
     Write-Host "`n[Build the Azure agents ...]`n" -ForegroundColor Green
     $az_csproj = GetProjectFile $az_agent_dir
     dotnet publish $az_csproj -c $Configuration -o $az_out_dir
