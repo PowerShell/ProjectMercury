@@ -6,8 +6,13 @@ namespace ShellCopilot.Azure.PowerShell;
 public sealed class AzPSAgent : ILLMAgent
 {
     public string Name => "az-ps";
-    public string Description => "An AI assistant to provide Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple Azure resources.";
-    public Dictionary<string, string> AgentInfo { private set; get; } = null;
+    public string Description => "This AI assistant can help provide Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple Azure resources.";
+    public List<string> SampleQueries => [
+        "Create a VM with a public IP address",
+        "How to create a web app?",
+        "Backup an Azure SQL database to a storage container"
+    ];
+    public Dictionary<string, string> LegalLinks { private set; get; } = null;
     public string SettingFile { private set; get; } = null;
 
     private const string SettingFileName = "az-ps.agent.json";
@@ -28,17 +33,18 @@ public sealed class AzPSAgent : ILLMAgent
         SettingFile = Path.Combine(_configRoot, SettingFileName);
 
         string tenantId = null;
+        string subscriptionId = null;
         if (config.Context is not null)
         {
-            config.Context.TryGetValue("tenant", out tenantId);
-            config.Context.TryGetValue("subscription", out string subscriptionId);
-
-            AgentInfo = new Dictionary<string, string>
-            {
-                ["Tenant"] = tenantId,
-                ["Subscription"] = subscriptionId,
-            };
+            config.Context?.TryGetValue("tenant", out tenantId);
+            config.Context.TryGetValue("subscription", out subscriptionId);
         }
+
+        LegalLinks = new Dictionary<string, string>
+        {
+            ["Terms of use"] = "https://aka.ms/TermsOfUse",
+            ["Privacy statement"] = "https://aka.ms/privacy",
+        };
 
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }

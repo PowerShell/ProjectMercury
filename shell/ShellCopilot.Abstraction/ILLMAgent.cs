@@ -143,6 +143,16 @@ public interface ILLMAgent : IDisposable
     string Description { get; }
 
     /// <summary>
+    /// Gets some sample queries.
+    /// </summary>
+    List<string> SampleQueries => null;
+
+    /// <summary>
+    /// Gets URL links for legal terms, such as "Terms of use", "Privacy statement".
+    /// </summary>
+    Dictionary<string, string> LegalLinks => null;
+
+    /// <summary>
     /// Properties of the agent to be displayed to user.
     /// </summary>
     Dictionary<string, string> AgentInfo => null;

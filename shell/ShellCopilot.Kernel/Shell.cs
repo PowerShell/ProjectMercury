@@ -92,8 +92,12 @@ internal sealed class Shell : IShell
 
         if (interactive)
         {
-            string banner = $"{wrapper?.Banner ?? "Microsoft Copilot"} ({wrapper?.Version ?? "v0.1"})";
-            Host.WriteLine(banner).WriteLine();
+            string banner = wrapper?.Banner is null ? "Shell Copilot" : wrapper.Banner;
+            string version = wrapper?.Version is null ? "v0.1.0-preview.1" : wrapper.Version;
+            Host.MarkupLine($"[bold]{banner.EscapeMarkup()}[/]")
+                .MarkupLine(version)
+                .WriteLine();
+
             CommandRunner = new CommandRunner(this);
             SetReadLineExperience();
         }
@@ -116,7 +120,7 @@ internal sealed class Shell : IShell
             }
 
             // Write out help.
-            Host.MarkupLine($"Type {Formatter.InlineCode("/help")} for instructions.")
+            Host.MarkupLine($"Type {Formatter.InlineCode("/help")} for more instructions.")
                 .WriteLine();
         }
     }
