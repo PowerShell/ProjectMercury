@@ -8,7 +8,6 @@ using Azure.AI.OpenAI;
 using SharpToken;
 
 namespace ShellCopilot.Interpreter.Agent;
-
 internal class ChatService
 {
     // TODO: Maybe expose this to our model registration?
@@ -307,31 +306,6 @@ internal class ChatService
         catch (OperationCanceledException)
         {
             return null;
-        }
-    }
-
-    public async Task<ChatRequestToolMessage> GetToolCallResponseMessage(ChatCompletionsToolCall toolCall, Orchestrator orch, CancellationToken token)
-    {
-        var functionToolCall = toolCall as ChatCompletionsFunctionToolCall;
-        if (functionToolCall?.Name == Tools.RunCode.Name)
-        {
-            // Validate and process the JSON arguments for the function call
-            string unvalidatedArguments = functionToolCall.Arguments;
-            if (unvalidatedArguments.Contains("python") || unvalidatedArguments.Contains("powershell"))
-            {
-                if (orch.FunctionCallCodeBlock(unvalidatedArguments))
-                {
-                    string response = await orch.RunCode(orch.CodeBlock.Key, orch.CodeBlock.Value);
-                    return new ChatRequestToolMessage(response,toolCall.Id);
-                }
-            }
-            
-            return new ChatRequestToolMessage("Code did not run",toolCall.Id);
-        }
-        else
-        {
-            // Handle other or unexpected calls
-            throw new NotImplementedException();
         }
     }
 }
