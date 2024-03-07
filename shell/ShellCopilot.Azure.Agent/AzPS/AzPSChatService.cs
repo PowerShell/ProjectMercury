@@ -89,7 +89,7 @@ internal class AzPSChatService : IDisposable
         return request;
     }
 
-    internal async Task<ChunkReader> GetStreamingChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken, string? CorrelationID = null, Dictionary<string, string> AgentInfo = null)
+    internal async Task<ChunkReader> GetStreamingChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken, string? CorrelationID = null)
     {
         try
         {
@@ -97,7 +97,7 @@ internal class AzPSChatService : IDisposable
             RefreshToken(cancellationToken);
             
             context?.Status("Generating ...");
-            HttpRequestMessage request = PrepareForChat(input, streaming: true, CorrelationID, AgentInfo);
+            HttpRequestMessage request = PrepareForChat(input, streaming: true, CorrelationID);
             HttpResponseMessage response = await _client.SendAsync(
                 request,
                 HttpCompletionOption.ResponseHeadersRead,

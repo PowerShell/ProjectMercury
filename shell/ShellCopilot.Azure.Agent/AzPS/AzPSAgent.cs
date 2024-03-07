@@ -130,7 +130,7 @@ public sealed class AzPSAgent : ILLMAgent
             // update the status message while waiting for the answer payload to come back.
             using ChunkReader chunkReader = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
-                func: async context => await _chatService.GetStreamingChatResponseAsync(context, input, token, _correlationID, AgentInfo)
+                func: async context => await _chatService.GetStreamingChatResponseAsync(context, input, token, _correlationID)
             ).ConfigureAwait(false);
 
             if (chunkReader is null)
