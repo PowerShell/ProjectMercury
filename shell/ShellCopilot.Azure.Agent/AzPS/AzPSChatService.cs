@@ -86,7 +86,7 @@ internal class AzPSChatService : IDisposable
         List<ChatMessage> messages = _interactive ? _chatHistory : [];
         messages.Add(new ChatMessage() { Role = "user", Content = input });
 
-        var requestData = new Query { Messages = messages, IsStreaming = streaming};
+        var requestData = new Query { Messages = messages, IsStreaming = streaming };
         var json = JsonSerializer.Serialize(requestData, Utils.JsonOptions);
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
