@@ -8,7 +8,7 @@ namespace ShellCopilot.Azure.CLI;
 public sealed class AzCLIAgent : ILLMAgent
 {
     public string Name => "az-cli";
-    public string Description => "This AI assistant can help generate Azure CLI scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple Azure resources.";
+    public string Description => "This AI assistant can help generate Azure CLI scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple different Azure resources.";
     public List<string> SampleQueries => [
         "Create a VM with a public IP address",
         "How to create a web app?",
