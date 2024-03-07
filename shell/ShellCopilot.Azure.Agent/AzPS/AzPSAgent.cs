@@ -6,11 +6,11 @@ namespace ShellCopilot.Azure.PowerShell;
 public sealed class AzPSAgent : ILLMAgent
 {
     public string Name => "az-ps";
-    public string Description => "This AI assistant can help provide Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple Azure resources.";
+    public string Description => "This AI assistant can help generate Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple different Azure resources.";
     public List<string> SampleQueries => [
         "Create a VM with a public IP address",
-        "How to create a web app?",
-        "Backup an Azure SQL database to a storage container"
+        "How to stop all VMs with the port 22 opened?",
+        "Create a container app using docker image nginx"
     ];
     public Dictionary<string, string> LegalLinks { private set; get; } = null;
     public string SettingFile { private set; get; } = null;
@@ -33,11 +33,9 @@ public sealed class AzPSAgent : ILLMAgent
         SettingFile = Path.Combine(_configRoot, SettingFileName);
 
         string tenantId = null;
-        string subscriptionId = null;
         if (config.Context is not null)
         {
             config.Context?.TryGetValue("tenant", out tenantId);
-            config.Context.TryGetValue("subscription", out subscriptionId);
         }
 
         LegalLinks = new Dictionary<string, string>
