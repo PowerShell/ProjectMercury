@@ -5,91 +5,54 @@ namespace ShellCopilot.Abstraction;
 /// </summary>
 public class ShellWrapper
 {
-    private string _name;
-    private string _banner;
-    private string _version;
-    private string _prompt;
+    string _version;
+    string _description;
 
     /// <summary>
-    /// Name of the application to run from command line, e.g. 'az copilot'
-    /// Set the name when you want to use a different configuration folder for Shell Copilot instead of the default.
+    /// Name of the application to run from command line, e.g. 'az copilot'. Required key.
+    /// It's used to setup the configuration folder of Shell Copilot.
     /// </summary>
-    public string Name
-    {
-        set
-        {
-            // Normalize the empty string to be null.
-            _name = string.IsNullOrEmpty(value) ? null : value;
-        }
-
-        get
-        {
-            return _name;
-        }
-    }
+    public string Name { set; get; }
 
     /// <summary>
-    /// Banner text to use.
-    /// Shell Copilot will show the default banner if this is not set.
+    /// Banner text to be displayed at the startup of Shell Copilot. Required key.
     /// </summary>
-    public string Banner
-    {
-        set
-        {
-            // Normalize the empty string to be null.
-            _banner = string.IsNullOrEmpty(value) ? null : value;
-        }
-
-        get
-        {
-            return _banner;
-        }
-    }
+    public string Banner { set; get; }
 
     /// <summary>
-    /// Version to show.
-    /// Shell Copilot will show the default version if this is not set.
+    /// Version to be displayed at the startup of Shell Copilot. Optional key.
+    /// The version of Shell Copilot will be used if this key is not specified.
     /// </summary>
     public string Version
     {
-        set
-        {
-            // Normalize the empty string to be null.
-            _version = string.IsNullOrEmpty(value) ? null : value;
-        }
-
-        get
-        {
-            return _version;
-        }
+        // Normalize the empty string to be null.
+        set => _version = string.IsNullOrEmpty(value) ? null : value;
+        get => _version;
     }
 
     /// <summary>
-    /// The prompt text to use.
-    /// Shell Copilot will use the default prompt if this is not set.
+    /// The description to be displayed at the startup of Shell Copilot. Optional key.
+    /// The default description of the chosen agent will be used if this key is not specified.
     /// </summary>
-    public string Prompt
+    public string Description
     {
-        set
-        {
-            // Normalize the empty string to be null.
-            _prompt = string.IsNullOrEmpty(value) ? null : value;
-        }
-
-        get
-        {
-            return _prompt;
-        }
+        // Normalize the empty string to be null.
+        set => _description = string.IsNullOrEmpty(value) ? null : value;
+        get => _description;
     }
 
     /// <summary>
-    /// The default agent to use, which should be available along with Shell Copilot.
-    /// This key is required to be set properly.
+    /// The prompt text to use. Required key.
+    /// </summary>
+    public string Prompt { set; get; }
+
+    /// <summary>
+    /// The default agent to use, which should be available along with Shell Copilot. Required key.
     /// </summary>
     public string Agent { set; get; }
 
     /// <summary>
-    /// Context information that can be passed into the agent.
+    /// Context information that can be passed into the agent. Optional key.
     /// </summary>
     public Dictionary<string, string> Context { set; get; }
 }

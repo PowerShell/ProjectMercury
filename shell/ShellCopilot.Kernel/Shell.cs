@@ -95,7 +95,7 @@ internal sealed class Shell : IShell
             string banner = wrapper?.Banner is null ? "Shell Copilot" : wrapper.Banner;
             string version = wrapper?.Version is null ? "v0.1.0-preview.1" : wrapper.Version;
             Host.MarkupLine($"[bold]{banner.EscapeMarkup()}[/]")
-                .MarkupLine(version)
+                .MarkupLine($"[grey]{version.EscapeMarkup()}[/]")
                 .WriteLine();
 
             CommandRunner = new CommandRunner(this);
@@ -111,12 +111,14 @@ internal sealed class Shell : IShell
             var current = ActiveAgent;
             if (current is not null)
             {
+                bool isWrapped = true;
                 if (!current.Impl.Name.Equals(wrapper?.Agent, StringComparison.OrdinalIgnoreCase))
                 {
+                    isWrapped = false;
                     Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
                 }
 
-                current.Display(Host);
+                current.Display(Host, isWrapped ? wrapper.Description : null);
             }
 
             // Write out help.
