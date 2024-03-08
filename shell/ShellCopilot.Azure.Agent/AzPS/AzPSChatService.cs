@@ -14,7 +14,7 @@ internal class AzPSChatService : IDisposable
     private readonly bool _interactive;
     private readonly string[] _scopes;
     private readonly HttpClient _client;
-    public readonly List<ChatMessage> _chatHistory;
+    private readonly List<ChatMessage> _chatHistory;
     private readonly AzurePowerShellCredentialOptions _credOptions;
 
     private AccessToken? _accessToken;
@@ -117,7 +117,6 @@ internal class AzPSChatService : IDisposable
             response.EnsureSuccessStatusCode();
 
             Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            // get status from response? 
             StreamReader reader = new(stream);
 
             string line;

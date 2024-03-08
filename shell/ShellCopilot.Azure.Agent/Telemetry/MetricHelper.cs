@@ -5,23 +5,19 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
 using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
-
 
 namespace ShellCopilot.Azure
 {
     public class MetricHelper
     {
         public static string Endpoint;
-        public void LogTelemetry(string url, AzTrace trace = null)
+
+        public static TelemetryClient InitializeTelemetryClient()
         {
-            // Identify the Endpoint
-            Endpoint = url;
-            
             // Create the DI container.
             IServiceCollection services = new ServiceCollection();
-            
+
             // Add custom TelemetryInitializer
             services.AddSingleton<ITelemetryInitializer, MyCustomTelemetryInitializer>();
 
@@ -29,8 +25,8 @@ namespace ShellCopilot.Azure
             services.Configure<TelemetryConfiguration>(config =>
             {
                 // Optionally configure AAD
-                //var credential = new DefaultAzureCredential();
-                //config.SetAzureTokenCredential(credential);
+                // var credential = new DefaultAzureCredential();
+                // config.SetAzureTokenCredential(credential);
             });
 
             // Being a regular console app, there is no appsettings.json or configuration providers enabled by default.
@@ -47,11 +43,16 @@ namespace ShellCopilot.Azure
             // Build ServiceProvider.
             IServiceProvider serviceProvider = services.BuildServiceProvider();
 
-            // Obtain logger instance from DI.
-            ILogger<MetricHelper> logger = serviceProvider.GetRequiredService<ILogger<MetricHelper>>();
-
             // Obtain TelemetryClient instance from DI, for additional manual tracking or to flush.
             var telemetryClient = serviceProvider.GetRequiredService<TelemetryClient>();
+
+            return telemetryClient;
+        }
+
+        public void LogTelemetry(TelemetryClient telemetryClient,  string url, AzTrace trace = null)
+        {
+            // Identify the Endpoint
+            Endpoint = url;
 
             /* Example code for http request - saved in Trace table as well
             var res = new HttpClient().GetAsync(url).Result.StatusCode; // this dependency will be captured by Application Insights.
@@ -60,18 +61,17 @@ namespace ShellCopilot.Azure
 
             Dictionary<string, string> eventProperties = new()
             {
-                { "CorrelationID", trace?.CorrelationID ?.ToString() },
-                { "InstallationID", trace?.InstallationID ?.ToString() },
-                { "Handler", trace?.Handler ?? null },
-                { "EventType", trace?.EventType ?? null },
-                { "Duration", trace?.Duration?.ToString() },
-                { "Command", trace?.Command ?? null },
-                { "DetailedMessage", trace?.DetailedMessage ?? null },
-                { "HistoryMessage", JsonSerializer.Serialize(trace?.HistoryMessage) ?? null },
-                { "StartTime", trace?.StartTime?.ToString() },
-                { "EndTime", trace?.EndTime?.ToString() },
+                { "CorrelationID", trace?.CorrelationID },
+                { "InstallationID", trace?.InstallationID },
+                { "Handler", trace?.Handler },
+                { "EventType", trace?.EventType },
+                { "Duration", trace?.Duration.ToString() },
+                { "Command", trace?.Command },
+                { "DetailedMessage", trace?.DetailedMessage },
+                { "HistoryMessage", JsonSerializer.Serialize(trace?.HistoryMessage) },
+                { "StartTime", trace.StartTime.ToString() },
+                { "EndTime", trace.EndTime.ToString() },
             };
-
 
             telemetryClient.TrackTrace("shellCopilot", eventProperties);
 
