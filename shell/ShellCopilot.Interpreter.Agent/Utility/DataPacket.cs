@@ -31,6 +31,7 @@ public class InternalChatResultsPacket(string AIResponse, string ToolResponse, s
     public readonly bool languageOnPath = !ToolResponse.Contains("Language not found on path.");
     public readonly bool wasCodeGiven = !ToolResponse.Contains("No code was given.");
     public readonly bool wasThereAnError = ToolResponse.Contains("Error");
+    public readonly bool didNotCallTool = ToolResponse.Contains("Tool was not called.");
 
     public readonly string Language = language;
     public readonly string Code = code;

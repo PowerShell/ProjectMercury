@@ -11,12 +11,13 @@ public class Python: SubprocessLanguage
 {
 	public Python()
 	{
-		StartCmd = ["python3", "-"];
+		StartCmd = ["python3.exe", "-"];
 		OutputQueue = new Queue<Dictionary<string, string>>();
 	}
 
 	protected override string PreprocessCode(string code)
 	{
-		return code;
+		code += "\nprint('##end_of_execution##')";
+        return code;
     }
 }

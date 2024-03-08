@@ -38,8 +38,6 @@ internal class TaskCompletionChat
             {
                 InternalChatResultsPacket packet = await SmartChat(input, _renderingStyle);
 
-                _chatService.AddResponseToHistory(new ChatRequestUserMessage("This is a test."));
-
                 PromptEngineering(ref input, ref chatCompleted, ref previousCode, packet);
             }
             catch (OperationCanceledException)
@@ -56,9 +54,13 @@ internal class TaskCompletionChat
     {
         if (packet.wasCodeGiven)
         {
-            if(packet.Code.Equals(previousCode))
+            if(packet.Code.Equals(previousCode) && !string.IsNullOrEmpty(previousCode))
             {
                 input = prompts["SameError"];
+            }
+            else if(packet.didNotCallTool)
+            {
+                input = prompts["UseTool"];
             }
             else if (packet.wasToolSupported && packet.languageSupported)
             {
@@ -76,7 +78,7 @@ internal class TaskCompletionChat
                         }
                         else
                         {
-                            input = prompts["Next"];
+                            input = prompts["Output"] + packet.toolResponse;
                             previousCode = packet.Code;
                         }
                     }
@@ -97,11 +99,13 @@ internal class TaskCompletionChat
             {
                 //TODO: add a way to save the file
                 chatCompleted = true;
+                computer.Terminate();
             }
             else if (packet.isTaskImpossible)
             {
                 //TODO: add a way to save the file
                 chatCompleted = true;
+                computer.Terminate();
             }
             else if (packet.isMoreInformationNeeded)
             {
@@ -109,7 +113,7 @@ internal class TaskCompletionChat
             }
             else
             {
-                input = prompts["Next"];
+                input = prompts["Force"];
             }
         }
     }
@@ -303,6 +307,12 @@ internal class TaskCompletionChat
         string language = "";
         string code = "";
 
+        if(toolCallIdsByIndex.Count == 0)
+        {
+            _chatService.AddResponseToHistory(assistantHistoryMessage);
+            return new InternalChatResultsPacket(responseContent, "Tool was not called.");
+        }
+
         foreach (KeyValuePair<int, string> indexIdPair in toolCallIdsByIndex)
         {
             ChatCompletionsFunctionToolCall toolCall = new ChatCompletionsFunctionToolCall(
@@ -315,7 +325,7 @@ internal class TaskCompletionChat
 
             // Add it to the history
             _chatService.AddResponseToHistory(assistantHistoryMessage);
-            
+
             string arguments = toolCall.Arguments;
 
             // Extract the language and code from the arguments
@@ -334,12 +344,10 @@ internal class TaskCompletionChat
             {
                 // Use the tool
                 ToolResponsePacket toolResponse = await UseTool(toolCall, language, code, computer, token);
-                
+
                 if (toolResponse.Content is not null)
                 {
                     host.RenderFullResponse($"```{language}:\n{toolResponse.Content}\n```");
-
-                    _chatService.AddResponseToHistory(new ChatRequestToolMessage(toolResponse.Content, toolResponse.ToolId));
                     toolMessage = toolResponse.Content;
                 }
                 else
@@ -351,16 +359,11 @@ internal class TaskCompletionChat
             {
                 toolMessage = "User chose not to run code.";
             }
-        }
-        _chatService.AddResponseToHistory(assistantHistoryMessage);
-        if(string.IsNullOrEmpty(toolMessage))
-        {
-            toolMessage = "Tool was not called.";
+            _chatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, indexIdPair.Value ));
         }
 
         return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
     }
-
 
     private async Task<ToolResponsePacket> UseTool(ChatCompletionsToolCall toolCall, string language, string code, Computer computer, CancellationToken token)
     {

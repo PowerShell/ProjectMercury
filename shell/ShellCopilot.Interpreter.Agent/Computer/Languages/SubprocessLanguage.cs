@@ -17,6 +17,12 @@ public abstract class SubprocessLanguage : IBaseLanguage
     /// to run and the second element is the arguments to pass to the program.
     /// </summary>
     protected string[] StartCmd { get; set; }
+
+    protected ManualResetEvent Done = new ManualResetEvent(false);
+
+    /// <summary>
+    /// The queue to store the output of code processes.
+    /// </summary>
     protected Queue<Dictionary<string,string>> OutputQueue { get; set; }
 
     /// <summary>
@@ -25,6 +31,8 @@ public abstract class SubprocessLanguage : IBaseLanguage
     /// <param name="code"></param>
     /// <returns></returns>
     protected abstract string PreprocessCode(string code);
+
+    private List<Thread> OutputThreads;
 
     /// <summary>
     /// Assigns process with a new process if possible.
@@ -50,25 +58,29 @@ public abstract class SubprocessLanguage : IBaseLanguage
 
         Process = new Process { StartInfo = startInfo };
         Process.Start();
+    }
 
+    private void MakeOutputListeningThreads()
+    {
         Thread outputThread = new Thread(() =>
         {
-            while (!Process.StandardOutput.EndOfStream)
+            while (!Process.StandardOutput.EndOfStream && !Done.WaitOne(0))
             {
                 StreamReader line = Process.StandardOutput;
                 HandleStreamOutput(line, false);
             }
         });
-        outputThread.Start();
-        
+
         Thread errorThread = new Thread(() =>
         {
-            while (!Process.StandardError.EndOfStream)
+            while (!Process.StandardError.EndOfStream && !Done.WaitOne(0))
             {
                 StreamReader line = Process.StandardError;
                 HandleStreamOutput(line, true);
             }
         });
+
+        outputThread.Start();
         errorThread.Start();
     }
 
@@ -97,6 +109,12 @@ public abstract class SubprocessLanguage : IBaseLanguage
             return OutputQueue;
         }
 
+        // Reset the event so we can wait for the process to finish
+        Done.Reset();
+
+        // Start the output listening threads
+        MakeOutputListeningThreads();
+
         try
         {
             Process.StandardInput.WriteLine(processedCode + "\n");
@@ -113,30 +131,13 @@ public abstract class SubprocessLanguage : IBaseLanguage
 
         while (true)
         {
-            if(OutputQueue.Count > 0)
+            if(OutputQueue.Count > 0 && Done.WaitOne(0))
             {
                 return OutputQueue;
             }
             else
             {
                 await Task.Delay(100);
-            }
-            try
-            {
-                await Task.Delay(300);
-                if(OutputQueue.Count > 0)
-                {
-                    return OutputQueue;
-                }
-            }
-            catch(Exception e)
-            {
-                OutputQueue.Enqueue(new Dictionary<string, string>
-                {
-                    { "type", "error" },
-                    { "content", "Error reading from process\n" + e }
-                });
-                return OutputQueue;
             }
         }
     }
@@ -171,9 +172,15 @@ public abstract class SubprocessLanguage : IBaseLanguage
                     { "type", "error" },
                     { "content", line },
                 });
+                Done.Set();
             }
             else
             {
+                if(DetectEndOfExecution(line))
+                {
+                    Done.Set();
+                    return;
+                }
                 OutputQueue.Enqueue(new Dictionary<string,string>
                 {
                     { "type", "output" },
@@ -181,6 +188,10 @@ public abstract class SubprocessLanguage : IBaseLanguage
                 });
             }
         }
+    }
+    protected bool DetectEndOfExecution(string line)
+    {
+        return line.Contains("##end_of_execution##");
     }
 
     /// <summary>

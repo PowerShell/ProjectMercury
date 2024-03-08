@@ -24,9 +24,12 @@ public static class TaskCompletionChatPrompts
             "If it's impossible, say 'The task is impossible.' (If I haven't provided a task, say exactly " +
             "'Let me know what you'd like to do next.') Otherwise keep going.\n" },
         // Code output response
-        { "Output", "\nThe following was the outfrom code execution. If this is not what you were expecting then please fix the code.\n"},
+        { "Output", "\nThe following was the outfrom code execution. If this is not what you were expecting then please fix the code. " +
+            "If it is what you were expecting please move on to the next step and only the next step.\n"},
         // Tool Cancelled terminate task
         { "ToolCancelled", "\nTask cancelled. Say exactly 'Let me know what you'd like to do next.'\n" },
+        // Use the tool
+        { "UseTool", "\nUse the tool I gave you to execute the code.'\n" },
     };
 
 }

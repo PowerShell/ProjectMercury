@@ -40,11 +40,11 @@ public class Computer
                 if (outputItem["type"] == "error")
                 {
                     packet.SetError(true);
-                    packet.SetContent(outputItem["content"]);
+                    packet.SetContent(outputItem["content"] + "\n");
                 }
                 else if (outputItem["type"] == "output")
                 {
-                    packet.SetContent(outputItem["content"]);
+                    packet.SetContent(outputItem["content"] + "\n");
                 }
             }
         } 

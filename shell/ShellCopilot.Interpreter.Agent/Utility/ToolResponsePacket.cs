@@ -19,12 +19,14 @@ public class ToolResponsePacket : DataPacket
     {
         Language = language;
         Code = code;
+        Content = "";
     }
 
     public ToolResponsePacket(string content, string language, string code) : base(ChatRole.Tool, content)
     {
         Language = language;
         Code = code;
+        Content = "";
         SetContent(content);
     }
     public void SetToolId(string toolId)
@@ -39,7 +41,7 @@ public class ToolResponsePacket : DataPacket
 
     public void SetContent(string content)
     {
-        Content = content;
+        Content += content;
         if (Content.StartsWith("Language not supported."))
         {
             IsLanguageSupported = false;
