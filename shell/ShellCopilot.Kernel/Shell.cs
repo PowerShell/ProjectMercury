@@ -111,12 +111,14 @@ internal sealed class Shell : IShell
             var current = ActiveAgent;
             if (current is not null)
             {
+                bool isWrapped = true;
                 if (!current.Impl.Name.Equals(wrapper?.Agent, StringComparison.OrdinalIgnoreCase))
                 {
+                    isWrapped = false;
                     Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
                 }
 
-                current.Display(Host, wrapper?.Description);
+                current.Display(Host, isWrapped ? wrapper.Description : null);
             }
 
             // Write out help.
