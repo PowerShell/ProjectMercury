@@ -153,23 +153,9 @@ public sealed class AzPSAgent : ILLMAgent
             var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
 
             // Append last Q&A history in HistoryMessage
-            _historyForTelemetry.Add(
-                new HistoryMessage
-                {
-                    CorrelationID = _chatService.CorrelationID,
-                    Role = "user",
-                    Content = input
-                }
-            );
-            _historyForTelemetry.Add(
-                new HistoryMessage
-                {
-                    CorrelationID = _chatService.CorrelationID,
-                    Role = "assistant",
-                    Content = accumulatedContent
-                }
-            );
-            
+            _historyForTelemetry.Add(new HistoryMessage("user", input, _chatService.CorrelationID));
+            _historyForTelemetry.Add(new HistoryMessage("assistant", accumulatedContent, _chatService.CorrelationID));
+
             _metricHelper.LogTelemetry(
                 new AzTrace() {
                     CorrelationID = _chatService.CorrelationID,
