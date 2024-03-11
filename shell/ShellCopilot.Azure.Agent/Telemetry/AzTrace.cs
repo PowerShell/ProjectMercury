@@ -69,8 +69,15 @@ namespace ShellCopilot.Azure
     // TODO: inherit from ChatMessage in PSSchema
     internal class HistoryMessage
     {
-        public string Role { get; set; }
-        public string Content { get; set; }
-        public string CorrelationID { get; set; }
+        internal HistoryMessage(string role, string content, string correlationID)
+        {
+            Role = role;
+            Content = content;
+            CorrelationID = correlationID;
+        }
+
+        public string Role { get; }
+        public string Content { get; }
+        public string CorrelationID { get; }
     }
 }
