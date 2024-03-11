@@ -1,16 +1,42 @@
-﻿using System.Text.Json;
+﻿using Azure.Core;
+using System.Text.Json;
 
 namespace ShellCopilot.Azure
 {
     public class AzTrace
     {
-        public static string GetInstallationID()
+        private static string s_installationId;
+        private static string GetInstallationID()
         {
             string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var json = new StreamReader(Environment.ExpandEnvironmentVariables($"{userProfile}/.Azure/azureProfile.json")).BaseStream; // .ReadToEnd();
-            var array = JsonSerializer.Deserialize<JsonElement>(json);
-            
-            return array.GetProperty("installationId").GetString();
+            string userProfilePath = Path.Combine(userProfile, ".Azure", "azureProfile.json");
+            FileStream jsonStream;
+            JsonElement array;
+            string installationID;
+
+            if (File.Exists(userProfilePath))
+            {
+                jsonStream = new FileStream(userProfilePath, FileMode.Open, FileAccess.Read);
+                array = JsonSerializer.Deserialize<JsonElement>(jsonStream);
+                installationID = array.GetProperty("installationId").GetString();
+            }
+            else
+            {
+                userProfilePath = Path.Combine(userProfile, ".Azure", "AzureRmContextSettings.json");
+                try
+                {
+                    jsonStream = new FileStream(userProfilePath, FileMode.Open, FileAccess.Read);
+                    array = JsonSerializer.Deserialize<JsonElement>(jsonStream);
+                    installationID = array.GetProperty("Settings").GetProperty("InstallationId").GetString();
+                }
+                catch
+                {
+                    // If finally no installation id found, just return null.
+                    return null;
+                }
+            }
+
+            return installationID;
         }
 
         // "Azure PowerShell / Azure CLI"
@@ -21,7 +47,7 @@ namespace ShellCopilot.Azure
         public TimeSpan? Duration;
         public DateTime? StartTime;
         public DateTime? EndTime;
-        public string InstallationID;
+        public string InstallationID = s_installationId;
         public string EventType;
         public string Command;
         /// <summary>
@@ -37,7 +63,7 @@ namespace ShellCopilot.Azure
         /// .net/python Version
         /// </summary>
         public Dictionary<string, string> ExtendedProperties;
-        public AzTrace() {}
+        static AzTrace() => s_installationId = GetInstallationID();
     }
 
     // TODO: inherit from ChatMessage in PSSchema

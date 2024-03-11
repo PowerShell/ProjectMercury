@@ -11,15 +11,23 @@ namespace ShellCopilot.Azure
 {
     public class MetricHelper
     {
-        public static string Endpoint;
+        private static string _endpoint;
 
-        public static TelemetryClient InitializeTelemetryClient()
+        public TelemetryClient TelemetryClient;
+
+        public MetricHelper(string endpoint) 
+        {
+            InitializeTelemetryClient();
+            _endpoint = endpoint;
+        }
+
+        private void InitializeTelemetryClient()
         {
             // Create the DI container.
             IServiceCollection services = new ServiceCollection();
 
             // Add custom TelemetryInitializer
-            services.AddSingleton<ITelemetryInitializer, MyCustomTelemetryInitializer>();
+            services.AddSingleton(typeof(ITelemetryInitializer), new MyCustomTelemetryInitializer(_endpoint));
 
             // Configure TelemetryConfiguration
             services.Configure<TelemetryConfiguration>(config =>
@@ -31,63 +39,59 @@ namespace ShellCopilot.Azure
 
             // Being a regular console app, there is no appsettings.json or configuration providers enabled by default.
             // Hence connection string must be specified here.
-            services.AddApplicationInsightsTelemetryWorkerService((ApplicationInsightsServiceOptions options) => options.ConnectionString = "InstrumentationKey=bebe79e3-ad01-4a92-8180-40071f19bd03");
+            services.AddApplicationInsightsTelemetryWorkerService((ApplicationInsightsServiceOptions options) => options.ConnectionString = "InstrumentationKey=c7d054ff-9f40-43e8-bf8e-7d76c58cc1af");
 
             // Add custom TelemetryProcessor
             services.AddApplicationInsightsTelemetryProcessor<MyCustomTelemetryProcessor>();
 
             // Example on Configuring TelemetryModules.
             // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Not a real api key, this is example code.")]
-            services.ConfigureTelemetryModule<QuickPulseTelemetryModule>((module, opt) => module.AuthenticationApiKey = "4h7fityfa4s8dau3tzxetnvnmtcs176ufv4vd10c");
+            services.ConfigureTelemetryModule<QuickPulseTelemetryModule>((module, opt) => module.AuthenticationApiKey = "kyga6ytzemarwnnrydnsb41dys3gu5p8r4o55w46");
 
             // Build ServiceProvider.
             IServiceProvider serviceProvider = services.BuildServiceProvider();
 
             // Obtain TelemetryClient instance from DI, for additional manual tracking or to flush.
-            var telemetryClient = serviceProvider.GetRequiredService<TelemetryClient>();
-
-            return telemetryClient;
+            TelemetryClient = serviceProvider.GetRequiredService<TelemetryClient>();
         }
 
-        public void LogTelemetry(TelemetryClient telemetryClient,  string url, AzTrace trace = null)
+        public void LogTelemetry(AzTrace trace)
         {
-            // Identify the Endpoint
-            Endpoint = url;
-
-            /* Example code for http request - saved in Trace table as well
-            var res = new HttpClient().GetAsync(url).Result.StatusCode; // this dependency will be captured by Application Insights.
-            logger.LogWarning("Response from bing is:" + res); // this will be captured by Application Insights.
-            */
-
             Dictionary<string, string> eventProperties = new()
             {
-                { "CorrelationID", trace?.CorrelationID },
-                { "InstallationID", trace?.InstallationID },
-                { "Handler", trace?.Handler },
-                { "EventType", trace?.EventType },
-                { "Duration", trace?.Duration.ToString() },
-                { "Command", trace?.Command },
-                { "DetailedMessage", trace?.DetailedMessage },
-                { "HistoryMessage", JsonSerializer.Serialize(trace?.HistoryMessage) },
-                { "StartTime", trace.StartTime.ToString() },
-                { "EndTime", trace.EndTime.ToString() },
+                { "CorrelationID", trace.CorrelationID },
+                { "InstallationID", trace.InstallationID },
+                { "Handler", trace.Handler },
+                { "EventType", trace.EventType },
+                { "Duration", trace.Duration?.ToString() },
+                { "Command", trace.Command },
+                { "DetailedMessage", trace.DetailedMessage },
+                { "HistoryMessage", JsonSerializer.Serialize(trace.HistoryMessage) },
+                { "StartTime", trace.StartTime?.ToString() },
+                { "EndTime", trace.EndTime?.ToString() },
             };
 
-            telemetryClient.TrackTrace("shellCopilot", eventProperties);
+            TelemetryClient.TrackTrace("shellCopilot", eventProperties);
 
             // Explicitly call Flush() followed by sleep is required in Console Apps.
             // This is to ensure that even if application terminates, telemetry is sent to the back-end.
-            telemetryClient.Flush();
+            TelemetryClient.Flush();
             // Task.Delay(500000).Wait();
         }
     }
 
     internal class MyCustomTelemetryInitializer : ITelemetryInitializer
     {
+        private string Endpoint;
         public void Initialize(ITelemetry telemetry)
         {
             // Replace with actual properties.
-            (telemetry as ISupportProperties).Properties["Endpoint"] = MetricHelper.Endpoint;
+            (telemetry as ISupportProperties).Properties["Endpoint"] = Endpoint;
+        }
+
+        public MyCustomTelemetryInitializer(string endpoint) 
+        {
+            Endpoint = endpoint;
         }
     }
 

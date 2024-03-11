@@ -1,5 +1,4 @@
 ﻿using Azure.Identity;
-using Microsoft.ApplicationInsights;
 using ShellCopilot.Abstraction;
 using System.Diagnostics;
 
@@ -23,9 +22,7 @@ public sealed class AzPSAgent : ILLMAgent
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
     private MetricHelper _metricHelper;
-    private TelemetryClient _telemetryClient = MetricHelper.InitializeTelemetryClient();
     private List<HistoryMessage> _historyForTelemetry;
-    private string _installationID = AzTrace.GetInstallationID();
     private Stopwatch _watch;
 
     public void Dispose()
@@ -54,7 +51,7 @@ public sealed class AzPSAgent : ILLMAgent
         };
 
         _historyForTelemetry = [];
-        _metricHelper = new MetricHelper();
+        _metricHelper = new MetricHelper(AzPSChatService.Endpoint);
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
 
@@ -66,8 +63,10 @@ public sealed class AzPSAgent : ILLMAgent
     {
         // DisLike Action
         string DetailedMessage = null;
+        List<HistoryMessage> history = null;
         if (actionPayload.Action == UserAction.Dislike)
         {
+            history = _historyForTelemetry;
             DislikePayload dislikePayload = (DislikePayload)actionPayload;
             DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
             if (!dislikePayload.ShareConversation)
@@ -78,6 +77,7 @@ public sealed class AzPSAgent : ILLMAgent
         // Like Action
         else if (actionPayload.Action == UserAction.Like)
         {
+            history = _historyForTelemetry;
             LikePayload likePayload = (LikePayload)actionPayload;
             if (!likePayload.ShareConversation)
             {
@@ -87,8 +87,6 @@ public sealed class AzPSAgent : ILLMAgent
 
         // TODO: Extract into RecrodActionTelemetry : RecordTelemetry()
         _metricHelper.LogTelemetry(
-            _telemetryClient, 
-            AzPSChatService.Endpoint,
             new AzTrace()
             {
                 Command = actionPayload.Action.ToString(),
@@ -96,8 +94,7 @@ public sealed class AzPSAgent : ILLMAgent
                 EventType = "Feedback",
                 Handler = "Azure PowerShell",
                 DetailedMessage = DetailedMessage,
-                HistoryMessage = (actionPayload.Action != UserAction.Like && actionPayload.Action != UserAction.Dislike) ? [] : _historyForTelemetry,
-                InstallationID = _installationID
+                HistoryMessage = history
             });
     }
 
@@ -145,7 +142,8 @@ public sealed class AzPSAgent : ILLMAgent
                 // Operation was cancelled by user.
             }
 
-            _chatService.AddResponseToHistory(streamingRender.AccumulatedContent);
+            string accumulatedContent = streamingRender.AccumulatedContent;
+            _chatService.AddResponseToHistory(accumulatedContent);
 
             // Measure time spent
             _watch.Stop();
@@ -155,32 +153,30 @@ public sealed class AzPSAgent : ILLMAgent
             var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
 
             // Append last Q&A history in HistoryMessage
-            _historyForTelemetry.AddRange(new List<HistoryMessage>
-            {
+            _historyForTelemetry.Add(
                 new HistoryMessage
                 {
                     CorrelationID = _chatService.CorrelationID,
                     Role = "user",
                     Content = input
-                },
+                }
+            );
+            _historyForTelemetry.Add(
                 new HistoryMessage
                 {
                     CorrelationID = _chatService.CorrelationID,
                     Role = "assistant",
-                    Content = streamingRender.AccumulatedContent
+                    Content = accumulatedContent
                 }
-            });
+            );
             
             _metricHelper.LogTelemetry(
-                _telemetryClient,
-                AzPSChatService.Endpoint, 
                 new AzTrace() {
                     CorrelationID = _chatService.CorrelationID,
                     Duration = Duration,
                     EndTime = EndTime,
                     EventType = "Question",
                     Handler = "Azure PowerShell",
-                    InstallationID = _installationID,
                     StartTime = startTime
                 });
         }
