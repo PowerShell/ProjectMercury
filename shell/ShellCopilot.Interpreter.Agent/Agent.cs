@@ -3,10 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Azure.AI.OpenAI;
 using ShellCopilot.Abstraction;
-using Azure;
-using System.Diagnostics;
-using Newtonsoft.Json;
-using System.CommandLine.Parsing;
 
 namespace ShellCopilot.Interpreter.Agent;
 

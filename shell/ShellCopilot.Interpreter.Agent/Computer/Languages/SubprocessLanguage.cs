@@ -10,13 +10,17 @@ namespace ShellCopilot.Interpreter.Agent;
 /// </summary>
 public abstract class SubprocessLanguage : IBaseLanguage
 {
-    private Process Process { get; set; }
+    protected Process Process { get; set; }
 
     /// <summary>
     /// The command to start the process. This is an array of strings where the first element is the program
     /// to run and the second element is the arguments to pass to the program.
     /// </summary>
     protected string[] StartCmd { get; set; }
+
+    /// <summary>
+    /// This event is used to signal when the process has finished running.
+    /// </summary>
 
     protected ManualResetEvent Done = new ManualResetEvent(false);
 
@@ -31,8 +35,6 @@ public abstract class SubprocessLanguage : IBaseLanguage
     /// <param name="code"></param>
     /// <returns></returns>
     protected abstract string PreprocessCode(string code);
-
-    private List<Thread> OutputThreads;
 
     /// <summary>
     /// Assigns process with a new process if possible.
@@ -64,7 +66,7 @@ public abstract class SubprocessLanguage : IBaseLanguage
     {
         Thread outputThread = new Thread(() =>
         {
-            while (!Process.StandardOutput.EndOfStream && !Done.WaitOne(0))
+            while (Process != null && !Process.StandardOutput.EndOfStream && !Done.WaitOne(0))
             {
                 StreamReader line = Process.StandardOutput;
                 HandleStreamOutput(line, false);
@@ -73,7 +75,7 @@ public abstract class SubprocessLanguage : IBaseLanguage
 
         Thread errorThread = new Thread(() =>
         {
-            while (!Process.StandardError.EndOfStream && !Done.WaitOne(0))
+            while (Process != null && !Process.StandardError.EndOfStream && !Done.WaitOne(0))
             {
                 StreamReader line = Process.StandardError;
                 HandleStreamOutput(line, true);
@@ -117,8 +119,9 @@ public abstract class SubprocessLanguage : IBaseLanguage
 
         try
         {
-            Process.StandardInput.WriteLine(processedCode + "\n");
-            Process.StandardInput.Flush();
+            WriteToProcess(processedCode);
+            //Process.StandardInput.WriteLine(processedCode + "\n");
+            //Process.StandardInput.Flush();
         }
         catch(Exception e)
         {
@@ -133,6 +136,7 @@ public abstract class SubprocessLanguage : IBaseLanguage
         {
             if(OutputQueue.Count > 0 && Done.WaitOne(0))
             {
+                await Task.Delay(1000);
                 return OutputQueue;
             }
             else
@@ -141,6 +145,7 @@ public abstract class SubprocessLanguage : IBaseLanguage
             }
         }
     }
+    protected abstract void WriteToProcess(string input);
 
     /// <summary>
     /// Ends the process and cleans up any resources.
@@ -149,6 +154,8 @@ public abstract class SubprocessLanguage : IBaseLanguage
     {
         if(Process != null)
         {
+            Done.Set();
+            Task.Delay(100).Wait();
             Process.StandardOutput.Close();
             Process.StandardError.Close();
             Process.Kill();
@@ -163,7 +170,7 @@ public abstract class SubprocessLanguage : IBaseLanguage
     private void HandleStreamOutput(StreamReader stream, bool isErrorStream)
     {
         string line;
-        while ((line = stream.ReadLine()) != null)
+        while ((line = stream.ReadLine()) != null && !Done.WaitOne(0))
         {
             if (isErrorStream)
             {
@@ -178,6 +185,11 @@ public abstract class SubprocessLanguage : IBaseLanguage
             {
                 if(DetectEndOfExecution(line))
                 {
+                    OutputQueue.Enqueue(new Dictionary<string,string>
+                    {
+                        { "type", "end" },
+                        { "content", line }
+                    });
                     Done.Set();
                     return;
                 }

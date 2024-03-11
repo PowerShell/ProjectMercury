@@ -21,4 +21,10 @@ public class PowerShell: SubprocessLanguage
         code += "\nWrite-Output '##end_of_execution##'";
         return code;
     }
+
+    protected override void WriteToProcess(string code)
+    {
+        Process.StandardInput.WriteLine(code);
+        Process.StandardInput.Flush();
+    }
 }

@@ -52,7 +52,7 @@ internal class TaskCompletionChat
 
     private void PromptEngineering(ref string input, ref bool chatCompleted, ref string previousCode, InternalChatResultsPacket packet)
     {
-        if (packet.wasCodeGiven)
+        if (packet.wasCodeGiven && !packet.didNotCallTool)
         {
             if(packet.Code.Equals(previousCode) && !string.IsNullOrEmpty(previousCode))
             {
@@ -201,10 +201,12 @@ internal class TaskCompletionChat
                 _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
                 return await ExecuteProvidedCode(responseContent);
             }
+            else
+            {
+                _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
+                return new InternalChatResultsPacket(responseContent, "No code was given.");
+            }
         }
-
-        _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
-        return new InternalChatResultsPacket(responseContent, "No code was given.");
     }
 
     private bool WasCodeGiven(string responseContent)

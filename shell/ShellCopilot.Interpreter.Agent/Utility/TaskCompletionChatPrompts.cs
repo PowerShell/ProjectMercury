@@ -25,7 +25,8 @@ public static class TaskCompletionChatPrompts
             "'Let me know what you'd like to do next.') Otherwise keep going.\n" },
         // Code output response
         { "Output", "\nThe following was the outfrom code execution. If this is not what you were expecting then please fix the code. " +
-            "If it is what you were expecting please move on to the next step and only the next step.\n"},
+            "If it is what you were expecting please move on to the next step and only the next step. If the task is done say " +
+            "EXACTLY 'The task is done.'\n"},
         // Tool Cancelled terminate task
         { "ToolCancelled", "\nTask cancelled. Say exactly 'Let me know what you'd like to do next.'\n" },
         // Use the tool
