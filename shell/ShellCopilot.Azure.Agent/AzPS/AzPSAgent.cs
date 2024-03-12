@@ -1,5 +1,6 @@
 ﻿using Azure.Identity;
 using ShellCopilot.Abstraction;
+using System.Diagnostics;
 
 namespace ShellCopilot.Azure.PowerShell;
 
@@ -21,6 +22,9 @@ public sealed class AzPSAgent : ILLMAgent
     private string _configRoot;
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
+    private MetricHelper _metricHelper;
+    private List<HistoryMessage> _historyForTelemetry;
+    private Stopwatch _watch = new Stopwatch();
 
     public void Dispose()
     {
@@ -45,15 +49,66 @@ public sealed class AzPSAgent : ILLMAgent
             ["Privacy statement"] = "https://aka.ms/privacy",
         };
 
+        _historyForTelemetry = [];
+        _metricHelper = new MetricHelper(AzPSChatService.Endpoint);
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
 
     public IEnumerable<CommandBase> GetCommands() => null;
-    public bool CanAcceptFeedback(UserAction action) => false;
-    public void OnUserAction(UserActionPayload actionPayload) {}
+
+    public bool CanAcceptFeedback(UserAction action) => true;
+
+    public void OnUserAction(UserActionPayload actionPayload) 
+    {
+        // DisLike Action
+        string DetailedMessage = null;
+        List<HistoryMessage> history = null;
+        if (actionPayload.Action == UserAction.Dislike)
+        {
+            DislikePayload dislikePayload = (DislikePayload)actionPayload;
+            DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
+            if (dislikePayload.ShareConversation)
+            {
+                history = _historyForTelemetry;
+            }
+            else
+            {
+                _historyForTelemetry.Clear();
+            }
+        }
+        // Like Action
+        else if (actionPayload.Action == UserAction.Like)
+        {
+            LikePayload likePayload = (LikePayload)actionPayload;
+            if (likePayload.ShareConversation)
+            {
+                history = _historyForTelemetry;
+            }
+            else
+            {
+                _historyForTelemetry.Clear();
+            }
+        }
+
+        // TODO: Extract into RecrodActionTelemetry : RecordTelemetry()
+        _metricHelper.LogTelemetry(
+            new AzTrace()
+            {
+                Command = actionPayload.Action.ToString(),
+                CorrelationID = _chatService.CorrelationID,
+                EventType = "Feedback",
+                Handler = "Azure PowerShell",
+                DetailedMessage = DetailedMessage,
+                HistoryMessage = history
+            });
+    }
 
     public async Task<bool> Chat(string input, IShell shell)
     {
+        // Measure time spent
+        _watch.Restart();
+        var startTime = DateTime.Now;
+
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
 
@@ -69,6 +124,7 @@ public sealed class AzPSAgent : ILLMAgent
             if (chunkReader is null)
             {
                 // Operation was cancelled by user.
+                _watch.Stop();
                 return true;
             }
 
@@ -92,10 +148,34 @@ public sealed class AzPSAgent : ILLMAgent
                 // Operation was cancelled by user.
             }
 
-            _chatService.AddResponseToHistory(streamingRender.AccumulatedContent);
+            string accumulatedContent = streamingRender.AccumulatedContent;
+            _chatService.AddResponseToHistory(accumulatedContent);
+
+            // Measure time spent
+            _watch.Stop();
+            // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
+            var EndTime = DateTime.Now;
+            var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
+
+            // Append last Q&A history in HistoryMessage
+            _historyForTelemetry.Add(new HistoryMessage("user", input, _chatService.CorrelationID));
+            _historyForTelemetry.Add(new HistoryMessage("assistant", accumulatedContent, _chatService.CorrelationID));
+
+            _metricHelper.LogTelemetry(
+                new AzTrace() {
+                    CorrelationID = _chatService.CorrelationID,
+                    Duration = Duration,
+                    EndTime = EndTime,
+                    EventType = "Question",
+                    Handler = "Azure PowerShell",
+                    StartTime = startTime
+                });
         }
         catch (RefreshTokenException ex)
         {
+            // Stop the watch in case it was not when exception happened.
+            _watch.Stop();
+
             Exception inner = ex.InnerException;
             if (inner is CredentialUnavailableException)
             {

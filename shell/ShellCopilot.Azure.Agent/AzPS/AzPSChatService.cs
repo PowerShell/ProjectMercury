@@ -9,7 +9,7 @@ namespace ShellCopilot.Azure.PowerShell;
 
 internal class AzPSChatService : IDisposable
 {
-    private const string Endpoint = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
+    internal const string Endpoint = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
 
     private readonly bool _interactive;
     private readonly string[] _scopes;
@@ -18,6 +18,9 @@ internal class AzPSChatService : IDisposable
     private readonly AzurePowerShellCredentialOptions _credOptions;
 
     private AccessToken? _accessToken;
+    private string _correlationID;
+
+    internal string CorrelationID => _correlationID;
 
     internal AzPSChatService(bool isInteractive, string tenant)
     {
@@ -30,6 +33,7 @@ internal class AzPSChatService : IDisposable
             : new() { TenantId = tenant };
 
         _accessToken = null;
+        _correlationID = null;
     }
 
     public void Dispose()
@@ -47,6 +51,12 @@ internal class AzPSChatService : IDisposable
             }
             _chatHistory.Add(new ChatMessage() { Role = "assistant", Content = response });
         }
+    }
+
+    private string NewCorrelationID()
+    {
+        _correlationID = Guid.NewGuid().ToString();
+        return _correlationID;
     }
 
     private void RefreshToken(CancellationToken cancellationToken)
@@ -83,6 +93,11 @@ internal class AzPSChatService : IDisposable
         var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = content };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Value.Token);
+
+        // These headers are for telemetry. We refresh correlation ID for each query.
+        request.Headers.Add("CorrelationId", NewCorrelationID());
+        request.Headers.Add("ClientType", "Copilot for client tools");
+
         return request;
     }
 
