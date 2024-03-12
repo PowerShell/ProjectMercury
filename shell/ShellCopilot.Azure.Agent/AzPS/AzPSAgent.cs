@@ -23,7 +23,7 @@ public sealed class AzPSAgent : ILLMAgent
     private AzPSChatService _chatService;
     private MetricHelper _metricHelper;
     private List<HistoryMessage> _historyForTelemetry;
-    private Stopwatch _watch;
+    private Stopwatch _watch = Stopwatch.StartNew();
 
     public void Dispose()
     {
@@ -66,10 +66,13 @@ public sealed class AzPSAgent : ILLMAgent
         List<HistoryMessage> history = null;
         if (actionPayload.Action == UserAction.Dislike)
         {
-            history = _historyForTelemetry;
             DislikePayload dislikePayload = (DislikePayload)actionPayload;
             DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
-            if (!dislikePayload.ShareConversation)
+            if (dislikePayload.ShareConversation)
+            {
+                history = _historyForTelemetry;
+            }
+            else
             {
                 _historyForTelemetry.Clear();
             }
@@ -77,9 +80,12 @@ public sealed class AzPSAgent : ILLMAgent
         // Like Action
         else if (actionPayload.Action == UserAction.Like)
         {
-            history = _historyForTelemetry;
             LikePayload likePayload = (LikePayload)actionPayload;
-            if (!likePayload.ShareConversation)
+            if (likePayload.ShareConversation)
+            {
+                history = _historyForTelemetry;
+            }
+            else
             {
                 _historyForTelemetry.Clear();
             }
@@ -101,7 +107,7 @@ public sealed class AzPSAgent : ILLMAgent
     public async Task<bool> Chat(string input, IShell shell)
     {
         // Measure time spent
-        _watch = Stopwatch.StartNew();
+        _watch.Restart();
         var startTime = DateTime.Now;
 
         IHost host = shell.Host;
@@ -142,12 +148,10 @@ public sealed class AzPSAgent : ILLMAgent
                 // Operation was cancelled by user.
             }
 
-            string accumulatedContent = streamingRender.AccumulatedContent;
-            _chatService.AddResponseToHistory(accumulatedContent);
-
             // Measure time spent
             _watch.Stop();
-
+            string accumulatedContent = streamingRender.AccumulatedContent;
+            _chatService.AddResponseToHistory(accumulatedContent);
             // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
             var EndTime = DateTime.Now;
             var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
