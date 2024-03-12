@@ -9,7 +9,7 @@ namespace ShellCopilot.Azure.CLI;
 
 internal class AzCLIChatService : IDisposable
 {
-    private const string Endpoint = "https://azclitools-copilot-dogfood.azure-api.net/azcli/copilot";
+    private const string Endpoint = "https://azclitools-copilot-dogfood.azure-api.net/shell/azcli/copilot";
 
     private readonly HttpClient _client;
     private readonly string[] _scopes;
