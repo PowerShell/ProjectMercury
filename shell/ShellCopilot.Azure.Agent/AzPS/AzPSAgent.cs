@@ -146,14 +146,16 @@ public sealed class AzPSAgent : ILLMAgent
             }
             catch (OperationCanceledException)
             {
-                _watch.Stop();
                 // Operation was cancelled by user.
+                _watch.Stop();
+                return true;
             }
+
+            string accumulatedContent = streamingRender.AccumulatedContent;
+            _chatService.AddResponseToHistory(accumulatedContent);
 
             // Measure time spent
             _watch.Stop();
-            string accumulatedContent = streamingRender.AccumulatedContent;
-            _chatService.AddResponseToHistory(accumulatedContent);
             // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
             var EndTime = DateTime.Now;
             var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
@@ -174,6 +176,9 @@ public sealed class AzPSAgent : ILLMAgent
         }
         catch (RefreshTokenException ex)
         {
+            // Stop the watch in case it was not when exception happened.
+            _watch.Stop();
+
             Exception inner = ex.InnerException;
             if (inner is CredentialUnavailableException)
             {
