@@ -147,8 +147,6 @@ public sealed class AzPSAgent : ILLMAgent
             catch (OperationCanceledException)
             {
                 // Operation was cancelled by user.
-                _watch.Stop();
-                return true;
             }
 
             string accumulatedContent = streamingRender.AccumulatedContent;
