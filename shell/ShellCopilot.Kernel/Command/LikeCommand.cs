@@ -4,46 +4,14 @@ using Spectre.Console;
 
 namespace ShellCopilot.Kernel.Commands;
 
-internal sealed class LikeCommand : CommandBase
+internal abstract class FeedbackCommand : CommandBase
 {
-    public LikeCommand()
-        : base("like", "Like the last response and send feedback.")
+    protected FeedbackCommand(string name, string description)
+        : base(name, description)
     {
-        this.SetHandler(LikeAction);
     }
 
-    private void LikeAction()
-    {
-        var shell = (Shell)Shell;
-        Host host = shell.Host;
-
-        if (shell.LastAgent is null)
-        {
-            host.WriteErrorLine("No previous response available to rate on.");
-            return;
-        }
-
-        try
-        {
-            host.MarkupLine("[cyan]Great! Thank you for the feedback![/]\n");
-            string prompt = $"[cyan]{GetPromptForHistorySharing(shell.LastAgent.Impl)}[/]";
-            bool share = host
-                .PromptForConfirmationAsync(
-                    prompt: prompt,
-                    defaultValue: true,
-                    shell.CancellationToken)
-                .GetAwaiter().GetResult();
-
-            shell.OnUserAction(new LikePayload(share));
-        }
-        catch (OperationCanceledException)
-        {
-            // User pressed 'Ctrl+c', likely because they are just trying out the command.
-            host.WriteLine();
-        }
-    }
-
-    internal static string GetPromptForHistorySharing(ILLMAgent agent)
+    protected static string GetPromptForHistorySharing(ILLMAgent agent)
     {
         string product = agent.Company is null
             ? $"the agent [green]{agent.Name}[/]"
@@ -64,5 +32,63 @@ internal sealed class LikeCommand : CommandBase
         }
 
         return $"Would you like to share the conversation history to help further improve {product}?{privacy}";
+    }
+
+    /// <summary>
+    /// The `TextPrompt.ChoiceStyle` doesn't work with `Style.Plain`, which looks like a bug.
+    /// So, we have to build the choices and default value into the prompt.
+    /// </summary>
+    protected static async Task<bool> AskForHistorySharingAsync(string promptText, CancellationToken cancellationToken)
+    {
+        var comparer = StringComparer.CurrentCultureIgnoreCase;
+
+        var prompt = new TextPrompt<char>($"{promptText} [[y/n]] [teal](y)[/]:", comparer)
+            .InvalidChoiceMessage("[red]Please select one of the available options[/]")
+            .ValidationErrorMessage("[red]Please select one of the available options[/]")
+            .ShowChoices(false)
+            .ShowDefaultValue(false)
+            .DefaultValue('y')
+            .AddChoice('y')
+            .AddChoice('n');
+
+        var result = await prompt.ShowAsync(AnsiConsole.Console, cancellationToken).ConfigureAwait(false);
+        return comparer.Compare('y'.ToString(), result.ToString()) == 0;
+    }
+}
+
+internal sealed class LikeCommand : FeedbackCommand
+{
+    public LikeCommand()
+        : base("like", "Like the last response and send feedback.")
+    {
+        this.SetHandler(LikeAction);
+    }
+
+    private void LikeAction()
+    {
+        var shell = (Shell)Shell;
+        Host host = shell.Host;
+
+        if (shell.LastAgent is null)
+        {
+            host.WriteErrorLine("No previous response available to rate on.");
+            return;
+        }
+
+        try
+        {
+            host.WriteLine("Great! Thank you for the feedback!\n");
+            string prompt = GetPromptForHistorySharing(shell.LastAgent.Impl);
+            bool share = AskForHistorySharingAsync(prompt, shell.CancellationToken)
+                .GetAwaiter().GetResult();
+
+            host.WriteLine();
+            shell.OnUserAction(new LikePayload(share));
+        }
+        catch (OperationCanceledException)
+        {
+            // User pressed 'Ctrl+c', likely because they are just trying out the command.
+            host.WriteLine();
+        }
     }
 }

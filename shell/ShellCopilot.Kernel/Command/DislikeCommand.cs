@@ -3,7 +3,7 @@ using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Kernel.Commands;
 
-internal sealed class DislikeCommand : CommandBase
+internal sealed class DislikeCommand : FeedbackCommand
 {
     private readonly List<string> _choices;
 
@@ -27,29 +27,24 @@ internal sealed class DislikeCommand : CommandBase
 
         try
         {
-            host.MarkupLine("[cyan]Thanks for your feedback. Please share more about your experience.[/]\n");
+            host.WriteLine("Thanks for your feedback. Please share more about your experience.\n");
             string shortFeedback = host
-                .PromptForSelectionAsync("[cyan]Was the response:[/]", _choices, cancellationToken: shell.CancellationToken)
+                .PromptForSelectionAsync("Was the response:", _choices, cancellationToken: shell.CancellationToken)
                 .GetAwaiter()
                 .GetResult();
 
-            host.MarkupLine($"[cyan]The response was:[/] {shortFeedback}\n");
+            host.WriteLine($"The response was: {shortFeedback}\n");
             string longFeedback = host
-                .PromptForTextAsync("[cyan]What went wrong?[/] ", optional: true, shell.CancellationToken)
+                .PromptForTextAsync("What went wrong? ", optional: true, shell.CancellationToken)
                 .GetAwaiter()
                 .GetResult();
 
             host.WriteLine();
-            string prompt = $"[cyan]{LikeCommand.GetPromptForHistorySharing(shell.LastAgent.Impl)}[/]";
-
-            bool share = host
-                .PromptForConfirmationAsync(
-                    prompt: prompt,
-                    defaultValue: true,
-                    shell.CancellationToken)
+            string prompt = GetPromptForHistorySharing(shell.LastAgent.Impl);
+            bool share = AskForHistorySharingAsync(prompt, shell.CancellationToken)
                 .GetAwaiter().GetResult();
 
-            host.MarkupLine("[cyan]Thanks again for your feedback![/]");
+            host.WriteLine("\nThanks again for your feedback!\n");
             shell.OnUserAction(new DislikePayload(share, shortFeedback, longFeedback));
         }
         catch (OperationCanceledException)
