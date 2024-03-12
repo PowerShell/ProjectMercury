@@ -40,7 +40,7 @@ public sealed class AzPSAgent : ILLMAgent
 
         LegalLinks = new Dictionary<string, string>
         {
-            ["Terms of use"] = "https://aka.ms/TermsOfUse",
+            ["Terms of use"] = "https://aka.ms/TermsofUseCopilot",
             ["Privacy statement"] = "https://aka.ms/privacy",
         };
 
