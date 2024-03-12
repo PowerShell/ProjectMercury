@@ -25,7 +25,7 @@ internal sealed class LikeCommand : CommandBase
 
         try
         {
-            host.MarkupLine("[cyan]Great! Thank you for the feedback![/]");
+            host.MarkupLine("[cyan]Great! Thank you for the feedback![/]\n");
             string prompt = $"[cyan]{GetPromptForHistorySharing(shell.LastAgent.Impl)}[/]";
             bool share = host
                 .PromptForConfirmationAsync(
