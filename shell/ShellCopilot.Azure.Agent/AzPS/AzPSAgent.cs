@@ -23,7 +23,7 @@ public sealed class AzPSAgent : ILLMAgent
     private AzPSChatService _chatService;
     private MetricHelper _metricHelper;
     private List<HistoryMessage> _historyForTelemetry;
-    private Stopwatch _watch = Stopwatch.StartNew();
+    private Stopwatch _watch = new Stopwatch();
 
     public void Dispose()
     {
@@ -125,6 +125,7 @@ public sealed class AzPSAgent : ILLMAgent
             if (chunkReader is null)
             {
                 // Operation was cancelled by user.
+                _watch.Stop();
                 return true;
             }
 
@@ -145,6 +146,7 @@ public sealed class AzPSAgent : ILLMAgent
             }
             catch (OperationCanceledException)
             {
+                _watch.Stop();
                 // Operation was cancelled by user.
             }
 
