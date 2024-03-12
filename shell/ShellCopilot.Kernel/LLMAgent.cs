@@ -19,10 +19,11 @@ internal class LLMAgent
         AnalyzerRoleDisabled = false;
     }
 
-    internal void Display(Host host)
+    internal void Display(Host host, string description = null)
     {
         // Display the description of the agent.
-        host.MarkupLine(Impl.Description.EscapeMarkup());
+        string desc = description ?? Impl.Description;
+        host.MarkupLine(desc.EscapeMarkup());
 
         // Display properties of the agent.
         if (Impl.AgentInfo is null || Impl.AgentInfo.Count is 0)
@@ -71,7 +72,7 @@ internal class LLMAgent
                 host.Markup($"[link={pair.Value.EscapeMarkup()}]{pair.Key.EscapeMarkup()}[/]");
             }
 
-            host.WriteLine();
+            host.WriteLine("\n");
         }
     }
 
