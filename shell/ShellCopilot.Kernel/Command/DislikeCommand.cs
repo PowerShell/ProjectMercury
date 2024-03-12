@@ -33,15 +33,18 @@ internal sealed class DislikeCommand : CommandBase
                 .GetAwaiter()
                 .GetResult();
 
+            host.MarkupLine($"[cyan]The response was:[/] {shortFeedback}\n");
             string longFeedback = host
                 .PromptForTextAsync("[cyan]What went wrong?[/] ", optional: true, shell.CancellationToken)
                 .GetAwaiter()
                 .GetResult();
 
             host.WriteLine();
+            string prompt = $"[cyan]{LikeCommand.GetPromptForHistorySharing(shell.LastAgent.Impl)}[/]";
+
             bool share = host
                 .PromptForConfirmationAsync(
-                    prompt: "[cyan]Would you like to share the conversation history to help further improve the responses?[/]",
+                    prompt: prompt,
                     defaultValue: true,
                     shell.CancellationToken)
                 .GetAwaiter().GetResult();

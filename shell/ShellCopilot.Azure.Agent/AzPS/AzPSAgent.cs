@@ -7,6 +7,7 @@ public sealed class AzPSAgent : ILLMAgent
 {
     public string Name => "az-ps";
     public string Description => "This AI assistant can help generate Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple different Azure resources.";
+    public string Company => "Microsoft";
     public List<string> SampleQueries => [
         "Create a VM with a public IP address",
         "How to stop all VMs with the port 22 opened?",
@@ -38,7 +39,7 @@ public sealed class AzPSAgent : ILLMAgent
             config.Context?.TryGetValue("tenant", out tenantId);
         }
 
-        LegalLinks = new Dictionary<string, string>
+        LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Terms of use"] = "https://aka.ms/TermsofUseCopilot",
             ["Privacy statement"] = "https://aka.ms/privacy",
