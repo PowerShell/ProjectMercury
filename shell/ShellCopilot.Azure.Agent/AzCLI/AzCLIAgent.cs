@@ -9,6 +9,7 @@ public sealed class AzCLIAgent : ILLMAgent
 {
     public string Name => "az-cli";
     public string Description => "This AI assistant can help generate Azure CLI scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple different Azure resources.";
+    public string Company => "Microsoft";
     public List<string> SampleQueries => [
         "Create a VM with a public IP address",
         "How to create a web app?",
@@ -31,7 +32,7 @@ public sealed class AzCLIAgent : ILLMAgent
         _text = new StringBuilder();
         _chatService = new AzCLIChatService();
 
-        LegalLinks = new Dictionary<string, string>
+        LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Terms of use"] = "https://aka.ms/TermsOfUse",
             ["Privacy statement"] = "https://aka.ms/privacy",

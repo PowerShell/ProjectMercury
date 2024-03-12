@@ -106,6 +106,11 @@ public interface ILLMAgent : IDisposable
     string Description { get; }
 
     /// <summary>
+    /// Gets the company or vendor of this agent.
+    /// </summary>
+    string Company => null;
+
+    /// <summary>
     /// Gets some sample queries.
     /// </summary>
     List<string> SampleQueries => null;
