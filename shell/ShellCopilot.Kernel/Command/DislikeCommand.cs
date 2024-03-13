@@ -33,7 +33,7 @@ internal sealed class DislikeCommand : FeedbackCommand
                 .GetAwaiter()
                 .GetResult();
 
-            host.WriteLine($"The response was: {shortFeedback}\n");
+            host.MarkupLine($"The response was: [teal]{shortFeedback}[/]\n");
             string longFeedback = host
                 .PromptForTextAsync("What went wrong? ", optional: true, shell.CancellationToken)
                 .GetAwaiter()
@@ -50,7 +50,7 @@ internal sealed class DislikeCommand : FeedbackCommand
         catch (OperationCanceledException)
         {
             // User pressed 'Ctrl+c', likely because they are just trying out the command.
-            host.WriteLine();
+            host.WriteLine("\n");
         }
     }
 }
