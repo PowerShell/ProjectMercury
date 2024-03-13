@@ -452,7 +452,7 @@ internal sealed class Host : IHost
         IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
         string promptToUse = optional ? $"[grey][[Optional]][/] {prompt}" : prompt;
         return await new TextPrompt<string>(promptToUse) { AllowEmpty = optional }
-            .PromptStyle(Style.Plain)
+            .PromptStyle(new Style(Color.Teal))
             .ShowAsync(ansiConsole, cancellationToken)
             .ConfigureAwait(false);
     }

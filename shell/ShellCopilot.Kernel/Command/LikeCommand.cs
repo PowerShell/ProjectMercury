@@ -42,11 +42,10 @@ internal abstract class FeedbackCommand : CommandBase
     {
         var comparer = StringComparer.CurrentCultureIgnoreCase;
 
-        var prompt = new TextPrompt<char>($"{promptText} [[y/n]] [teal](y)[/]:", comparer)
+        var prompt = new TextPrompt<char>(promptText, comparer)
+            .PromptStyle(new Style(Color.Teal))
             .InvalidChoiceMessage("[red]Please select one of the available options[/]")
             .ValidationErrorMessage("[red]Please select one of the available options[/]")
-            .ShowChoices(false)
-            .ShowDefaultValue(false)
             .DefaultValue('y')
             .AddChoice('y')
             .AddChoice('n');
@@ -88,7 +87,7 @@ internal sealed class LikeCommand : FeedbackCommand
         catch (OperationCanceledException)
         {
             // User pressed 'Ctrl+c', likely because they are just trying out the command.
-            host.WriteLine();
+            host.WriteLine("\n");
         }
     }
 }
