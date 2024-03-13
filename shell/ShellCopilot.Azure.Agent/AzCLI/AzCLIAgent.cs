@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Azure.Identity;
@@ -21,6 +22,9 @@ public sealed class AzCLIAgent : ILLMAgent
     private const string SettingFileName = "az-cli.agent.json";
     private AzCLIChatService _chatService;
     private StringBuilder _text;
+    private MetricHelper _metricHelper;
+    private List<HistoryMessage> _historyForTelemetry;
+    private Stopwatch _watch = new Stopwatch();
 
     public void Dispose()
     {
@@ -31,6 +35,8 @@ public sealed class AzCLIAgent : ILLMAgent
     {
         _text = new StringBuilder();
         _chatService = new AzCLIChatService();
+        _historyForTelemetry = [];
+        _metricHelper = new MetricHelper(AzCLIChatService.Endpoint);
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -48,10 +54,54 @@ public sealed class AzCLIAgent : ILLMAgent
     public void OnUserAction(UserActionPayload actionPayload)
     {
         // Send telemetry about the user action.
+        // DisLike Action
+        string DetailedMessage = null;
+        List<HistoryMessage> history = null;
+        if (actionPayload.Action == UserAction.Dislike)
+        {
+            DislikePayload dislikePayload = (DislikePayload)actionPayload;
+            DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
+            if (dislikePayload.ShareConversation)
+            {
+                history = _historyForTelemetry;
+            }
+            else
+            {
+                _historyForTelemetry.Clear();
+            }
+        }
+        // Like Action
+        else if (actionPayload.Action == UserAction.Like)
+        {
+            LikePayload likePayload = (LikePayload)actionPayload;
+            if (likePayload.ShareConversation)
+            {
+                history = _historyForTelemetry;
+            }
+            else
+            {
+                _historyForTelemetry.Clear();
+            }
+        }
+
+        _metricHelper.LogTelemetry(
+            new AzTrace()
+            {
+                Command = actionPayload.Action.ToString(),
+                CorrelationID = _chatService.CorrelationID,
+                EventType = "Feedback",
+                Handler = "Azure CLI",
+                DetailedMessage = DetailedMessage,
+                HistoryMessage = history
+            });
     }
 
     public async Task<bool> Chat(string input, IShell shell)
     {
+        // Measure time spent
+        _watch.Restart();
+        var startTime = DateTime.Now;
+
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
 
@@ -107,10 +157,34 @@ public sealed class AzCLIAgent : ILLMAgent
                 }
 
                 host.RenderFullResponse(_text.ToString());
+
+                // Measure time spent
+                _watch.Stop();
+                // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
+                var EndTime = DateTime.Now;
+                var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
+
+                // Append last Q&A history in HistoryMessage
+                _historyForTelemetry.Add(new HistoryMessage("user", input, _chatService.CorrelationID));
+                _historyForTelemetry.Add(new HistoryMessage("assistant", _text.ToString(), _chatService.CorrelationID));
+
+                _metricHelper.LogTelemetry(
+                    new AzTrace()
+                    {
+                        CorrelationID = _chatService.CorrelationID,
+                        Duration = Duration,
+                        EndTime = EndTime,
+                        EventType = "Question",
+                        Handler = "Azure CLI",
+                        StartTime = startTime
+                    });
             }
         }
         catch (RefreshTokenException ex)
         {
+            // Stop the watch in case it was not when exception happened.
+            _watch.Stop();
+
             Exception inner = ex.InnerException;
             if (inner is CredentialUnavailableException)
             {

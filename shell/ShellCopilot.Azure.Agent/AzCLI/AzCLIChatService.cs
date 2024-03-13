@@ -9,12 +9,15 @@ namespace ShellCopilot.Azure.CLI;
 
 internal class AzCLIChatService : IDisposable
 {
-    private const string Endpoint = "https://azclitools-copilot-dogfood.azure-api.net/shell/azcli/copilot";
+    internal const string Endpoint = "https://azclitools-copilot-dogfood.azure-api.net/shell/azcli/copilot";
 
     private readonly HttpClient _client;
     private readonly string[] _scopes;
     private readonly List<ChatMessage> _chatHistory;
     private AccessToken? _accessToken;
+    private string _correlationID;
+
+    internal string CorrelationID => _correlationID;
 
     internal AzCLIChatService()
     {
@@ -22,6 +25,7 @@ internal class AzCLIChatService : IDisposable
         _scopes = ["api://62009369-df36-4df2-b7d7-b3e784b3ed55/"];
         _chatHistory = [];
         _accessToken = null;
+        _correlationID = null;
     }
 
     internal List<ChatMessage> ChatHistory => _chatHistory;
@@ -29,6 +33,12 @@ internal class AzCLIChatService : IDisposable
     public void Dispose()
     {
         _client.Dispose();
+    }
+
+    private string NewCorrelationID()
+    {
+        _correlationID = Guid.NewGuid().ToString();
+        return _correlationID;
     }
 
     private void RefreshToken(CancellationToken cancellationToken)
@@ -67,6 +77,11 @@ internal class AzCLIChatService : IDisposable
         var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = content };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Value.Token);
+
+        // These headers are for telemetry. We refresh correlation ID for each query.
+        request.Headers.Add("CorrelationId", NewCorrelationID());
+        request.Headers.Add("ClientType", "Copilot for client tools");
+
         return request;
     }
 
