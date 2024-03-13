@@ -124,7 +124,6 @@ public sealed class AzPSAgent : ILLMAgent
             if (chunkReader is null)
             {
                 // Operation was cancelled by user.
-                _watch.Stop();
                 return true;
             }
 
@@ -173,9 +172,6 @@ public sealed class AzPSAgent : ILLMAgent
         }
         catch (RefreshTokenException ex)
         {
-            // Stop the watch in case it was not when exception happened.
-            _watch.Stop();
-
             Exception inner = ex.InnerException;
             if (inner is CredentialUnavailableException)
             {
@@ -188,6 +184,11 @@ public sealed class AzPSAgent : ILLMAgent
             }
 
             return false;
+        }
+        finally
+        {
+            // Stop the watch in case of early return or exception.
+            _watch.Stop();
         }
 
         return true;
