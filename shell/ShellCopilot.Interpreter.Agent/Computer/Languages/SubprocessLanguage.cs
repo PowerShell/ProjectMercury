@@ -36,6 +36,8 @@ public abstract class SubprocessLanguage : IBaseLanguage
     /// <returns></returns>
     protected abstract string PreprocessCode(string code);
 
+    protected abstract void WriteToProcess(string input);
+
     /// <summary>
     /// Assigns process with a new process if possible.
     /// </summary>
@@ -55,35 +57,30 @@ public abstract class SubprocessLanguage : IBaseLanguage
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
+            StandardErrorEncoding = Encoding.UTF8,
         };
 
         Process = new Process { StartInfo = startInfo };
+
+        Process.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
+        {
+            if (!String.IsNullOrEmpty(e.Data))
+            {
+                HandleStreamOutput(e.Data, false);
+            }
+        });
+        Process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
+        {
+            if (!String.IsNullOrEmpty(e.Data))
+            {
+                HandleStreamOutput(e.Data, true);
+            }
+        });
+
         Process.Start();
-    }
 
-    private void MakeOutputListeningThreads()
-    {
-        Thread outputThread = new Thread(() =>
-        {
-            while (Process != null && !Process.StandardOutput.EndOfStream && !Done.WaitOne(0))
-            {
-                StreamReader line = Process.StandardOutput;
-                HandleStreamOutput(line, false);
-            }
-        });
-
-        Thread errorThread = new Thread(() =>
-        {
-            while (Process != null && !Process.StandardError.EndOfStream && !Done.WaitOne(0))
-            {
-                StreamReader line = Process.StandardError;
-                HandleStreamOutput(line, true);
-            }
-        });
-
-        outputThread.Start();
-        errorThread.Start();
+        Process.BeginOutputReadLine();
+        Process.BeginErrorReadLine();
     }
 
     /// <summary>
@@ -91,61 +88,64 @@ public abstract class SubprocessLanguage : IBaseLanguage
     /// </summary>
     /// <param name="code"></param>
     /// <returns></returns>
-    public async Task<Queue<Dictionary<string, string>>> Run(string code)
+    public async Task<Queue<Dictionary<string, string>>> Run(string code, CancellationToken token)
     {
-        string processedCode;
+        OutputQueue.Clear();
+
         try
         {
-            processedCode = PreprocessCode(code);
-            if(Process is null)
+            string processedCode;
+            try
             {
-                StartProcess();
+                processedCode = PreprocessCode(code);
+                if(Process is null)
+                {
+                    StartProcess();
+                }
             }
-        }
-        catch(Exception e)
-        {
-            OutputQueue.Enqueue(new Dictionary<string, string> {
-                { "type", "error" },
-                { "content", "Error starting process\n" + e }
-            });
-            return OutputQueue;
-        }
-
-        // Reset the event so we can wait for the process to finish
-        Done.Reset();
-
-        // Start the output listening threads
-        MakeOutputListeningThreads();
-
-        try
-        {
-            WriteToProcess(processedCode);
-            //Process.StandardInput.WriteLine(processedCode + "\n");
-            //Process.StandardInput.Flush();
-        }
-        catch(Exception e)
-        {
-            OutputQueue.Enqueue(new Dictionary<string, string> {
-                { "type", "error" },
-                { "content", "Error writing to process\n" + e }
-            });
-            return OutputQueue;
-        }
-
-        while (true)
-        {
-            if(OutputQueue.Count > 0 && Done.WaitOne(0))
+            catch(Exception e)
             {
-                await Task.Delay(1000);
+                OutputQueue.Enqueue(new Dictionary<string, string> {
+                    { "type", "error" },
+                    { "content", "Error starting process\n" + e }
+                });
                 return OutputQueue;
             }
-            else
+
+            // Reset the event so we can wait for the process to finish
+            Done.Reset();
+
+            try
             {
-                await Task.Delay(100);
+                WriteToProcess(processedCode);
+            }
+            catch(Exception e)
+            {
+                OutputQueue.Enqueue(new Dictionary<string, string> {
+                    { "type", "error" },
+                    { "content", "Error writing to process\n" + e }
+                });
+                return OutputQueue;
+            }
+
+            while (true)
+            {
+                if(OutputQueue.Count > 0 && Done.WaitOne(0))
+                {
+                    await Task.Delay(1000);
+                    return OutputQueue;
+                }
+                else
+                {
+                    await Task.Delay(100);
+                }
             }
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
     }
-    protected abstract void WriteToProcess(string input);
 
     /// <summary>
     /// Ends the process and cleans up any resources.
@@ -155,9 +155,6 @@ public abstract class SubprocessLanguage : IBaseLanguage
         if(Process != null)
         {
             Done.Set();
-            Task.Delay(100).Wait();
-            Process.StandardOutput.Close();
-            Process.StandardError.Close();
             Process.Kill();
             Process.Dispose();
             Process = null;
@@ -167,38 +164,34 @@ public abstract class SubprocessLanguage : IBaseLanguage
     /// <summary>
     /// Internal function to handle the output of the process.
     /// </summary>
-    private void HandleStreamOutput(StreamReader stream, bool isErrorStream)
+    private void HandleStreamOutput(string line, bool isErrorStream)
     {
-        string line;
-        while ((line = stream.ReadLine()) != null && !Done.WaitOne(0))
+        if (isErrorStream)
         {
-            if (isErrorStream)
+            OutputQueue.Enqueue(new Dictionary<string,string>
+            {
+                { "type", "error" },
+                { "content", line },
+            });
+            Done.Set();
+        }
+        else
+        {
+            if(DetectEndOfExecution(line))
             {
                 OutputQueue.Enqueue(new Dictionary<string,string>
                 {
-                    { "type", "error" },
-                    { "content", line },
-                });
-                Done.Set();
-            }
-            else
-            {
-                if(DetectEndOfExecution(line))
-                {
-                    OutputQueue.Enqueue(new Dictionary<string,string>
-                    {
-                        { "type", "end" },
-                        { "content", line }
-                    });
-                    Done.Set();
-                    return;
-                }
-                OutputQueue.Enqueue(new Dictionary<string,string>
-                {
-                    { "type", "output" },
+                    { "type", "end" },
                     { "content", line }
                 });
+                Done.Set();
+                return;
             }
+            OutputQueue.Enqueue(new Dictionary<string,string>
+            {
+                { "type", "output" },
+                { "content", line }
+            });
         }
     }
     protected bool DetectEndOfExecution(string line)

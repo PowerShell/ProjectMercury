@@ -6,8 +6,8 @@
     /// </summary>
 public class Computer
 {
-    private List<string> Languages = ["powershell", "python"];
-    private Dictionary<string, IBaseLanguage> ActiveLanguages = [];
+    private readonly List<string> Languages = ["powershell", "python"];
+    private readonly Dictionary<string, IBaseLanguage> ActiveLanguages = [];
 
     public Computer()
     {
@@ -35,7 +35,7 @@ public class Computer
         }
         try
         {
-            foreach (Dictionary<string, string> outputItem in await ActiveLanguages[language].Run(code))
+            foreach (Dictionary<string, string> outputItem in await ActiveLanguages[language].Run(code, token))
             {
                 if (outputItem["type"] == "error")
                 {

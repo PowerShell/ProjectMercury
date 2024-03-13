@@ -11,7 +11,7 @@ public static class TaskCompletionChatPrompts
         // The initial prompt sent with user input
         { "Initial", "\nList out the plan without any code.\n" },
         // General error handling
-        { "Error", "\nFix the error before proceeding to the next step. If the code needs user input then say EXACTLY 'Please provide more information'.\n" },
+        { "Error", "\nFix the error before proceeding to the next step. If the code needs user input then say EXACTLY 'Please provide more information'. If it is a Python syntax error try adding a blank line after an indentation is complete.\n" },
         // Repeating same code
         { "SameError", "\nYou have already told me to fix the error. Please provide more information.\n"},
         // Go to the next step
@@ -31,6 +31,9 @@ public static class TaskCompletionChatPrompts
         { "ToolCancelled", "\nTask cancelled. Say exactly 'Let me know what you'd like to do next.'\n" },
         // Use the tool
         { "UseTool", "\nUse the tool I gave you to execute the code.'\n" },
+        // User chose not to run code
+        { "StopTask", "\nUser chose not to run code. Say exactly 'I cannot continue the task until " +
+            "the code is executed. Let me know what you'd like to do next.'\n" },
     };
 
 }

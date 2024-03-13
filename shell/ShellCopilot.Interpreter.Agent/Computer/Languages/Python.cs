@@ -21,7 +21,8 @@ public class Python: SubprocessLanguage
 
 	protected override string PreprocessCode(string code)
 	{
-		code += "\nprint('##end_of_execution##')";
+		code = code.TrimEnd();
+		code += "\n\nprint('##end_of_execution##')";
         return code;
     }
 

@@ -18,10 +18,12 @@ public sealed class InterpreterAgent : ILLMAgent
     private bool _isDisposed;
     private string _configRoot;
     private string _historyRoot;
+    private bool _isFunctionCallingModel;
     private RenderingStyle _renderingStyle;
     private Settings _settings;
     private FileSystemWatcher _watcher;
     private ChatService _chatService;
+    private TaskCompletionChat taskCompletionChat;
 
     /// <inheritdoc/>
     public void Dispose()
@@ -30,6 +32,9 @@ public sealed class InterpreterAgent : ILLMAgent
         {
             return;
         }
+
+        // This terminates any remaining processes used to run code.
+        taskCompletionChat.CleanUpProcesses();
 
         GC.SuppressFinalize(this);
         _watcher.Dispose();
@@ -59,6 +64,7 @@ public sealed class InterpreterAgent : ILLMAgent
         Directory.CreateDirectory(_historyRoot);
 
         _settings = ReadSettings();
+        _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.Active.ModelName);
         _chatService = new ChatService(_isInteractive, _historyRoot, _settings);
 
         Description = "An agent leverages GPTs that target OpenAI backends. Currently not ready to server queries.";
@@ -101,7 +107,7 @@ public sealed class InterpreterAgent : ILLMAgent
             _refreshSettings = false;
         }
 
-        TaskCompletionChat taskCompletionChat = new TaskCompletionChat(_chatService, host, token);
+        taskCompletionChat = new TaskCompletionChat(_isFunctionCallingModel, _chatService, host, token);
         await taskCompletionChat.StartTask(input, _renderingStyle);
 
         return checkPass;
@@ -196,31 +202,14 @@ public sealed class InterpreterAgent : ILLMAgent
     // - Set `Key` to the access key of your Azure OpenAI service,
     //   or the key of the Azure API Management service if you are using it as a gateway.
     {{
-      ""Name"": ""powershell-ai"",
-      ""Description"": ""A GPT instance with expertise in PowerShell scripting and command line utilities."",
+      ""Name"": ""interpreter-gpt"",
+      ""Description"": ""A GPT instance with expertise in PowerShell and Python scripting"",
       ""Endpoint"": ""{Utils.ShellCopilotEndpoint}"",
       ""Deployment"": ""gpt4"",
-      ""ModelName"": ""gpt-4-0314"",   // required field to infer properties of the service, such as token limit.
+      ""ModelName"": ""gpt-4-0613"",   // required field to infer properties of the service, such as token limit.
       ""Key"": null,
-      ""SystemPrompt"": ""You are Open Interpreter, a world-class programmer that can complete any goal by executing code.
-                        Write only python and powershell script. Do not write bash or any other language.
-                        Respond in the following way: 
-                        First, list out the plan without any code.
-                        Second, install any necessary packages in the first steps.
-                        Thrid, go through the plan one step at a time and, if applicable, write the code for each step.
-                        Finally, do not show me how to run the code.
-                        When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in.
-                        Write messages to the user in Markdown.
-                        In general, try to **make plans** with as few steps as possible. As for actually executing code to 
-                        carry out that plan. You should 
-                        try something, print information about it, then continue from there in tiny, informed steps. You will 
-                        never get it on the first try, and attempting it in one go will often lead to errors you cant see.
-                        You are capable of **any** task. If there are any libraries to be installed, give me the powershell command to install it.
-                        
-                        [User Info]
-                        Operating System: {Utils.OS}"",
-                       
-
+      ""SystemPrompt"": ""You are Open Interpreter, a world-class programmer that can complete any goal by executing code. First, write a plan. **Always recap the plan between each code block** (you have extreme short-term memory loss, so you need to recap the plan between each message block to retain it). When you execute code, it will be executed **on the user's machine**. The user has given you **full and complete permission** to execute any code necessary to complete the task. Execute the code. If you want to send data between programming languages, save the data to a txt or json. You can access the internet. Run **any code** to achieve the goal, and if at first you don't succeed, try again and again. You can install new packages. When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in. Write messages to the user in Markdown. In general, try to **make plans** with as few steps as possible. As for actually executing code to carry out that plan, for *stateful* languages (like python, javascript, shell, but NOT for html which starts from 0 every time) **it's critical not to try to do everything in one code block.** You should try something, print information about it, then continue from there in tiny, informed steps. You will never get it on the first try, and attempting it in one go will often lead to errors you cant see. When giving python code add a blank line after an indented block is finished. When installing python libraries use powershell to pip install. You are capable of **any** task. Operating System: {Utils.OS}""
+    }}              
     // To use the public OpenAI as the AI completion service:
     // - Ignore the `Endpoint` and `Deployment` keys.
     // - Set `Key` to be the OpenAI access token.

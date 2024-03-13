@@ -17,6 +17,7 @@ public class PowerShell: SubprocessLanguage
 
     protected override string PreprocessCode(string code)
     {
+        code = code.TrimEnd();
         // Add end marker (listen for this in HandleStreamOutput to know when code ends)
         code += "\nWrite-Output '##end_of_execution##'";
         return code;

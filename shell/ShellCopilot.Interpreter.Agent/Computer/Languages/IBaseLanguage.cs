@@ -11,7 +11,7 @@ public interface IBaseLanguage
 	/// <param name="code"></param>
 	/// <param name="language"></param>
 	/// <returns></returns>
-	public Task<Queue<Dictionary<string,string>>> Run(string code);
+	public Task<Queue<Dictionary<string,string>>> Run(string code, CancellationToken token);
 
 	/// <summary>
 	/// Stops the process and cleans up any resources

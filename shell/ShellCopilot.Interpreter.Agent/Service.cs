@@ -13,6 +13,7 @@ internal class ChatService
     // TODO: Maybe expose this to our model registration?
     // We can still use 1000 as the default value.
     private const int MaxResponseToken = 1000;
+
     private readonly bool _isInteractive;
     private readonly string _historyRoot;
 
@@ -159,22 +160,64 @@ internal class ChatService
         int tokensPerName = modelDetail.TokensPerName;
 
         int tokenNumber = 0;
-        foreach (ChatRequestAssistantMessage message in messages.OfType<ChatRequestAssistantMessage>())
+        foreach (ChatRequestMessage message in messages)
         {      
             tokenNumber += tokensPerMessage;
             tokenNumber += encoding.Encode(message.Role.ToString()).Count;
-            tokenNumber += encoding.Encode(message.Content).Count;
 
-            if (message.Name is not null)
+            switch (message)
             {
-                tokenNumber += tokensPerName;
-                tokenNumber += encoding.Encode(message.Name).Count;
+                case ChatRequestUserMessage userMessage:
+                    tokenNumber += encoding.Encode(userMessage.Content).Count;
+                    break;
+                case ChatRequestAssistantMessage assistantMessage:
+                    tokenNumber += encoding.Encode(assistantMessage.Content).Count;
+                    if (assistantMessage.ToolCalls is not null)
+                    {
+                        // Count tokens for the tool call's properties
+                        foreach(ChatCompletionsToolCall chatCompletionsToolCall in assistantMessage.ToolCalls)
+                        {
+                            if(chatCompletionsToolCall is ChatCompletionsFunctionToolCall functionToolCall)
+                            {
+                                tokenNumber += encoding.Encode(functionToolCall.Id).Count;
+                                tokenNumber += encoding.Encode(functionToolCall.Name).Count;
+                                tokenNumber += encoding.Encode(functionToolCall.Arguments).Count;
+                            }
+                        }
+                    }
+                    break;
+                case ChatRequestToolMessage toolMessage:
+                    tokenNumber += encoding.Encode(toolMessage.ToolCallId).Count;
+                    tokenNumber += encoding.Encode(toolMessage.Content).Count;
+                    break;
+                    // Add cases for other derived types as needed
             }
+
         }
 
         // Every reply is primed with <|start|>assistant<|message|>, which takes 3 tokens.
         tokenNumber += 3;
         return tokenNumber;
+    }
+    
+    internal string ReduceToolResponseContentTokens(string content)
+    {
+        ModelInfo modelDetail = _gptToUse.ModelInfo;
+        GptEncoding encoding = modelDetail.GptEncoding;
+        string reducedContent = content;
+        string truncationMessage = "\n...Output truncated.";
+
+        if(encoding.Encode(reducedContent).Count >= MaxResponseToken)
+        {
+            while (encoding.Encode(reducedContent + truncationMessage).Count >= MaxResponseToken)
+            {
+                // Remove 10 characters from the end of the content
+                reducedContent = reducedContent.Substring(0, content.Length - 10);
+            }
+            reducedContent += truncationMessage;
+        }
+        
+        return reducedContent;
     }
 
     private void ReduceChatHistoryAsNeeded(List<ChatRequestMessage> history, ChatRequestMessage input)
@@ -193,14 +236,29 @@ internal class ChatService
 
         while (totalTokens + MaxResponseToken >= tokenLimit)
         {
-            history.RemoveAt(0);
+            bool breakLoop = true;
+            // only remove UserMessage or AssistantMessage and ToolMessages
+            for (int i = 0; i < history.Count - 1 && breakLoop; i++)
+            {
+                switch (history[i])
+                {
+                    case ChatRequestUserMessage userMessage:
+                        history.RemoveAt(i);
+                        breakLoop = false;
+                        break;
+                    case ChatRequestAssistantMessage assistantMessage:
+                        history.RemoveAt(i);
+                        if(assistantMessage.ToolCalls is not null)
+                        {
+                            // Need to remove the ChatRequestToolMessage for each tool call or chat history configuration will error.
+                            history.RemoveAt(i + 1);
+                        }
+                        breakLoop = false;
+                        break;
+                }
+            }
             totalTokens = CountTokenForMessages(history);
         }
-    }
-
-    public bool IsFunctionCallingModel()
-    {
-        return ModelInfo.IsFunctionCallingModel(_gptToUse.ModelName);
     }
 
     private ChatCompletionsOptions PrepareForChat(ChatRequestMessage input)
@@ -219,14 +277,14 @@ internal class ChatService
         // https://github.com/microsoft/semantic-kernel/blob/main/samples/skills/FunSkill/Joke/config.json
 
         // Determine if the gpt model is a function calling model
-        bool isFunctionCallingModel = IsFunctionCallingModel();
+        bool isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_gptToUse.ModelName);
         if (isFunctionCallingModel)
         {
             _chatOptions = new()
             {
                 DeploymentName = _gptToUse.Deployment,
                 ChoiceCount = 1,
-                Temperature = (float)0.7,
+                Temperature = (float)0.0,
                 MaxTokens = MaxResponseToken,
                 Tools = { Tools.RunCode },
             };
@@ -237,7 +295,7 @@ internal class ChatService
             {
                 DeploymentName = _gptToUse.Deployment,
                 ChoiceCount = 1,
-                Temperature = (float)0.7,
+                Temperature = (float)0.0,
                 MaxTokens = MaxResponseToken,
             };
         }
