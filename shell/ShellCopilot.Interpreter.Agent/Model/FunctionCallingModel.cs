@@ -20,7 +20,7 @@ static internal class Tools
     static internal ChatCompletionsFunctionToolDefinition RunCode = new()
     {
         Name = "execute",
-        Description = "This function is able to run given python code. This will allow you to execute python code " +
+        Description = "This function is able to run given powershell and python code. This will allow you to execute powershell and python code " +
         "on my local machine.",
         Parameters = BinaryData.FromObjectAsJson(
         new
