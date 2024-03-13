@@ -182,9 +182,6 @@ public sealed class AzCLIAgent : ILLMAgent
         }
         catch (RefreshTokenException ex)
         {
-            // Stop the watch in case it was not when exception happened.
-            _watch.Stop();
-
             Exception inner = ex.InnerException;
             if (inner is CredentialUnavailableException)
             {
@@ -197,6 +194,11 @@ public sealed class AzCLIAgent : ILLMAgent
             }
 
             return false;
+        }
+        finally
+        {
+            // Stop the watch in case of early return or exception.
+            _watch.Stop();
         }
 
         return true;
