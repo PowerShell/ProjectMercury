@@ -40,8 +40,10 @@ public sealed class AzCLIAgent : ILLMAgent
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Terms of use"] = "https://aka.ms/TermsofUseCopilot",
-            ["Privacy statement"] = "https://aka.ms/privacy",
+            ["Terms"] = "https://aka.ms/TermsofUseCopilot",
+            ["Privacy"] = "https://aka.ms/privacy",
+            ["FAQ"] = "https://aka.ms/CopilotforAzureClientToolsFAQ",
+            ["Transparency"] = "https://aka.ms/CopilotAzCLIPSTransparency",
         };
 
         SettingFile = Path.Combine(config.ConfigurationRoot, SettingFileName);

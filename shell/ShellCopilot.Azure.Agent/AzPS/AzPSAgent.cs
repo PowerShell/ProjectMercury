@@ -45,8 +45,10 @@ public sealed class AzPSAgent : ILLMAgent
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Terms of use"] = "https://aka.ms/TermsofUseCopilot",
-            ["Privacy statement"] = "https://aka.ms/privacy",
+            ["Terms"] = "https://aka.ms/TermsofUseCopilot",
+            ["Privacy"] = "https://aka.ms/privacy",
+            ["FAQ"] = "https://aka.ms/CopilotforAzureClientToolsFAQ",
+            ["Transparency"] = "https://aka.ms/CopilotAzCLIPSTransparency",
         };
 
         _historyForTelemetry = [];
