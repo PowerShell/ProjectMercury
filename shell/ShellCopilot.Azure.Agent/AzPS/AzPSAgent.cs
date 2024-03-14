@@ -7,7 +7,7 @@ namespace ShellCopilot.Azure.PowerShell;
 public sealed class AzPSAgent : ILLMAgent
 {
     public string Name => "az-ps";
-    public string Description => "This AI assistant can help generate Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple different Azure resources. AI Generated content may be inaccurate.";
+    public string Description => "This AI assistant can help generate Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple different Azure resources. AI-Generated content may be incorrect.";
     public string Company => "Microsoft";
     public List<string> SampleQueries => [
         "Create a VM with a public IP address",
