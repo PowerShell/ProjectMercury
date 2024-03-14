@@ -56,9 +56,9 @@ public sealed class AzPSAgent : ILLMAgent
 
     public IEnumerable<CommandBase> GetCommands() => null;
 
-    public bool CanAcceptFeedback(UserAction action) => true;
+    public bool CanAcceptFeedback(UserAction action) => !_metricHelper._disableAzureDataCollection;
 
-    public void OnUserAction(UserActionPayload actionPayload) 
+    public void OnUserAction(UserActionPayload actionPayload)
     {
         // DisLike Action
         string DetailedMessage = null;
