@@ -56,7 +56,7 @@ public sealed class AzPSAgent : ILLMAgent
 
     public IEnumerable<CommandBase> GetCommands() => null;
 
-    public bool CanAcceptFeedback(UserAction action) => !MetricHelper._disableAzureDataCollection;
+    public bool CanAcceptFeedback(UserAction action) => !MetricHelper.TelemetryOptOut;
 
     public void OnUserAction(UserActionPayload actionPayload)
     {
