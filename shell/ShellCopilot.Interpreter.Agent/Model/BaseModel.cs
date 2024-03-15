@@ -15,19 +15,17 @@ public abstract class BaseModel : IModel
     internal ChatService _chatService;
     internal IHost host;
     internal Computer computer;
-    internal CancellationToken token;
 
-    protected abstract Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent);
+    protected abstract Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent, CancellationToken token);
 
-    internal BaseModel(ChatService chatService, IHost Host, CancellationToken Token)
+    internal BaseModel(ChatService chatService, IHost Host)
     {
         _chatService = chatService;
         host = Host;
         computer = new Computer();
-        token = Token;
     }
 
-    public async Task<InternalChatResultsPacket> SmartChat(string input, RenderingStyle _renderingStyle)
+    public async Task<InternalChatResultsPacket> SmartChat(string input, RenderingStyle _renderingStyle, CancellationToken token)
     {
         string responseContent = null;
         if (_renderingStyle is RenderingStyle.FullResponsePreferred)
@@ -77,13 +75,12 @@ public abstract class BaseModel : IModel
                 catch (OperationCanceledException)
                 {
                     // Ignore the cancellation exception.
-                    throw;
                 }
                 responseContent = streamingRender.AccumulatedContent;
             }
         }
 
-        return await HandleFunctionCall(responseContent);
+        return await HandleFunctionCall(responseContent, token);
     }
 
     protected virtual void RenderStreamingChat(IStreamRender streamingRender, StreamingChatCompletionsUpdate chatUpdate)

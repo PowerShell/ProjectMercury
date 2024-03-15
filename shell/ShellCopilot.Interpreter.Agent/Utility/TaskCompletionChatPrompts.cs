@@ -23,10 +23,14 @@ public static class TaskCompletionChatPrompts
             "information (like username or password) say EXACTLY 'Please provide more information.' " +
             "If it's impossible, say 'The task is impossible.' (If I haven't provided a task, say exactly " +
             "'Let me know what you'd like to do next.') Otherwise keep going.\n" },
-        // Code output response
-        { "Output", "\nThe following was the outfrom code execution. If this is not what you were expecting then please fix the code. " +
+        // Code output response for function calling model
+        { "OutputFunctionBased", "\nPlease check the ChatRequestToolMessage for output for the code. If this is not what you were expecting then please fix the code. " +
             "If it is what you were expecting please move on to the next step and only the next step. If the task is done say " +
             "EXACTLY 'The task is done.'\n"},
+        // Code output response for text based model
+        { "OutputTextBased", "\nPlease check the following for output for the code. If this is not what you were expecting then please fix the code. " +
+                       "If it is what you were expecting please move on to the next step and only the next step. If the task is done say " +
+                       "EXACTLY 'The task is done.'\n Code output:\n\n"},
         // Tool Cancelled terminate task
         { "ToolCancelled", "\nTask cancelled. Say exactly 'Let me know what you'd like to do next.'\n" },
         // Use the tool

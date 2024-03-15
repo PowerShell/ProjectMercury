@@ -20,7 +20,7 @@ static internal class Tools
     static internal ChatCompletionsFunctionToolDefinition RunCode = new()
     {
         Name = "execute",
-        Description = "This function is able to run given powershell code. This will allow you to execute powershell code " +
+        Description = "This function is able to run given powershell and python code. This will allow you to execute powershell and python code " +
         "on my local machine.",
         Parameters = BinaryData.FromObjectAsJson(
         new
@@ -52,7 +52,7 @@ internal class FunctionCallingModel : BaseModel
     private Dictionary<int, string> functionNamesByIndex = [];
     private Dictionary<int, StringBuilder> functionArgumentBuildersByIndex = [];
 
-    internal FunctionCallingModel(ChatService chatService, IHost Host, CancellationToken Token) : base (chatService, Host, Token)
+    internal FunctionCallingModel(ChatService chatService, IHost Host) : base (chatService, Host)
     {
     }
 
@@ -90,7 +90,7 @@ internal class FunctionCallingModel : BaseModel
         }
     }
 
-    protected override async Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent)
+    protected override async Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent, CancellationToken token)
     {
         // Start consctructing the assistant message with the response content.
         ChatRequestAssistantMessage assistantHistoryMessage = new(responseContent);
@@ -136,6 +136,7 @@ internal class FunctionCallingModel : BaseModel
                 // Use the tool
                 ToolResponsePacket toolResponse = await UseTool(toolCall, language, code, computer, token);
 
+                // Reduce code output in chat history as needed
                 if (toolResponse.Content is not null)
                 {
                     host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");

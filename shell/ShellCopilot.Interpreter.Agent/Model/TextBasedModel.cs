@@ -10,22 +10,32 @@ namespace ShellCopilot.Interpreter.Agent;
 
 internal class TextBasedModel : BaseModel
 {
-    internal TextBasedModel(ChatService chatService, IHost Host, CancellationToken Token) : base(chatService, Host, Token)
+    internal TextBasedModel(ChatService chatService, IHost Host) : base(chatService, Host)
     {
     }
 
-    protected override async Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent)
+    protected override async Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent, CancellationToken token)
     {
+        InternalChatResultsPacket packet;
         if (WasCodeGiven(responseContent))
         {
             _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
-            return await ExecuteProvidedCode(responseContent);
+            bool choice = await host.PromptForConfirmationAsync($"\nWould you like to run the code?", true, token);
+            if (choice)
+            {
+                packet = await ExecuteProvidedCode(responseContent, token);
+            }
+            else
+            {
+                packet = new InternalChatResultsPacket(responseContent, "User chose not to run code.");
+            }
         }
         else
         {
             _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
-            return new InternalChatResultsPacket(responseContent, "No code was given.");
+            packet = new InternalChatResultsPacket(responseContent, "No code was given.");
         }
+        return packet;
     }
 
     private bool WasCodeGiven(string responseContent)
@@ -39,37 +49,34 @@ internal class TextBasedModel : BaseModel
         int endIndex = responseContent.IndexOf("```", startIndex + 3);
         if (startIndex != -1 && endIndex != -1)
         {
-            isCodeBlockComplete = true;
+            if(responseContent.Contains("```python\n") || responseContent.Contains("```powershell\n"))
+            {
+                isCodeBlockComplete = true;
+            }
         }
         return isCodeBlockComplete;
     }
-    private async Task<InternalChatResultsPacket> ExecuteProvidedCode(string responseContent)
+    private async Task<InternalChatResultsPacket> ExecuteProvidedCode(string responseContent, CancellationToken token)
     {
-        bool choice = await host.PromptForConfirmationAsync($"\nWould you like to run the code?", true, token);
         string toolMessage = "";
         string language = "";
         string code = "";
-        if (!choice)
+
+        string[] langAndCode = ExtractCodeFromResponse(responseContent);
+        language = langAndCode[0];
+        code = langAndCode[1];
+        if (language.Equals("None") && code.Equals("None"))
         {
-            toolMessage = "User chose not to run code.";
+            toolMessage = "No code was given.";
         }
         else
         {
-            string[] langAndCode = ExtractCodeFromResponse(responseContent);
-            language = langAndCode[0];
-            code = langAndCode[1];
-            if (language.Equals("None") && code.Equals("None"))
-            {
-                toolMessage = "No code was given.";
-            }
-            else
-            {
-                Task<ToolResponsePacket> func() => computer.Run(language, code, token);
-                ToolResponsePacket packet = await host.RunWithSpinnerAsync(func, "Running code...");
-                toolMessage = packet.Content;
-                host.RenderFullResponse("```\n" + toolMessage + "\n");
-            }
+            Task<ToolResponsePacket> func() => computer.Run(language, code, token);
+            ToolResponsePacket toolResponse = await host.RunWithSpinnerAsync(func, "Running code...");
+            host.RenderFullResponse("```\n" + toolResponse.Content + "\n");
+            toolMessage = _chatService.ReduceToolResponseContentTokens(toolResponse.Content);
         }
+
         return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
     }
 

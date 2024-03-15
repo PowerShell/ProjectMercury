@@ -167,6 +167,9 @@ internal class ChatService
 
             switch (message)
             {
+                case ChatRequestSystemMessage systemMessage:
+                    tokenNumber += encoding.Encode(systemMessage.Content).Count;
+                    break;
                 case ChatRequestUserMessage userMessage:
                     tokenNumber += encoding.Encode(userMessage.Content).Count;
                     break;
@@ -211,8 +214,8 @@ internal class ChatService
         {
             while (encoding.Encode(reducedContent + truncationMessage).Count >= MaxResponseToken)
             {
-                // Remove 10 characters from the end of the content
-                reducedContent = reducedContent.Substring(0, content.Length - 10);
+                // Remove half characters from the end of the content
+                reducedContent = reducedContent.Substring(0, reducedContent.Length / 2);
             }
             reducedContent += truncationMessage;
         }
@@ -234,28 +237,26 @@ internal class ChatService
         history.Add(input);
         totalTokens = CountTokenForMessages(history);
 
-        while (totalTokens + MaxResponseToken >= tokenLimit)
+        // only remove UserMessage or AssistantMessage and ToolMessages
+        int index = 0;
+        while (totalTokens + (MaxResponseToken) >= tokenLimit)
         {
-            bool breakLoop = true;
-            // only remove UserMessage or AssistantMessage and ToolMessages
-            for (int i = 0; i < history.Count - 1 && breakLoop; i++)
+            switch (history[index])
             {
-                switch (history[i])
-                {
-                    case ChatRequestUserMessage userMessage:
-                        history.RemoveAt(i);
-                        breakLoop = false;
-                        break;
-                    case ChatRequestAssistantMessage assistantMessage:
-                        history.RemoveAt(i);
-                        if(assistantMessage.ToolCalls is not null)
-                        {
-                            // Need to remove the ChatRequestToolMessage for each tool call or chat history configuration will error.
-                            history.RemoveAt(i + 1);
-                        }
-                        breakLoop = false;
-                        break;
-                }
+                case ChatRequestUserMessage:
+                    history.RemoveAt(index);
+                    break;
+                case ChatRequestAssistantMessage:
+                    history.RemoveAt(index);
+                    if (history[index] is ChatRequestToolMessage)
+                    {
+                        history.RemoveAt(index);
+                    }
+                    break;
+                default:
+                    index++;
+                    break;
+
             }
             totalTokens = CountTokenForMessages(history);
         }
@@ -278,6 +279,7 @@ internal class ChatService
 
         // Determine if the gpt model is a function calling model
         bool isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_gptToUse.ModelName);
+
         if (isFunctionCallingModel)
         {
             _chatOptions = new()
@@ -305,9 +307,66 @@ internal class ChatService
         {
             if (isFunctionCallingModel)
             {
-                history.Add(new ChatRequestSystemMessage("\nUse ONLY the function you have been provided with — 'execute(language, code)'."));
+                string FunctionCallingModelPrompt = "Use ONLY the function you have been provided with — 'execute(language, code)";
+                history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt + FunctionCallingModelPrompt));
             }
-            history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt));
+            else
+            {
+                string TextBasedModelPrompt = "\nTo execute code on the user's machine, **make sure to the code in your response** and write it as a markdown code block. Specify the language after the ```. You will receive the output. Use any programming language.";
+                history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt + TextBasedModelPrompt));
+
+                // Below is an example of a prompt for a text-based model.
+                string tools = $@"
+{{
+""Tools"" :
+    [
+        {{
+            ""name"" : ""execute"",
+            ""description"" : ""This function is able to run given powershell and python code. This will allow you to execute powershell and python code on my local machine."",
+            ""function"" : ""UseTool"",
+            ""input_schema"" : 
+                {{
+                    ""language"" : <string>,
+                    ""code"" : <string>
+                }},
+            ""output_schema"" : 
+                {{
+                    ""output"" : <string>
+                }}
+        }}
+    ]
+}}
+";
+                string outputFormat = $@"
+{{
+    ""workflow"" : ""Code Executions"";
+    ""steps"" :
+        [
+            {{
+                ""name"" : ""execute"",
+                ""function"" : ""UseTool"",
+                ""input_schema"" :
+                    {{
+                        ""language"" : <string>,
+                        ""code"" : <string>
+                    }}
+            }},
+        ]
+}}";
+                string textBasedModelPrompt = $@"
+Objective:
+Your objective is to create a sequential workflow based on the users query.
+
+Create a plan represented in JSON by only using the tools listed below. The workflow should be a JSON array containing only the sequence index, function name, and input. A step in the workflow can receive the output from a previous step as input.
+
+Output example 1:
+{outputFormat}
+
+Tools:
+{tools}
+
+                ";
+            }
         }
 
         ReduceChatHistoryAsNeeded(history, input);
@@ -339,6 +398,11 @@ internal class ChatService
         }
         catch (OperationCanceledException)
         {
+            return null;
+        }
+        catch (InvalidOperationException e)
+        {
+            Debug.WriteLine($"An error occurred: {e.Message}");
             return null;
         }
     }

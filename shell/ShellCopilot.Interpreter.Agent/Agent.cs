@@ -107,8 +107,19 @@ public sealed class InterpreterAgent : ILLMAgent
             _refreshSettings = false;
         }
 
-        taskCompletionChat = new TaskCompletionChat(_isFunctionCallingModel, _chatService, host, token);
-        await taskCompletionChat.StartTask(input, _renderingStyle);
+        try
+        {
+            taskCompletionChat = new TaskCompletionChat(_isFunctionCallingModel, _chatService, host);
+            await taskCompletionChat.StartTask(input, _renderingStyle, token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore the except
+        }
+        finally
+        {
+            taskCompletionChat.CleanUpProcesses();
+        }
 
         return checkPass;
     }

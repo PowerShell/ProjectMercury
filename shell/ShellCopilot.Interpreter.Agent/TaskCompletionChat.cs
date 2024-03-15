@@ -15,23 +15,23 @@ internal class TaskCompletionChat
 	private ChatService _chatService;
 	private IHost host;
     private Computer computer;
-    private CancellationToken token;
     private Dictionary<string,string> prompts = TaskCompletionChatPrompts.prompts;
     private IModel model;
+    private bool _isFunctionCallingModel;
 
-	internal TaskCompletionChat(bool _isFunctionCallingModel, ChatService chatService, IHost Host, CancellationToken Token)
+	internal TaskCompletionChat(bool isFunctionCallingModel, ChatService chatService, IHost Host)
 	{
 		_chatService = chatService;
 		host = Host;
-        token = Token;
         computer = new();
+        _isFunctionCallingModel = isFunctionCallingModel;
         if(_isFunctionCallingModel)
         {
-            model = new FunctionCallingModel(_chatService, host, token);
+            model = new FunctionCallingModel(_chatService, host);
         }
         else
         {
-            model = new TextBasedModel(_chatService, host, token);
+            model = new TextBasedModel(_chatService, host);
         }
 	}
 
@@ -40,23 +40,26 @@ internal class TaskCompletionChat
         computer.Terminate();
     }
 
-    public async Task<bool> StartTask(string input, RenderingStyle _renderingStyle)
+    public async Task<bool> StartTask(string input, RenderingStyle _renderingStyle, CancellationToken token)
     {
         bool chatCompleted = false;
         string previousCode = "";
         //input += prompts["Initial"];
         while (!chatCompleted)
         {
+            if (string.IsNullOrEmpty(input))
+            {
+                break;
+            }
             try
             {
-                InternalChatResultsPacket packet = await model.SmartChat(input, _renderingStyle);
+                InternalChatResultsPacket packet = await model.SmartChat(input, _renderingStyle, token);
 
                 PromptEngineering(ref input, ref chatCompleted, ref previousCode, packet);
             }
             catch (OperationCanceledException)
             {
-                chatCompleted = true;
-                throw;
+                // Ignore the exception
             }
         }
 
@@ -65,6 +68,11 @@ internal class TaskCompletionChat
 
     private void PromptEngineering(ref string input, ref bool chatCompleted, ref string previousCode, InternalChatResultsPacket packet)
     {
+        if(string.IsNullOrEmpty(input))
+        {
+            input = "";
+            chatCompleted = true;
+        }
         if (packet.wasCodeGiven && !packet.didNotCallTool)
         {
             if(packet.Code.Equals(previousCode) && !string.IsNullOrEmpty(previousCode))
@@ -91,7 +99,14 @@ internal class TaskCompletionChat
                         }
                         else
                         {
-                            input = prompts["Output"] + packet.toolResponse;
+                            if (_isFunctionCallingModel)
+                            {
+                                input = prompts["OutputFunctionBased"];
+                            }
+                            else
+                            {
+                                input = prompts["OutputTextBased"] + packet.toolResponse;
+                            }
                             previousCode = packet.Code;
                         }
                     }

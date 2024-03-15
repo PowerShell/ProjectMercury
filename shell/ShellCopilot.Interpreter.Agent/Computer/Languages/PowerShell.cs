@@ -11,7 +11,7 @@ public class PowerShell: SubprocessLanguage
 {
     public PowerShell()
     {
-        StartCmd = ["pwsh.exe", "-file -"];
+        StartCmd = ["pwsh.exe", "-file - -NoProfile"];
         OutputQueue = new Queue<Dictionary<string, string>>();
     }
 
