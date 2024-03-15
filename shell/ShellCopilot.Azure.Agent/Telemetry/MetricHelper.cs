@@ -11,11 +11,12 @@ namespace ShellCopilot.Azure;
 
 public class MetricHelper
 {
-    private string _endpoint;
+    public static readonly bool TelemetryOptOut = GetEnvironmentVariableAsBool("COPILOT_TELEMETRY_OPTOUT", false);
 
+    private string _endpoint;
     private TelemetryClient _telemetryClient;
 
-    public MetricHelper(string endpoint) 
+    public MetricHelper(string endpoint)
     {
         _endpoint = endpoint;
         InitializeTelemetryClient();
@@ -73,6 +74,33 @@ public class MetricHelper
         // This is to ensure that even if application terminates, telemetry is sent to the back-end.
         _telemetryClient.Flush();
         // Task.Delay(500000).Wait();
+    }
+
+    private static bool GetEnvironmentVariableAsBool(string name, bool defaultValue)
+    {
+        var str = Environment.GetEnvironmentVariable(name);
+
+        if (string.IsNullOrWhiteSpace(str))
+        {
+            return defaultValue;
+        }
+
+        if (bool.TryParse(str, out bool result))
+        {
+            return result;
+        }
+
+        if (string.Equals(str, "yes", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(str, "no", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return defaultValue;
     }
 }
 
