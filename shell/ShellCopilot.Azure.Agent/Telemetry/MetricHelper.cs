@@ -11,9 +11,10 @@ namespace ShellCopilot.Azure;
 
 public class MetricHelper
 {
+    public static readonly bool TelemetryOptOut = GetEnvironmentVariableAsBool("COPILOT_TELEMETRY_OPTOUT", false);
+
     private string _endpoint;
     private TelemetryClient _telemetryClient;
-    public static readonly bool _disableAzureDataCollection = GetEnvironmentVariableAsBool("COPILOT_TELEMETRY_OPTOUT", false);
 
     public MetricHelper(string endpoint)
     {
