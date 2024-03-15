@@ -49,7 +49,7 @@ public sealed class AzCLIAgent : ILLMAgent
 
     public IEnumerable<CommandBase> GetCommands() => null;
 
-    public bool CanAcceptFeedback(UserAction action) => _metricHelper._disableAzureDataCollection;
+    public bool CanAcceptFeedback(UserAction action) => !MetricHelper._disableAzureDataCollection;
 
     public void OnUserAction(UserActionPayload actionPayload)
     {
