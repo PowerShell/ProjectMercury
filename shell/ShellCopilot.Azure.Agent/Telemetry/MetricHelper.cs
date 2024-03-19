@@ -51,7 +51,6 @@ public class MetricHelper
         // Obtain TelemetryClient instance from DI, for additional manual tracking or to flush.
         _telemetryClient = serviceProvider.GetRequiredService<TelemetryClient>();
 
-
         // Suppress the PII recorded by default to reduce risk.
         _telemetryClient.Context.Cloud.RoleInstance = "Not Available";
     }
