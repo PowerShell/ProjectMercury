@@ -162,24 +162,28 @@ public sealed class AzCLIAgent : ILLMAgent
 
                 // Measure time spent
                 _watch.Stop();
-                // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
-                var EndTime = DateTime.Now;
-                var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
 
-                // Append last Q&A history in HistoryMessage
-                _historyForTelemetry.Add(new HistoryMessage("user", input, _chatService.CorrelationID));
-                _historyForTelemetry.Add(new HistoryMessage("assistant", _text.ToString(), _chatService.CorrelationID));
+                if (!MetricHelper.TelemetryOptOut) 
+                {
+                    // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
+                    var EndTime = DateTime.Now;
+                    var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
 
-                _metricHelper.LogTelemetry(
-                    new AzTrace()
-                    {
-                        CorrelationID = _chatService.CorrelationID,
-                        Duration = Duration,
-                        EndTime = EndTime,
-                        EventType = "Question",
-                        Handler = "Azure CLI",
-                        StartTime = startTime
-                    });
+                    // Append last Q&A history in HistoryMessage
+                    _historyForTelemetry.Add(new HistoryMessage("user", input, _chatService.CorrelationID));
+                    _historyForTelemetry.Add(new HistoryMessage("assistant", _text.ToString(), _chatService.CorrelationID));
+
+                    _metricHelper.LogTelemetry(
+                        new AzTrace()
+                        {
+                            CorrelationID = _chatService.CorrelationID,
+                            Duration = Duration,
+                            EndTime = EndTime,
+                            EventType = "Question",
+                            Handler = "Azure CLI",
+                            StartTime = startTime
+                        });
+                }
             }
         }
         catch (RefreshTokenException ex)
