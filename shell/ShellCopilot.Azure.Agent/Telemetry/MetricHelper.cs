@@ -109,8 +109,8 @@ internal class MyCustomTelemetryInitializer : ITelemetryInitializer
     private string _endpoint;
     public void Initialize(ITelemetry telemetry)
     {
-        // Replace with actual properties.
         (telemetry as ISupportProperties).Properties["Endpoint"] = _endpoint;
+        // Suppress the PII recorded by default to reduce risk.
         telemetry.Context.Cloud.RoleInstance = "Not Available";
     }
 
