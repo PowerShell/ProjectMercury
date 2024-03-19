@@ -111,6 +111,7 @@ internal class MyCustomTelemetryInitializer : ITelemetryInitializer
     {
         // Replace with actual properties.
         (telemetry as ISupportProperties).Properties["Endpoint"] = _endpoint;
+        telemetry.Context.Cloud.RoleInstance = "Not Available";
     }
 
     public MyCustomTelemetryInitializer(string endpoint) 
