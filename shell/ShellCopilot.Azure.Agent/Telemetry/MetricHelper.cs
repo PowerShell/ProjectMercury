@@ -50,6 +50,10 @@ public class MetricHelper
 
         // Obtain TelemetryClient instance from DI, for additional manual tracking or to flush.
         _telemetryClient = serviceProvider.GetRequiredService<TelemetryClient>();
+
+
+        // Suppress the PII recorded by default to reduce risk.
+        _telemetryClient.Context.Cloud.RoleInstance = "Not Available";
     }
 
     public void LogTelemetry(AzTrace trace)
@@ -110,8 +114,6 @@ internal class MyCustomTelemetryInitializer : ITelemetryInitializer
     public void Initialize(ITelemetry telemetry)
     {
         (telemetry as ISupportProperties).Properties["Endpoint"] = _endpoint;
-        // Suppress the PII recorded by default to reduce risk.
-        telemetry.Context.Cloud.RoleInstance = "Not Available";
     }
 
     public MyCustomTelemetryInitializer(string endpoint) 
