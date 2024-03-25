@@ -50,7 +50,7 @@ public class Computer
         } 
         catch(OperationCanceledException)
         {
-            throw;
+            packet.ResetContent("Code run cancelled.");
         }
 
         return packet;

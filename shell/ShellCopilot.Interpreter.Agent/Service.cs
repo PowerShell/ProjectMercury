@@ -38,6 +38,19 @@ internal class ChatService
             return;
         }
 
+        switch (response)
+        {
+            case ChatRequestAssistantMessage assistantMessage:
+                if (string.IsNullOrEmpty(assistantMessage.Content))
+                {
+                    if (assistantMessage.ToolCalls.Count == 0)
+                    {
+                        return;
+                    }
+                }
+                break;
+        }
+
         _chatHistory.Add(response);
     }
 
@@ -312,7 +325,7 @@ internal class ChatService
             }
             else
             {
-                string TextBasedModelPrompt = "\nTo execute code on the user's machine, **make sure to the code in your response** and write it as a markdown code block. Specify the language after the ```. You will receive the output. Use any programming language.";
+                string TextBasedModelPrompt = "\nTo execute code on the user's machine, **make sure to the code in your response** and write it as a markdown code block. Specify the language after the ```. You will receive the output. Prefer to use Powershell programming language over Python.";
                 history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt + TextBasedModelPrompt));
 
                 // Below is an example of a prompt for a text-based model.
@@ -398,11 +411,6 @@ Tools:
         }
         catch (OperationCanceledException)
         {
-            return null;
-        }
-        catch (InvalidOperationException e)
-        {
-            Debug.WriteLine($"An error occurred: {e.Message}");
             return null;
         }
     }

@@ -143,6 +143,7 @@ public abstract class SubprocessLanguage : IBaseLanguage
         }
         catch (OperationCanceledException)
         {
+            Terminate();
             throw;
         }
     }

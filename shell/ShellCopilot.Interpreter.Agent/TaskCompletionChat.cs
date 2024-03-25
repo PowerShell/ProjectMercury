@@ -68,12 +68,11 @@ internal class TaskCompletionChat
 
     private void PromptEngineering(ref string input, ref bool chatCompleted, ref string previousCode, InternalChatResultsPacket packet)
     {
-        if(string.IsNullOrEmpty(input))
+        if (packet.wasResponseCancelled)
         {
-            input = "";
             chatCompleted = true;
         }
-        if (packet.wasCodeGiven && !packet.didNotCallTool)
+        else if (packet.wasCodeGiven && !packet.didNotCallTool)
         {
             if(packet.Code.Equals(previousCode) && !string.IsNullOrEmpty(previousCode))
             {

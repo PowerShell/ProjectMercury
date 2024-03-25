@@ -116,6 +116,10 @@ public sealed class InterpreterAgent : ILLMAgent
         {
             // Ignore the except
         }
+        catch (ArgumentException ex)
+        {
+            host.MarkupWarningLine($"[[{Name}]]: {ex.Message}");
+        }
         finally
         {
             taskCompletionChat.CleanUpProcesses();

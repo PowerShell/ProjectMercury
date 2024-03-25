@@ -16,6 +16,7 @@ public class DataPacket(ChatRole Role, string Content)
 public class InternalChatResultsPacket(string AIResponse, string ToolResponse, string language = "", string code = "")
 {
     public readonly string aiResponse = AIResponse ?? "No response from AI.";
+    public readonly bool wasResponseCancelled = AIResponse?.Contains("AI response cancelled.") ?? false;
     public readonly bool wasAIResponseEmpty = AIResponse?.Contains("No response from AI.") ?? false;
     public readonly bool isTaskComplete = AIResponse?.Contains("The task is done.") ?? false;
     public readonly bool isTaskImpossible = AIResponse?.Contains("The task is impossible.") ?? false;

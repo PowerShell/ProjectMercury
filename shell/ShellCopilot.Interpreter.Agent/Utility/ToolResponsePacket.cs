@@ -60,4 +60,8 @@ public class ToolResponsePacket : DataPacket
         }
     }
 
+    public void ResetContent(string content)
+    {
+        Content = content;
+    }
 }

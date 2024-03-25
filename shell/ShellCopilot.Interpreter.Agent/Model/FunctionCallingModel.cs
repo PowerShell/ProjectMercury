@@ -14,10 +14,10 @@ using System.Threading.Tasks;
 
 namespace ShellCopilot.Interpreter.Agent;
 
-static internal class Tools
+internal static class Tools
 {
 
-    static internal ChatCompletionsFunctionToolDefinition RunCode = new()
+    internal static ChatCompletionsFunctionToolDefinition RunCode = new()
     {
         Name = "execute",
         Description = "This function is able to run given powershell and python code. This will allow you to execute powershell and python code " +
@@ -92,7 +92,7 @@ internal class FunctionCallingModel : BaseModel
 
     protected override async Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent, CancellationToken token)
     {
-        // Start consctructing the assistant message with the response content.
+        // Start constructing the assistant message with the response content.
         ChatRequestAssistantMessage assistantHistoryMessage = new(responseContent);
         string toolMessage = "";
         string language = "";
@@ -129,27 +129,36 @@ internal class FunctionCallingModel : BaseModel
             }
 
             // Ask the user if they want to run the code
-            bool runChoice = await host.PromptForConfirmationAsync("Would you like to run the code?", true, token);
-
-            if (runChoice)
+            try
             {
-                // Use the tool
-                ToolResponsePacket toolResponse = await UseTool(toolCall, language, code, computer, token);
+                bool runChoice = await host.PromptForConfirmationAsync("Would you like to run the code?", true, token);
 
-                // Reduce code output in chat history as needed
-                if (toolResponse.Content is not null)
+                if (runChoice)
                 {
-                    host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
-                    toolMessage = _chatService.ReduceToolResponseContentTokens(toolResponse.Content);
+                    // Use the tool
+                    ToolResponsePacket toolResponse = await UseTool(toolCall, language, code, computer, token);
+
+                    // Reduce code output in chat history as needed
+                    if (toolResponse.Content is not null)
+                    {
+                        host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
+                        toolMessage = _chatService.ReduceToolResponseContentTokens(toolResponse.Content);
+                    }
+                    else
+                    {
+                        toolMessage = "Tool response was null";
+                    }
                 }
                 else
                 {
-                    toolMessage = "Tool response was null";
+                    toolMessage = "User chose not to run code.";
                 }
             }
-            else
+            catch (OperationCanceledException)
             {
                 toolMessage = "User chose not to run code.";
+                _chatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, indexIdPair.Value));
+                return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
             }
             _chatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, indexIdPair.Value));
         }

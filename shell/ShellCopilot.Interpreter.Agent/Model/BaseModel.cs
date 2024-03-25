@@ -71,12 +71,16 @@ public abstract class BaseModel : IModel
                     {
                         RenderStreamingChat(streamingRender, chatUpdate);
                     }
+                    responseContent = streamingRender.AccumulatedContent;
                 }
                 catch (OperationCanceledException)
                 {
                     // Ignore the cancellation exception.
                 }
-                responseContent = streamingRender.AccumulatedContent;
+            }
+            else
+            {
+                return new InternalChatResultsPacket("AI response cancelled.","Tool was not called.");
             }
         }
 
