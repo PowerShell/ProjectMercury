@@ -44,6 +44,7 @@ public class MetricHelper
             {
                 options.ConnectionString = "InstrumentationKey=c7d054ff-9f40-43e8-bf8e-7d76c58cc1af";
                 options.EnableHeartbeat = false;
+                options.EnableDiagnosticsTelemetryModule = false;
             }
         );
 
