@@ -123,7 +123,7 @@ internal class AzPSChatService : IDisposable
             while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
             {
                 var chunk = JsonSerializer.Deserialize<ChunkData>(line, Utils.JsonOptions);
-                if (!chunk.Status.Equals("Starting Generate Answer", StringComparison.Ordinal))
+                if (!chunk.Status.Equals("Generating Answer", StringComparison.Ordinal))
                 {
                     context?.Status(chunk.Status);
                     continue;
