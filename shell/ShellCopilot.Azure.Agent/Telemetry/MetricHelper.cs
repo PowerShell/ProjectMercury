@@ -40,7 +40,12 @@ public class MetricHelper
 
         // Being a regular console app, there is no appsettings.json or configuration providers enabled by default.
         // Hence connection string must be specified here.
-        services.AddApplicationInsightsTelemetryWorkerService((ApplicationInsightsServiceOptions options) => options.ConnectionString = "InstrumentationKey=c7d054ff-9f40-43e8-bf8e-7d76c58cc1af");
+        services.AddApplicationInsightsTelemetryWorkerService((ApplicationInsightsServiceOptions options) =>
+            {
+                options.ConnectionString = "InstrumentationKey=c7d054ff-9f40-43e8-bf8e-7d76c58cc1af";
+                options.EnableHeartbeat = false;
+            }
+        );
 
         // Add custom TelemetryProcessor
         services.AddApplicationInsightsTelemetryProcessor<MyCustomTelemetryProcessor>();
