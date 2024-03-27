@@ -123,24 +123,14 @@ internal class AzPSChatService : IDisposable
             while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
             {
                 var chunk = JsonSerializer.Deserialize<ChunkData>(line, Utils.JsonOptions);
-                if (chunk.Status.Equals("Starting Search Examples", StringComparison.Ordinal))
-                {
-                    context?.Status("Searching Examples ...");
-                    continue;
-                }
-
-                if (chunk.Status.Equals("Starting Search Cmdlet Reference", StringComparison.Ordinal))
-                {
-                    context?.Status("Searching Cmdlet Reference ...");
-                    continue;
-                }
-
-                if (chunk.Status.Equals("Starting Generate Answer", StringComparison.Ordinal))
+                if (chunk.Status.Equals("Generating Answer", StringComparison.Ordinal))
                 {
                     // Received the first chunk for the real answer.
                     // Wrap it along with the reader and return the wrapper.
                     return new ChunkReader(reader, chunk);
                 }
+
+                context?.Status(chunk.Status);
             }
         }
         catch (OperationCanceledException)
