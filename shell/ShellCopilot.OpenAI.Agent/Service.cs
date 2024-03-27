@@ -27,8 +27,10 @@ internal class ChatService
         _isInteractive = isInteractive;
         _historyRoot = historyRoot;
         _settings = settings;
-        _chatHistory = new List<ChatMessage>();
+        _chatHistory = [];
     }
+
+    internal List<ChatMessage> ChatHistory => _chatHistory;
 
     internal void AddResponseToHistory(string response)
     {

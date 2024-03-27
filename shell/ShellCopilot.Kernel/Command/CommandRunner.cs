@@ -32,6 +32,7 @@ internal class CommandRunner
             new DislikeCommand(),
             new ExitCommand(),
             new LikeCommand(),
+            new RefreshCommand(),
             new RetryCommand(),
             new HelpCommand(),
         };

@@ -56,6 +56,12 @@ public sealed class AzPSAgent : ILLMAgent
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
 
+    public void RefreshChat()
+    {
+        // Reset the history so the subsequent chat can start fresh.
+        _chatService.ChatHistory.Clear();
+    }
+
     public IEnumerable<CommandBase> GetCommands() => null;
 
     public bool CanAcceptFeedback(UserAction action) => !MetricHelper.TelemetryOptOut;
