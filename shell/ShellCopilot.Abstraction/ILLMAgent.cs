@@ -137,6 +137,12 @@ public interface ILLMAgent : IDisposable
     void Initialize(AgentConfig config);
 
     /// <summary>
+    /// Refresh the current chat by starting a new chat session.
+    /// An agent can reset chat states in this method.
+    /// </summary>
+    void RefreshChat();
+
+    /// <summary>
     /// Initiates a chat with the AI, using the provided input and shell.
     /// </summary>
     /// <param name="input">The query message for the AI.</param>

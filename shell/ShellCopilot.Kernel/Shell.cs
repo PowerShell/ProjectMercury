@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.PowerShell;
 using ShellCopilot.Abstraction;
 using ShellCopilot.Kernel.Commands;
@@ -92,12 +93,7 @@ internal sealed class Shell : IShell
 
         if (interactive)
         {
-            string banner = wrapper?.Banner is null ? "Shell Copilot" : wrapper.Banner;
-            string version = wrapper?.Version is null ? "v0.1.0-preview.1" : wrapper.Version;
-            Host.MarkupLine($"[bold]{banner.EscapeMarkup()}[/]")
-                .MarkupLine($"[grey]{version.EscapeMarkup()}[/]")
-                .WriteLine();
-
+            ShowBanner();
             CommandRunner = new CommandRunner(this);
             SetReadLineExperience();
         }
@@ -107,24 +103,38 @@ internal sealed class Shell : IShell
 
         if (interactive)
         {
-            // Write out information about the active agent.
-            var current = ActiveAgent;
-            if (current is not null)
-            {
-                bool isWrapped = true;
-                if (!current.Impl.Name.Equals(wrapper?.Agent, StringComparison.OrdinalIgnoreCase))
-                {
-                    isWrapped = false;
-                    Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
-                }
+            ShowLandingPage();
+        }
+    }
 
-                current.Display(Host, isWrapped ? wrapper.Description : null);
+    internal void ShowBanner()
+    {
+        string banner = _wrapper?.Banner is null ? "Shell Copilot" : _wrapper.Banner;
+        string version = _wrapper?.Version is null ? "v0.1.0-preview.1" : _wrapper.Version;
+        Host.MarkupLine($"[bold]{banner.EscapeMarkup()}[/]")
+            .MarkupLine($"[grey]{version.EscapeMarkup()}[/]")
+            .WriteLine();
+    }
+
+    internal void ShowLandingPage()
+    {
+        // Write out information about the active agent.
+        var current = ActiveAgent;
+        if (current is not null)
+        {
+            bool isWrapped = true;
+            if (!current.Impl.Name.Equals(_wrapper?.Agent, StringComparison.OrdinalIgnoreCase))
+            {
+                isWrapped = false;
+                Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
             }
 
-            // Write out help.
-            Host.MarkupLine($"Type {Formatter.InlineCode("/help")} for more instructions.")
-                .WriteLine();
+            current.Display(Host, isWrapped ? _wrapper.Description : null);
         }
+
+        // Write out help.
+        Host.MarkupLine($"Type {Formatter.InlineCode("/help")} for more instructions.")
+            .WriteLine();
     }
 
     /// <summary>
@@ -448,6 +458,40 @@ internal sealed class Shell : IShell
         return confirmed ? copiedText : null;
     }
 
+    private async Task<string> ReadUserInput(int count)
+    {
+        Host.Markup($"[bold green]{_prompt}[/]:{count}> ");
+        string input = PSConsoleReadLine.ReadLine();
+
+        if (string.IsNullOrEmpty(input))
+        {
+            return null;
+        }
+
+        if (!input.Contains(' '))
+        {
+            foreach (var name in CommandRunner.Commands.Keys)
+            {
+                if (string.Equals(input, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    string command = $"/{name}";
+                    bool confirmed = await Host.PromptForConfirmationAsync(
+                        $"Do you mean to run the command {Formatter.InlineCode(command)} instead?",
+                        defaultValue: true);
+
+                    if (confirmed)
+                    {
+                        input = command;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        return input;
+    }
+
     /// <summary>
     /// Run a chat REPL.
     /// </summary>
@@ -470,10 +514,8 @@ internal sealed class Shell : IShell
                 }
                 else
                 {
-                    Host.Markup($"[bold green]{_prompt}[/]:{count}> ");
-                    input = PSConsoleReadLine.ReadLine();
-
-                    if (string.IsNullOrEmpty(input))
+                    input = await ReadUserInput(count);
+                    if (input is null)
                     {
                         continue;
                     }

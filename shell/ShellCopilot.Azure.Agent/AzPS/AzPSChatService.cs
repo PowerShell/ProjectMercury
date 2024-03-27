@@ -36,6 +36,8 @@ internal class AzPSChatService : IDisposable
         _correlationID = null;
     }
 
+    internal List<ChatMessage> ChatHistory => _chatHistory;
+
     public void Dispose()
     {
         _client.Dispose();

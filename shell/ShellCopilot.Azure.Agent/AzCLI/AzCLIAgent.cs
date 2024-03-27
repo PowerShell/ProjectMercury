@@ -49,6 +49,12 @@ public sealed class AzCLIAgent : ILLMAgent
         SettingFile = Path.Combine(config.ConfigurationRoot, SettingFileName);
     }
 
+    public void RefreshChat()
+    {
+        // Reset the history so the subsequent chat can start fresh.
+        _chatService.ChatHistory.Clear();
+    }
+
     public IEnumerable<CommandBase> GetCommands() => null;
 
     public bool CanAcceptFeedback(UserAction action) => !MetricHelper.TelemetryOptOut;

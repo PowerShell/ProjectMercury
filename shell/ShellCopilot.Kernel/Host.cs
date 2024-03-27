@@ -416,7 +416,7 @@ internal sealed class Host : IHost
         RequireStdin(operation);
         RequireStdoutOrStderr(operation);
 
-        prompt = prompt.Contains("[/]") ? prompt : $"[orange3 on italic]{prompt.EscapeMarkup()}[/]";
+        prompt = $"[orange3 on italic]{(prompt.Contains("[/]") ? prompt : prompt.EscapeMarkup())}[/]";
         IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
         var confirmation = new ConfirmationPrompt(prompt) { DefaultValue = defaultValue };
 
