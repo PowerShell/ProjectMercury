@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Text.RegularExpressions;
 using Microsoft.PowerShell;
 using ShellCopilot.Abstraction;
 using ShellCopilot.Kernel.Commands;
