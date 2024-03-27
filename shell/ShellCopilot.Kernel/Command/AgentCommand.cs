@@ -39,8 +39,10 @@ internal sealed class AgentCommand : CommandBase
     private void UseAgentAction(string name)
     {
         var shell = (Shell)Shell;
+        var host = shell.Host;
+
         LLMAgent chosenAgent = string.IsNullOrEmpty(name)
-            ? shell.Host.PromptForSelectionAsync(
+            ? host.PromptForSelectionAsync(
                 title: "[orange1]Please select an [Blue]agent[/] to use[/]:",
                 choices: shell.Agents,
                 converter: AgentName).GetAwaiter().GetResult()
@@ -53,25 +55,26 @@ internal sealed class AgentCommand : CommandBase
         }
 
         shell.SwitchActiveAgent(chosenAgent);
-        shell.Host.MarkupLine($"Using the agent [green]{chosenAgent.Impl.Name}[/]:");
-        chosenAgent.Display(shell.Host);
+        host.MarkupLine($"Using the agent [green]{chosenAgent.Impl.Name}[/]:");
+        chosenAgent.Display(host);
     }
 
     private void PopAgentAction()
     {
         var shell = (Shell)Shell;
+        var host = shell.Host;
 
         try
         {
             shell.PopActiveAgent();
 
             var current = shell.ActiveAgent;
-            shell.Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
-            current.Display(shell.Host);
+            host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
+            current.Display(host);
         }
         catch (Exception ex)
         {
-            shell.Host.WriteErrorLine(ex.Message);
+            host.WriteErrorLine(ex.Message);
         }
     }
 

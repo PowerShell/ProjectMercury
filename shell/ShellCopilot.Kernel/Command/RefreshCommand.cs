@@ -18,6 +18,7 @@ internal sealed class RefreshCommand : CommandBase
 
         var shell = (Shell)Shell;
         shell.ActiveAgent.Impl.RefreshChat();
+        shell.OnUserAction(new RefreshPayload());
         shell.ShowBanner();
         shell.ShowLandingPage();
     }

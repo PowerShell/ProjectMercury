@@ -292,6 +292,7 @@ internal sealed class Shell : IShell
         if (loadCommands)
         {
             ILLMAgent impl = agent.Impl;
+            impl.RefreshChat();
             CommandRunner.UnloadAgentCommands();
             CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
         }
@@ -330,6 +331,7 @@ internal sealed class Shell : IShell
             _activeAgentStack.Push(agent);
             if (current != agent)
             {
+                impl.RefreshChat();
                 CommandRunner.UnloadAgentCommands();
                 CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
             }
@@ -337,6 +339,7 @@ internal sealed class Shell : IShell
         else
         {
             _activeAgentStack.Push(agent);
+            impl.RefreshChat();
             CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
         }
     }

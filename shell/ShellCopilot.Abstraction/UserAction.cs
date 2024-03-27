@@ -31,6 +31,11 @@ public enum UserAction
     /// User ran the 'retry' command.
     /// </summary>
     Retry,
+
+    /// <summary>
+    /// User ran the 'refresh' command.
+    /// </summary>
+    Refresh,
 }
 
 public abstract class UserActionPayload
@@ -92,4 +97,9 @@ public sealed class RetryPayload : UserActionPayload
         ArgumentException.ThrowIfNullOrEmpty(lastQuery);
         LastQuery = lastQuery;
     }
+}
+
+public sealed class RefreshPayload : UserActionPayload
+{
+    public RefreshPayload() : base(UserAction.Refresh) { }
 }
