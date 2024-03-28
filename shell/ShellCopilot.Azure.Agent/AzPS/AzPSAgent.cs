@@ -1,6 +1,7 @@
 ﻿using Azure.Identity;
 using ShellCopilot.Abstraction;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace ShellCopilot.Azure.PowerShell;
 
@@ -36,6 +37,12 @@ public sealed class AzPSAgent : ILLMAgent
         _renderingStyle = config.RenderingStyle;
         _configRoot = config.ConfigurationRoot;
         SettingFile = Path.Combine(_configRoot, SettingFileName);
+        AzPSSetting azPSSetting = new AzPSSetting();
+        if (File.Exists(SettingFile))
+        {
+            string content = File.ReadAllText(SettingFile);
+            azPSSetting = JsonSerializer.Deserialize<AzPSSetting>(content, Utils.JsonOptions);
+        }
 
         string tenantId = null;
         if (config.Context is not null)
@@ -52,7 +59,7 @@ public sealed class AzPSAgent : ILLMAgent
         };
 
         _historyForTelemetry = [];
-        _chatService = new AzPSChatService(config.IsInteractive, tenantId);
+        _chatService = new AzPSChatService(config.IsInteractive, tenantId, azPSSetting);
         _metricHelper = new MetricHelper(_chatService.Endpoint);
     }
 

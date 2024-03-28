@@ -10,7 +10,7 @@ namespace ShellCopilot.Azure.PowerShell;
 internal class AzPSChatService : IDisposable
 {
     internal readonly string Endpoint;
-    internal const string DEFAULT_ENDPOINT = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
+    private const string DEFAULT_ENDPOINT = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
 
     private readonly bool _interactive;
     private readonly string[] _scopes;
@@ -23,7 +23,7 @@ internal class AzPSChatService : IDisposable
 
     internal string CorrelationID => _correlationID;
 
-    internal AzPSChatService(bool isInteractive, string tenant)
+    internal AzPSChatService(bool isInteractive, string tenant, AzPSSetting setting)
     {
         _interactive = isInteractive;
         _scopes = ["https://management.core.windows.net/"];
@@ -35,8 +35,7 @@ internal class AzPSChatService : IDisposable
 
         _accessToken = null;
         _correlationID = null;
-        string envEndpoint = Environment.GetEnvironmentVariable("AZPS_COPILOT_ENDPOINT");
-        Endpoint = !string.IsNullOrEmpty(envEndpoint) ? envEndpoint : DEFAULT_ENDPOINT;
+        Endpoint = !string.IsNullOrEmpty(setting.Endpoint) ? setting.Endpoint : DEFAULT_ENDPOINT;
     }
 
     internal List<ChatMessage> ChatHistory => _chatHistory;
