@@ -37,11 +37,18 @@ public sealed class AzPSAgent : ILLMAgent
         _renderingStyle = config.RenderingStyle;
         _configRoot = config.ConfigurationRoot;
         SettingFile = Path.Combine(_configRoot, SettingFileName);
-        AzPSSetting azPSSetting = new AzPSSetting();
+        AzPSSetting azPSSetting = new();
         if (File.Exists(SettingFile))
         {
             string content = File.ReadAllText(SettingFile);
-            azPSSetting = JsonSerializer.Deserialize<AzPSSetting>(content, Utils.JsonOptions);
+            try
+            {
+                azPSSetting = JsonSerializer.Deserialize<AzPSSetting>(content, Utils.JsonOptions);
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Fail to deserialize setting file: {SettingFile} with exception: {e.Message}");
+            }
         }
 
         string tenantId = null;
