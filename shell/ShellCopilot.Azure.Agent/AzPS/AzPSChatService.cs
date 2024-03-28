@@ -9,7 +9,8 @@ namespace ShellCopilot.Azure.PowerShell;
 
 internal class AzPSChatService : IDisposable
 {
-    internal const string Endpoint = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
+    internal readonly string Endpoint;
+    internal const string DEFAULT_ENDPOINT = "https://azclitools-copilot.azure-api.net/azps/api/azure-powershell/copilot/streaming";
 
     private readonly bool _interactive;
     private readonly string[] _scopes;
@@ -34,6 +35,8 @@ internal class AzPSChatService : IDisposable
 
         _accessToken = null;
         _correlationID = null;
+        string envEndpoint = Environment.GetEnvironmentVariable("AZPS_COPILOT_ENDPOINT");
+        Endpoint = !string.IsNullOrEmpty(envEndpoint) ? envEndpoint : DEFAULT_ENDPOINT;
     }
 
     internal List<ChatMessage> ChatHistory => _chatHistory;
@@ -125,7 +128,7 @@ internal class AzPSChatService : IDisposable
             while ((line = await reader.ReadLineAsync(cancellationToken)) is not null)
             {
                 var chunk = JsonSerializer.Deserialize<ChunkData>(line, Utils.JsonOptions);
-                if (chunk.Status.Equals("Generating Answer", StringComparison.Ordinal))
+                if (chunk.Status.Equals("Generating the answer", StringComparison.Ordinal))
                 {
                     // Received the first chunk for the real answer.
                     // Wrap it along with the reader and return the wrapper.

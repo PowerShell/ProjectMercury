@@ -52,8 +52,8 @@ public sealed class AzPSAgent : ILLMAgent
         };
 
         _historyForTelemetry = [];
-        _metricHelper = new MetricHelper(AzPSChatService.Endpoint);
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
+        _metricHelper = new MetricHelper(_chatService.Endpoint);
     }
 
     public void RefreshChat()
