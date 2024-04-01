@@ -7,12 +7,20 @@ namespace ShellCopilot.Interpreter.Agent;
 /// from the SubprocessLanguage class while implementing the PreprocessCode method for non-function calling
 /// AIs.
 /// </summary>
-public class PowerShell: SubprocessLanguage
+internal class PowerShell: SubprocessLanguage
 {
-    public PowerShell()
+    internal PowerShell()
     {
         StartCmd = ["pwsh.exe", "-file - -NoProfile"];
         OutputQueue = new Queue<Dictionary<string, string>>();
+    }
+    public override async Task<string> GetVersion()
+    {
+        StartProcess();
+        WriteToProcess("Write-Output $PSVersionTable.PSVersion");
+        await Process.WaitForExitAsync();
+        string version = Process.StandardOutput.ReadToEnd();
+        return version;
     }
 
     protected override string PreprocessCode(string code)

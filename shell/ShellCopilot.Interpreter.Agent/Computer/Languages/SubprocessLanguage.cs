@@ -8,7 +8,7 @@ namespace ShellCopilot.Interpreter.Agent;
 /// Implements the IBaseLanguage interface with common process definitions. This is the parent class for all
 /// languages.
 /// </summary>
-public abstract class SubprocessLanguage : IBaseLanguage
+internal abstract class SubprocessLanguage : IBaseLanguage
 {
     protected Process Process { get; set; }
 
@@ -21,7 +21,6 @@ public abstract class SubprocessLanguage : IBaseLanguage
     /// <summary>
     /// This event is used to signal when the process has finished running.
     /// </summary>
-
     protected ManualResetEvent Done = new ManualResetEvent(false);
 
     /// <summary>
@@ -38,10 +37,12 @@ public abstract class SubprocessLanguage : IBaseLanguage
 
     protected abstract void WriteToProcess(string input);
 
+    public abstract Task<string> GetVersion();
+
     /// <summary>
     /// Assigns process with a new process if possible.
     /// </summary>
-    private void StartProcess()
+    protected void StartProcess()
     {
         if (Process != null)
         {

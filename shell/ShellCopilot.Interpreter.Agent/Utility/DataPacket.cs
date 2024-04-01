@@ -18,10 +18,14 @@ public class InternalChatResultsPacket(string AIResponse, string ToolResponse, s
     public readonly string aiResponse = AIResponse ?? "No response from AI.";
     public readonly bool wasResponseCancelled = AIResponse?.Contains("AI response cancelled.") ?? false;
     public readonly bool wasAIResponseEmpty = AIResponse?.Contains("No response from AI.") ?? false;
-    public readonly bool isTaskComplete = AIResponse?.Contains("The task is done.") ?? false;
-    public readonly bool isTaskImpossible = AIResponse?.Contains("The task is impossible.") ?? false;
-    public readonly bool isMoreInformationNeeded = AIResponse?.Contains("Please provide more information.") ?? false;
-    public readonly bool isNoTaskPresent = AIResponse?.Contains("Let me know what you'd like to do next.") ?? false;
+    public readonly bool isTaskComplete = 
+        AIResponse?.IndexOf("The task is done.", StringComparison.OrdinalIgnoreCase) >= 0;
+    public readonly bool isTaskImpossible = 
+        AIResponse?.IndexOf("The task is impossible.", StringComparison.OrdinalIgnoreCase) >= 0;
+    public readonly bool isMoreInformationNeeded =
+        AIResponse?.IndexOf("Please provide more information.", StringComparison.OrdinalIgnoreCase) >= 0;
+    public readonly bool isNoTaskPresent =
+        AIResponse?.IndexOf("Let me know what you'd like to do next.", StringComparison.OrdinalIgnoreCase) >= 0;
 
     public readonly string toolResponse = ToolResponse;
     public readonly bool wasToolCancelled = ToolResponse.Contains("Tool call was cancelled.");

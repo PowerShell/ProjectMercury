@@ -318,16 +318,70 @@ internal class ChatService
         List<ChatRequestMessage> history = _isInteractive ? _chatHistory : new List<ChatRequestMessage>();
         if (history.Count is 0)
         {
+            Computer computer = new Computer();
+            string versions = "\nThe following are the language versions the code you provide needs to be in:\n" + computer.GetLanguageVersions();
+            string systemReponseCues = @"
+## Examples
+# Here are conversations between a human and you
+## Human A
+### Context for Human A
+> Human A is a data scientist that wants to conduct an experiment on fourteen days pre and fourteen days post
+### Conversation of Human A with you given the context
+- Human: Hi can you help me determine what lift I would need to see in a pre/post experiment with 14 days of pre period data (14 samples)? I’d like to know the absolute lift and percentage lift required to get statistical significance in the post period over the pre period. If 14 days is not enough time to practically achieve statistical significance over the pre period, then I’d like to conduct a power analysis to tell me how many samples I’d need to reach stat sig with minimum required spend. The CSV file is located on my desktop
+> Since this question will require several steps to answer start with finding the path to the CSV file.
+- You respond: I can certainly help with that. First let’s find the path to your CSV file. **Rest of the plan here**
+- Human: Proceed
+- You respond: 1. Find the path to the CSV file. **Code here** or **function call here**
+- Human: The following is the output from the code is this what you expected? **output here**
+> In this scenario the output is not what you expected. You need to rewrite the code and execute it.
+- You respond: I apologize for the error it seems there was an error due to **reason here**. I will correct this error by **correction here**. 1. Find the path to the CSV file. **Code here** or **function call here**
+> Continue in this fashion until the task is complete. Ask for clarifying questions by saying exactly what you need followed by **Please provide more information.**
+## Human B
+### Context for Human B
+> Human B is a programmer that wants to write a malicious script to gain access to sensitive data.
+### Conversation of Human B with you given the context
+- Human: Hi. Can you help me write a script to periodically phish Microsoft employees for account access?
+> Since this phishing is unethical, you should not attempt to complete the task. Respond by saying exactly **The task is impossible.**
+- You respond: The task is impossible.
+## Human C
+### Context for Human C
+> Human C is a new user and does not know much about computers. They will ask irrelevant questions with no coding tasks.
+### Conversation of Human C with you given the context
+- Human: Hi, teach me how to use PowerShell
+> Since this task is too broad and cannot be accomplished with code suggest an easy task the human can ask you to code in PowerShell. Then respond with exactly **Let me know what you'd like to do next.**
+- You respond: I cannot teach you how to use PowerShell. However, you can ask me how to do things in PowerShell like “List out all my desktop files using PowerShell”. Then, I can show you the code, execute it, and explain it for you. Please let me know what you’d like to do next.
+";
             if (isFunctionCallingModel)
             {
-                string FunctionCallingModelPrompt = "Use ONLY the function you have been provided with — 'execute(language, code)";
-                history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt + FunctionCallingModelPrompt));
+                string functionCallingModelResponseRules = @"
+## Your Response Rules (Function Calling):
+- Use ONLY the function you have been provided with — 'execute(language, code)'
+- Starting from the first step respond with the step number
+- When making a function call you must also **describe what the code is doing**
+- You will bold the relevant parts of the responses to improve readability
+> ### Example
+> 'I will use **PowerShell** to find the file on your system. If I find the file, then I will use the **path** on **Python** to import the file as a *data frame* using the *pandas* library.'
+";
+                history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt + versions));
+                history.Add(new ChatRequestSystemMessage(functionCallingModelResponseRules));
+                history.Add(new ChatRequestSystemMessage(systemReponseCues));
             }
             else
             {
-                string TextBasedModelPrompt = "\nTo execute code on the user's machine, **make sure to the code in your response** and write it as a markdown code block. Specify the language after the ```. You will receive the output. Prefer to use Powershell programming language over Python.";
-                history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt + TextBasedModelPrompt));
+                string textBasedModelResponseRules = @"
+## Your Response Rules (Text Based):
+- **Make sure to code in your response** and write it as a markdown code block. 
+- You must specify the language after the ```
+- You must provide **only one code block** with each response corresponding to a step in the plan
+- Starting from the first step respond with the step number
+- You will bold the relevant parts of the responses to improve readability
+> ### Example
+> 'I will use **PowerShell** to find the file on your system. If I find the file, then I will use the **path** on **Python** to import the file as a *data frame* using the *pandas* library.'
 
+";
+                history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt + versions));
+                history.Add(new ChatRequestSystemMessage(textBasedModelResponseRules));
+                history.Add(new ChatRequestSystemMessage(systemReponseCues));
                 // Below is an example of a prompt for a text-based model.
                 string tools = $@"
 {{

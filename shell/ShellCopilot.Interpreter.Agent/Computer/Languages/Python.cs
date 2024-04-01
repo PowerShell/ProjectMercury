@@ -7,9 +7,9 @@ namespace ShellCopilot.Interpreter.Agent;
 /// from the SubprocessLanguage class while implementing the PreprocessCode method for non-function calling
 /// AIs.
 /// </summary>
-public class Python: SubprocessLanguage
+internal class Python: SubprocessLanguage
 {
-	public Python()
+	internal Python()
 	{
 		// -q doesn't print the banner
 		// -i runs the code in interactive mode
@@ -18,6 +18,14 @@ public class Python: SubprocessLanguage
 		StartCmd = ["python.exe", "-qui"];
 		OutputQueue = new Queue<Dictionary<string, string>>();
 	}
+    public override async Task<string> GetVersion()
+    {
+        StartProcess();
+        WriteToProcess("import sys\nprint(sys.version)");
+        await Process.WaitForExitAsync();
+        string version = Process.StandardOutput.ReadToEnd();
+        return version;
+    }
 
 	protected override string PreprocessCode(string code)
 	{

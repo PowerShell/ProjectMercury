@@ -61,7 +61,37 @@ public class Computer
         foreach (KeyValuePair<string, IBaseLanguage> runningProcess in ActiveLanguages)
         {
             runningProcess.Value.Terminate();
+            RemoveLanguage(runningProcess.Key);
         }
+    }
+
+    private void RemoveLanguage(string language)
+    {
+        if (ActiveLanguages.ContainsKey(language))
+        {
+            ActiveLanguages[language].Terminate();
+            ActiveLanguages.Remove(language);
+        }
+    }
+
+    public string GetLanguageVersions()
+    {
+        // Get the version of each language
+        string versions = "";
+        foreach (string language in Languages)
+        {
+            if (CheckAndAddLanguage(language))
+            {
+                versions += language + ": " + ActiveLanguages[language].GetVersion() + "\n";
+            }
+        }
+
+        // Remove the languages from the active languages list
+        foreach (string language in Languages)
+        {
+            RemoveLanguage(language);
+        }
+        return versions;
     }
 
     private bool CheckAndAddLanguage(string language)
