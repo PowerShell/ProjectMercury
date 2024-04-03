@@ -86,6 +86,7 @@ internal class TextBasedModel : BaseModel
             ToolResponsePacket toolResponse = await Host.RunWithSpinnerAsync(func, "Running code...");
             Host.RenderFullResponse("```\n" + toolResponse.Content + "\n");
             toolMessage = ChatService.ReduceToolResponseContentTokens(toolResponse.Content);
+            ChatService.AddResponseToHistory(new ChatRequestUserMessage(toolMessage));
         }
 
         return new InternalChatResultsPacket(responseContent, toolMessage, language, code);

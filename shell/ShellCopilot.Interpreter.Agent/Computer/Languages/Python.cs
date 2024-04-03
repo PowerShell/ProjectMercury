@@ -16,16 +16,9 @@ internal class Python: SubprocessLanguage
 		// -u unbuffered binary stdout and stderr
 		// Without these flags, the output is buffered and we can't read it until the process ends
 		StartCmd = ["python.exe", "-qui"];
+		VersionCmd = ["python.exe", "-V"];
 		OutputQueue = new Queue<Dictionary<string, string>>();
 	}
-    public override async Task<string> GetVersion()
-    {
-        StartProcess();
-        WriteToProcess("import sys\nprint(sys.version)");
-        await Process.WaitForExitAsync();
-        string version = Process.StandardOutput.ReadToEnd();
-        return version;
-    }
 
 	protected override string PreprocessCode(string code)
 	{

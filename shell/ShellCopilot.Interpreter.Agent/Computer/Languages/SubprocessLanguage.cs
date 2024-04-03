@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 
 namespace ShellCopilot.Interpreter.Agent;
@@ -17,6 +16,11 @@ internal abstract class SubprocessLanguage : IBaseLanguage
     /// to run and the second element is the arguments to pass to the program.
     /// </summary>
     protected string[] StartCmd { get; set; }
+
+    /// <summary>
+    /// The command to get the version of the language.
+    /// </summary>
+    protected string[] VersionCmd { get; set;}
 
     /// <summary>
     /// This event is used to signal when the process has finished running.
@@ -37,7 +41,22 @@ internal abstract class SubprocessLanguage : IBaseLanguage
 
     protected abstract void WriteToProcess(string input);
 
-    public abstract Task<string> GetVersion();
+    public async Task<string> GetVersion()
+    {
+        // Get the version of the powershell executable
+        Process process = new();
+        process.StartInfo.FileName = VersionCmd[0];
+        process.StartInfo.Arguments = VersionCmd[1];
+        process.StartInfo.UseShellExecute = false;
+        process.StartInfo.RedirectStandardOutput = true;
+        process.StartInfo.RedirectStandardError = true;
+        process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
+        process.StartInfo.StandardErrorEncoding = Encoding.UTF8;
+        process.Start();
+        string version = await process.StandardOutput.ReadToEndAsync();
+        process.WaitForExit();
+        return version;
+    }
 
     /// <summary>
     /// Assigns process with a new process if possible.

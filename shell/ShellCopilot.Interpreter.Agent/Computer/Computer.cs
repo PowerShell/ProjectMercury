@@ -74,7 +74,7 @@ public class Computer
         }
     }
 
-    public string GetLanguageVersions()
+    public async Task<string> GetLanguageVersions()
     {
         // Get the version of each language
         string versions = "";
@@ -82,7 +82,7 @@ public class Computer
         {
             if (CheckAndAddLanguage(language))
             {
-                versions += language + ": " + ActiveLanguages[language].GetVersion() + "\n";
+                versions += "- **" + language + "**: " + await ActiveLanguages[language].GetVersion();
             }
         }
 
@@ -91,7 +91,7 @@ public class Computer
         {
             RemoveLanguage(language);
         }
-        return versions;
+        return versions.Trim();
     }
 
     private bool CheckAndAddLanguage(string language)

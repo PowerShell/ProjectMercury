@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Diagnostics;
+using System.Text;
 
 namespace ShellCopilot.Interpreter.Agent;
 
@@ -12,15 +13,8 @@ internal class PowerShell: SubprocessLanguage
     internal PowerShell()
     {
         StartCmd = ["pwsh.exe", "-file - -NoProfile"];
+        VersionCmd = ["pwsh.exe", "--version"];
         OutputQueue = new Queue<Dictionary<string, string>>();
-    }
-    public override async Task<string> GetVersion()
-    {
-        StartProcess();
-        WriteToProcess("Write-Output $PSVersionTable.PSVersion");
-        await Process.WaitForExitAsync();
-        string version = Process.StandardOutput.ReadToEnd();
-        return version;
     }
 
     protected override string PreprocessCode(string code)

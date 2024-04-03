@@ -1,6 +1,4 @@
-using System.Net;
 using ShellCopilot.Abstraction;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security;
 

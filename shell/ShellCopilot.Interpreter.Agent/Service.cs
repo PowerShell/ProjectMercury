@@ -90,27 +90,15 @@ internal class ChatService
         JsonSerializer.Serialize(stream, _chatHistory, options);
     }
 
-    private void RefreshOpenAIClient()
+    private void ConnectToOpenAIClient()
     {
-        if (ReferenceEquals(_gptToUse, _settings.GPT))
+        if (_client is not null)
         {
-            // Active GPT was not changed.
+            // client already connected.
             return;
         }
 
-        GPT old = _gptToUse;
         _gptToUse = _settings.GPT;
-
-        if (old is not null
-            && old.Type == _gptToUse.Type
-            && string.Equals(old.Endpoint, _gptToUse.Endpoint)
-            && string.Equals(old.Deployment, _gptToUse.Deployment)
-            && string.Equals(old.ModelName, _gptToUse.ModelName)
-            && old.Key.IsEqualTo(_gptToUse.Key))
-        {
-            // It's the same same endpoint, so we reuse the existing client.
-            return;
-        }
 
         var clientOptions = new OpenAIClientOptions() { RetryPolicy = new ChatRetryPolicy() };
 
@@ -255,10 +243,10 @@ internal class ChatService
         }
     }
 
-    private ChatCompletionsOptions PrepareForChat(ChatRequestMessage input)
+    private async Task<ChatCompletionsOptions> PrepareForChat(ChatRequestMessage input)
     {
         // Refresh the client in case the active model was changed.
-        RefreshOpenAIClient();
+        ConnectToOpenAIClient();
 
         // TODO: Shall we expose some of the setting properties to our model registration?
         //  - max_tokens
@@ -331,9 +319,10 @@ internal class ChatService
 - You respond: I cannot teach you how to use PowerShell. However, you can ask me how to do things in PowerShell like “List out all my desktop files using PowerShell”. Then, I can show you the code, execute it, and explain it for you. Please let me know what you’d like to do next.
 ";
             // TODO: Debug. Versions Method.
-            string versions = "\nThe following are the language versions the code you provide needs to be in:\n" + computer.GetLanguageVersions();
+            string versions = "\n ## Language Versions\n" 
+                + await computer.GetLanguageVersions();
             string systemPrompt = @"
-## Your profile and general capabilities
+## Your Profile and General Capabilities
 - Your name is Interpreter Agent, act as a world-class programmer that can complete any goal by executing code
 - First, write a plan. **Always recap the plan between each code block** (you have extreme short-term memory loss, so you need to recap the plan between each message block to retain it)
 - When you execute code, it will be executed **on the user's machine**. The user has given you **full and complete permission** to execute any code necessary to complete the task. 
@@ -355,7 +344,7 @@ internal class ChatService
             if (isFunctionCallingModel)
             {
                 string functionCallingModelResponseRules = @"
-## Your Response Rules (Function Calling):
+## Your Response Rules:
 - Use ONLY the function you have been provided with — 'execute(language, code)'
 - Starting from the first step respond with the step number
 - When making a function call you must also **describe what the code is doing**
@@ -370,10 +359,11 @@ internal class ChatService
             else
             {
                 string textBasedModelResponseRules = @"
-## Your Response Rules (Text Based):
+## Your Response Rules:
 - **Make sure to code in your response** and write it as a markdown code block. 
 - You must specify the language after the ```
 - You must provide **only one code block** with each response corresponding to a step in the plan
+- A pip install counts as a code block
 - Starting from the first step respond with the step number
 - You will bold the relevant parts of the responses to improve readability
 > ### Example
@@ -399,7 +389,7 @@ internal class ChatService
     {
         try
         {
-            ChatCompletionsOptions chatOptions = PrepareForChat(input);
+            ChatCompletionsOptions chatOptions = await PrepareForChat(input);
 
             var response = await _client.GetChatCompletionsAsync(
                 chatOptions,
@@ -417,7 +407,7 @@ internal class ChatService
     {
         try
         {
-            ChatCompletionsOptions chatOptions = PrepareForChat(input);
+            ChatCompletionsOptions chatOptions = await PrepareForChat(input);
 
             var response = await _client.GetChatCompletionsStreamingAsync(
                 chatOptions,
