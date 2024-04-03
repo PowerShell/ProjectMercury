@@ -16,37 +16,27 @@ public class GPT
     internal EndpointType Type { get; }
     internal bool Dirty { set; get; }
     internal ModelInfo ModelInfo { private set; get; }
-
-    public string Name { set; get; }
-    public string Description { set; get; } 
     public string Endpoint { set; get; }
     public string Deployment { set; get; }
     public string ModelName { set; get; }
+    public bool AutoExecution { set; get; }
 
     [JsonConverter(typeof(SecureStringJsonConverter))]
     public SecureString Key { set; get; }
-    public string SystemPrompt { set; get; }
 
     public GPT(
-        string name,
-        string description,
         string endpoint,
         string deployment,
         string modelName,
-        string systemPrompt,
+        bool autoExecution,
         SecureString key)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentException.ThrowIfNullOrEmpty(description);
         ArgumentException.ThrowIfNullOrEmpty(modelName);
-        ArgumentException.ThrowIfNullOrEmpty(systemPrompt);
 
-        Name = name;
-        Description = description;
         Endpoint = endpoint?.Trim().TrimEnd('/');
         Deployment = deployment;
         ModelName = modelName.ToLowerInvariant();
-        SystemPrompt = systemPrompt;
+        AutoExecution = autoExecution;
         Key = key;
 
         Dirty = false;
@@ -73,7 +63,7 @@ public class GPT
         }
 
         host.WriteLine()
-            .MarkupNoteLine($"Some required information is missing for the GPT [green]'{Name}'[/]:");
+            .MarkupNoteLine($"Some required information is missing for the GPT:");
         ShowEndpointInfo(host);
 
         try

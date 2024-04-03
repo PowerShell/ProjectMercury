@@ -33,7 +33,7 @@ internal class ModelInfo
         ["gpt-35-turbo-16k-0613"] = GPT35_16K,
     };
 
-    private static readonly Dictionary<string, ModelInfo> function_callingModels = new()
+    private static readonly Dictionary<string, ModelInfo> s_functionCallingModels = new()
     {
         ["gpt-4"] = GPT4, 
         ["gpt-4-turbo-preview"] = GPT4, 
@@ -86,6 +86,6 @@ internal class ModelInfo
     }
     internal static bool IsFunctionCallingModel(string name)
     {
-        return function_callingModels.ContainsKey(name);
+        return s_functionCallingModels.ContainsKey(name);
     }
 }

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -54,25 +53,6 @@ internal class ChatService
         _chatHistory.Add(response);
     }
 
-    // internal void AddToolCallToHistory(Response<ChatCompletions> response)
-    // {
-    //     ChatChoice responseChoice = response.Value.Choices[0];
-    //     if (responseChoice.FinishReason == CompletionsFinishReason.ToolCalls)
-    //     {
-    //         // Add the assistant message with tool calls to the conversation history
-    //         ChatRequestAssistantMessage toolCallHistoryMessage = new(responseChoice.Message);
-    //         _chatHistory.Add(toolCallHistoryMessage);
-    // 
-    //         // Add a new tool message for each tool call that is resolved
-    //         foreach (ChatCompletionsToolCall toolCall in responseChoice.Message.ToolCalls)
-    //         {
-    //             _chatHistory.Add(GetToolCallResponseMessage(toolCall));
-    //         }
-    // 
-    //         // Now make a new request with all the messages thus far, including the original
-    //     };
-    // }
-
     internal void RefreshSettings(Settings settings)
     {
         _settings = settings;
@@ -112,14 +92,14 @@ internal class ChatService
 
     private void RefreshOpenAIClient()
     {
-        if (ReferenceEquals(_gptToUse, _settings.Active))
+        if (ReferenceEquals(_gptToUse, _settings.GPT))
         {
             // Active GPT was not changed.
             return;
         }
 
         GPT old = _gptToUse;
-        _gptToUse = _settings.Active;
+        _gptToUse = _settings.GPT;
 
         if (old is not null
             && old.Type == _gptToUse.Type
@@ -319,8 +299,7 @@ internal class ChatService
         if (history.Count is 0)
         {
             Computer computer = new Computer();
-            string versions = "\nThe following are the language versions the code you provide needs to be in:\n" + computer.GetLanguageVersions();
-            string systemReponseCues = @"
+            string systemResponseCues = @"
 ## Examples
 # Here are conversations between a human and you
 ## Human A
@@ -351,6 +330,28 @@ internal class ChatService
 > Since this task is too broad and cannot be accomplished with code suggest an easy task the human can ask you to code in PowerShell. Then respond with exactly **Let me know what you'd like to do next.**
 - You respond: I cannot teach you how to use PowerShell. However, you can ask me how to do things in PowerShell like “List out all my desktop files using PowerShell”. Then, I can show you the code, execute it, and explain it for you. Please let me know what you’d like to do next.
 ";
+            // TODO: Debug. Versions Method.
+            string versions = "\nThe following are the language versions the code you provide needs to be in:\n" + computer.GetLanguageVersions();
+            string systemPrompt = @"
+## Your profile and general capabilities
+- Your name is Interpreter Agent, act as a world-class programmer that can complete any goal by executing code
+- First, write a plan. **Always recap the plan between each code block** (you have extreme short-term memory loss, so you need to recap the plan between each message block to retain it)
+- When you execute code, it will be executed **on the user's machine**. The user has given you **full and complete permission** to execute any code necessary to complete the task. 
+- Execute the code
+- You will receive the output of the executed code
+- If you want to send data between programming languages, save the data to a .txt or Json
+- You can access the internet
+- Run **any code** to achieve the goal, and if at first you don't succeed, try again and again
+- You can install new packages
+- When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in
+- Try to **make plans** with as few steps as possible
+- When executing code to carry out that plan, for *stateful* languages (like python and PowerShell) **it's critical not to try to do everything in one code block**. You should try something, print information about it, then continue from there in tiny, informed steps
+- You will never get it on the first try and attempting it in one go will often lead to errors you can’t foresee
+- **When giving python code add a blank line after an indented block is finished**
+- When installing python libraries **use PowerShell** to pip install.
+- Prefer to use PowerShell programming language over Python unless otherwise specified
+- You are capable of **any** task
+";
             if (isFunctionCallingModel)
             {
                 string functionCallingModelResponseRules = @"
@@ -362,9 +363,9 @@ internal class ChatService
 > ### Example
 > 'I will use **PowerShell** to find the file on your system. If I find the file, then I will use the **path** on **Python** to import the file as a *data frame* using the *pandas* library.'
 ";
-                history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt + versions));
+                history.Add(new ChatRequestSystemMessage(systemPrompt + versions));
                 history.Add(new ChatRequestSystemMessage(functionCallingModelResponseRules));
-                history.Add(new ChatRequestSystemMessage(systemReponseCues));
+                history.Add(new ChatRequestSystemMessage(systemResponseCues));
             }
             else
             {
@@ -379,60 +380,9 @@ internal class ChatService
 > 'I will use **PowerShell** to find the file on your system. If I find the file, then I will use the **path** on **Python** to import the file as a *data frame* using the *pandas* library.'
 
 ";
-                history.Add(new ChatRequestSystemMessage(_gptToUse.SystemPrompt + versions));
+                history.Add(new ChatRequestSystemMessage(systemPrompt + versions));
                 history.Add(new ChatRequestSystemMessage(textBasedModelResponseRules));
-                history.Add(new ChatRequestSystemMessage(systemReponseCues));
-                // Below is an example of a prompt for a text-based model.
-                string tools = $@"
-{{
-""Tools"" :
-    [
-        {{
-            ""name"" : ""execute"",
-            ""description"" : ""This function is able to run given powershell and python code. This will allow you to execute powershell and python code on my local machine."",
-            ""function"" : ""UseTool"",
-            ""input_schema"" : 
-                {{
-                    ""language"" : <string>,
-                    ""code"" : <string>
-                }},
-            ""output_schema"" : 
-                {{
-                    ""output"" : <string>
-                }}
-        }}
-    ]
-}}
-";
-                string outputFormat = $@"
-{{
-    ""workflow"" : ""Code Executions"";
-    ""steps"" :
-        [
-            {{
-                ""name"" : ""execute"",
-                ""function"" : ""UseTool"",
-                ""input_schema"" :
-                    {{
-                        ""language"" : <string>,
-                        ""code"" : <string>
-                    }}
-            }},
-        ]
-}}";
-                string textBasedModelPrompt = $@"
-Objective:
-Your objective is to create a sequential workflow based on the users query.
-
-Create a plan represented in JSON by only using the tools listed below. The workflow should be a JSON array containing only the sequence index, function name, and input. A step in the workflow can receive the output from a previous step as input.
-
-Output example 1:
-{outputFormat}
-
-Tools:
-{tools}
-
-                ";
+                history.Add(new ChatRequestSystemMessage(systemResponseCues));
             }
         }
 
@@ -450,12 +400,6 @@ Tools:
         try
         {
             ChatCompletionsOptions chatOptions = PrepareForChat(input);
-            string deploymentOrModelName = _gptToUse.Type switch
-            {
-                EndpointType.AzureOpenAI => _gptToUse.Deployment,
-                EndpointType.OpenAI => _gptToUse.ModelName,
-                _ => throw new UnreachableException(),
-            };
 
             var response = await _client.GetChatCompletionsAsync(
                 chatOptions,
@@ -474,12 +418,6 @@ Tools:
         try
         {
             ChatCompletionsOptions chatOptions = PrepareForChat(input);
-            string deploymentOrModelName = _gptToUse.Type switch
-            {
-                EndpointType.AzureOpenAI => _gptToUse.Deployment,
-                EndpointType.OpenAI => _gptToUse.ModelName,
-                _ => throw new UnreachableException(),
-            };
 
             var response = await _client.GetChatCompletionsStreamingAsync(
                 chatOptions,

@@ -110,7 +110,7 @@ internal class GPTContractResolver : DefaultJsonTypeInfoResolver
     private readonly bool _ignoreKey;
     internal GPTContractResolver(bool ignoreKey)
     {
-        // Allow the key to be ignored during de-serailization.
+        // Allow the key to be ignored during de-serialization.
         _ignoreKey = ignoreKey;
     }
 

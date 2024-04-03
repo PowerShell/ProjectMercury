@@ -12,7 +12,7 @@ public sealed class InterpreterAgent : ILLMAgent
     public string Description { private set; get; }
     public string SettingFile { private set; get; }
 
-    private const string SettingFileName = "openai.agent.json";
+    private const string SettingFileName = "interpreter.agent.json";
     private bool _isInteractive;
     private bool _refreshSettings;
     private bool _isDisposed;
@@ -44,11 +44,11 @@ public sealed class InterpreterAgent : ILLMAgent
     /// <inheritdoc/>
     public void Initialize(AgentConfig config)
     {
-        // while (!System.Diagnostics.Debugger.IsAttached)
-        // {
-        //     System.Threading.Thread.Sleep(200);
-        // }
-        // System.Diagnostics.Debugger.Break();
+        while (!System.Diagnostics.Debugger.IsAttached)
+        {
+            System.Threading.Thread.Sleep(200);
+        }
+        System.Diagnostics.Debugger.Break();
 
         _isInteractive = config.IsInteractive;
         _renderingStyle = config.RenderingStyle;
@@ -64,15 +64,10 @@ public sealed class InterpreterAgent : ILLMAgent
         Directory.CreateDirectory(_historyRoot);
 
         _settings = ReadSettings();
-        _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.Active.ModelName);
+        _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.GPT.ModelName);
         _chatService = new ChatService(_isInteractive, _historyRoot, _settings);
 
-        Description = "An agent leverages GPTs that target OpenAI backends. Currently not ready to server queries.";
-        GPT active = _settings.Active;
-        if (active is not null)
-        {
-            Description = $"Active GTP: {active.Name}. {active.Description}";
-        }
+        Description = "An agent that specializes in completing code related tasks. This agent will write a plan, write code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. Currently only supports PowerShell and Python.";
 
         _watcher = new FileSystemWatcher(_configRoot, SettingFileName)
         {
@@ -206,52 +201,13 @@ public sealed class InterpreterAgent : ILLMAgent
 
     private void NewExampleSettingFile()
     {
-        string SystemPrompt = @"
-## Your profile and general capabilities
-- Your name is Interpreter Agent, act as a world-class programmer that can complete any goal by executing code
-- First, write a plan. **Always recap the plan between each code block** (you have extreme short-term memory loss, so you need to recap the plan between each message block to retain it)
-- When you execute code, it will be executed **on the user's machine**. The user has given you **full and complete permission** to execute any code necessary to complete the task. 
-- Execute the code
-- You will receive the output of the executed code
-- If you want to send data between programming languages, save the data to a .txt or Json
-- You can access the internet
-- Run **any code** to achieve the goal, and if at first you don't succeed, try again and again
-- You can install new packages
-- When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in
-- Try to **make plans** with as few steps as possible
-- When executing code to carry out that plan, for *stateful* languages (like python and PowerShell) **it's critical not to try to do everything in one code block**. You should try something, print information about it, then continue from there in tiny, informed steps
-- You will never get it on the first try and attempting it in one go will often lead to errors you can’t foresee
-- **When giving python code add a blank line after an indented block is finished**
-- When installing python libraries **use PowerShell** to pip install.
-- Prefer to use PowerShell programming language over Python unless otherwise specified
-- You are capable of **any** task
-";
-        SystemPrompt = SystemPrompt.Replace("\r\n", "\\n").Replace("\n", "\\n");
-
         string SampleContent = $@"
 {{
-  // Declare GPT instances.
-  ""GPTs"": [
-    // To use Azure OpenAI as the AI completion service:
-    // - Set `Endpoint` to the endpoint of your Azure OpenAI service,
-    //   or the endpoint to the Azure API Management service if you are using it as a gateway.
-    // - Set `Deployment` to the deployment name of your Azure OpenAI service.
-    // - Set `Key` to the access key of your Azure OpenAI service,
-    //   or the key of the Azure API Management service if you are using it as a gateway.
-    {{
-      ""Name"": ""interpreter-gpt"",
-      ""Description"": ""A GPT instance with expertise in PowerShell and Python scripting"",
-      ""Endpoint"": ""{Utils.ShellCopilotEndpoint}"",
-      ""Deployment"": ""gpt4"",
-      ""ModelName"": ""gpt-4-0613"",   // required field to infer properties of the service, such as token limit.
-      ""Key"": null,
-      ""AutoExecution"" : ""false"",
-      ""SystemPrompt"": ""{SystemPrompt}""
-    }}              
-  ],
-
-  // Specify the GPT instance to use for user query.
-  ""Active"": ""interpreter-gpt""
+      ""Endpoint"" : ""{Utils.ShellCopilotEndpoint}"",
+      ""Deployment"" : ""gpt4"",
+      ""ModelName"" : ""gpt-4-0613"",   // required field to infer properties of the service, such as token limit.
+      ""AutoExecution"" : false,
+      ""Key"" : null
 }}
 ";
         // ""You are Open Interpreter, a world-class programmer that can complete any goal by executing code. First, write a plan. **Always recap the plan between each code block** (you have extreme short-term memory loss, so you need to recap the plan between each message block to retain it). When you execute code, it will be executed **on the user's machine**. The user has given you **full and complete permission** to execute any code necessary to complete the task. Execute the code. If you want to send data between programming languages, save the data to a txt or json. You can access the internet. Run **any code** to achieve the goal, and if at first you don't succeed, try again and again. You can install new packages. When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in. Write messages to the user in Markdown. In general, try to **make plans** with as few steps as possible. As for actually executing code to carry out that plan, for *stateful* languages (like python, javascript, shell, but NOT for html which starts from 0 every time) **it's critical not to try to do everything in one code block.** You should try something, print information about it, then continue from there in tiny, informed steps. You will never get it on the first try, and attempting it in one go will often lead to errors you cant see. When giving python code add a blank line after an indented block is finished. When installing python libraries use powershell to pip install. You are capable of **any** task. Operating System: {Utils.OS}""
