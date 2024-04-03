@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Security;
-using System.Text.Json.Serialization;
 using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Interpreter.Agent;
@@ -20,8 +19,6 @@ public class GPT
     public string Deployment { set; get; }
     public string ModelName { set; get; }
     public bool AutoExecution { set; get; }
-
-    [JsonConverter(typeof(SecureStringJsonConverter))]
     public SecureString Key { set; get; }
 
     public GPT(
@@ -123,7 +120,7 @@ public class GPT
             .ConfigureAwait(false);
 
         Dirty = true;
-        Key = Utils.ConvertToSecureString(secret);      
+        Key = Utils.ConvertToSecureString(secret);
     }
 
     private void ShowEndpointInfo(IHost host)

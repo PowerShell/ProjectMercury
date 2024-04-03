@@ -85,7 +85,7 @@ internal static class Utils
 }
 
 /// <summary>
-/// <see cref="SecureString"/> converter for JSON serailization/de-serailization.
+/// <see cref="SecureString"/> converter for JSON serialization/de-serialization.
 /// </summary>
 internal class SecureStringJsonConverter : JsonConverter<SecureString>
 {

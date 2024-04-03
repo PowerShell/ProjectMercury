@@ -19,11 +19,12 @@ public sealed class InterpreterAgent : ILLMAgent
     private string _configRoot;
     private string _historyRoot;
     private bool _isFunctionCallingModel;
+    private bool _autoExecution;
     private RenderingStyle _renderingStyle;
     private Settings _settings;
     private FileSystemWatcher _watcher;
     private ChatService _chatService;
-    private TaskCompletionChat taskCompletionChat;
+    private TaskCompletionChat _taskCompletionChat;
 
     /// <inheritdoc/>
     public void Dispose()
@@ -34,7 +35,7 @@ public sealed class InterpreterAgent : ILLMAgent
         }
 
         // This terminates any remaining processes used to run code.
-        taskCompletionChat.CleanUpProcesses();
+        _taskCompletionChat.CleanUpProcesses();
 
         GC.SuppressFinalize(this);
         _watcher.Dispose();
@@ -44,11 +45,11 @@ public sealed class InterpreterAgent : ILLMAgent
     /// <inheritdoc/>
     public void Initialize(AgentConfig config)
     {
-        while (!System.Diagnostics.Debugger.IsAttached)
-        {
-            System.Threading.Thread.Sleep(200);
-        }
-        System.Diagnostics.Debugger.Break();
+        /// while (!System.Diagnostics.Debugger.IsAttached)
+        /// {
+        ///     System.Threading.Thread.Sleep(200);
+        /// }
+        /// System.Diagnostics.Debugger.Break();
 
         _isInteractive = config.IsInteractive;
         _renderingStyle = config.RenderingStyle;
@@ -65,6 +66,7 @@ public sealed class InterpreterAgent : ILLMAgent
 
         _settings = ReadSettings();
         _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.GPT.ModelName);
+        _autoExecution = _settings.GPT.AutoExecution;
         _chatService = new ChatService(_isInteractive, _historyRoot, _settings);
 
         Description = "An agent that specializes in completing code related tasks. This agent will write a plan, write code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. Currently only supports PowerShell and Python.";
@@ -104,8 +106,8 @@ public sealed class InterpreterAgent : ILLMAgent
 
         try
         {
-            taskCompletionChat = new TaskCompletionChat(_isFunctionCallingModel, _chatService, host);
-            await taskCompletionChat.StartTask(input, _renderingStyle, token);
+            _taskCompletionChat = new TaskCompletionChat(_isFunctionCallingModel, _autoExecution, _chatService, host);
+            await _taskCompletionChat.StartTask(input, _renderingStyle, token);
         }
         catch (OperationCanceledException)
         {
@@ -117,7 +119,7 @@ public sealed class InterpreterAgent : ILLMAgent
         }
         finally
         {
-            taskCompletionChat.CleanUpProcesses();
+            _taskCompletionChat.CleanUpProcesses();
         }
 
         return checkPass;

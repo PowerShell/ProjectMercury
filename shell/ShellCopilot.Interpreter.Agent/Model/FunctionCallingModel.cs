@@ -1,16 +1,8 @@
 ﻿using Azure.AI.OpenAI;
 using Newtonsoft.Json;
-using SharpToken;
 using ShellCopilot.Abstraction;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.CommandLine.Parsing;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace ShellCopilot.Interpreter.Agent;
 
@@ -20,7 +12,7 @@ internal static class Tools
     internal static ChatCompletionsFunctionToolDefinition RunCode = new()
     {
         Name = "execute",
-        Description = "This function is able to run given powershell and python code. This will allow you to execute powershell and python code " +
+        Description = "This function is able to run given PowerShell and Python code. This will allow you to execute PowerShell and Python code " +
         "on my local machine.",
         Parameters = BinaryData.FromObjectAsJson(
         new
@@ -52,7 +44,7 @@ internal class FunctionCallingModel : BaseModel
     private Dictionary<int, string> functionNamesByIndex = [];
     private Dictionary<int, StringBuilder> functionArgumentBuildersByIndex = [];
 
-    internal FunctionCallingModel(ChatService chatService, IHost Host) : base (chatService, Host)
+    internal FunctionCallingModel(bool autoExecution, ChatService chatService, IHost Host) : base (autoExecution, chatService, Host)
     {
     }
 
@@ -100,7 +92,7 @@ internal class FunctionCallingModel : BaseModel
 
         if (toolCallIdsByIndex.Count == 0)
         {
-            _chatService.AddResponseToHistory(assistantHistoryMessage);
+            ChatService.AddResponseToHistory(assistantHistoryMessage);
             return new InternalChatResultsPacket(responseContent, "Tool was not called.");
         }
 
@@ -115,7 +107,7 @@ internal class FunctionCallingModel : BaseModel
             assistantHistoryMessage.ToolCalls.Add(toolCall);
 
             // Add it to the history
-            _chatService.AddResponseToHistory(assistantHistoryMessage);
+            ChatService.AddResponseToHistory(assistantHistoryMessage);
 
             string arguments = toolCall.Arguments;
 
@@ -125,13 +117,22 @@ internal class FunctionCallingModel : BaseModel
                 Dictionary<string, string> argumentsDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(arguments);
                 language = argumentsDict["language"];
                 code = argumentsDict["code"];
-                host.RenderFullResponse($"```{language}\n\n{language}:\n\n{code}\n\n```");
+                Host.RenderFullResponse($"```{language}\n\n{language}:\n\n{code}\n\n```");
             }
 
             // Ask the user if they want to run the code
             try
             {
-                bool runChoice = await host.PromptForConfirmationAsync("Would you like to run the code?", true, token);
+                bool runChoice;
+                if (AutoExecution)
+                {
+                    runChoice = true;
+                }
+                else
+                {
+                    // Prompt the user to run the code (if not in auto execution mode
+                    runChoice = await Host.PromptForConfirmationAsync("Would you like to run the code?", true, token);
+                }
 
                 if (runChoice)
                 {
@@ -141,8 +142,8 @@ internal class FunctionCallingModel : BaseModel
                     // Reduce code output in chat history as needed
                     if (toolResponse.Content is not null)
                     {
-                        host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
-                        toolMessage = _chatService.ReduceToolResponseContentTokens(toolResponse.Content);
+                        Host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
+                        toolMessage = ChatService.ReduceToolResponseContentTokens(toolResponse.Content);
                     }
                     else
                     {
@@ -157,10 +158,10 @@ internal class FunctionCallingModel : BaseModel
             catch (OperationCanceledException)
             {
                 toolMessage = "User chose not to run code.";
-                _chatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, indexIdPair.Value));
+                ChatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, indexIdPair.Value));
                 return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
             }
-            _chatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, indexIdPair.Value));
+            ChatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, indexIdPair.Value));
         }
 
         // Clear the tool call data.
@@ -181,7 +182,7 @@ internal class FunctionCallingModel : BaseModel
             try
             {
                 Task<ToolResponsePacket> func_run_code() => computer.Run(language, code, token);
-                packet = await host.RunWithSpinnerAsync(func_run_code, "Running Code...").ConfigureAwait(false);
+                packet = await Host.RunWithSpinnerAsync(func_run_code, "Running Code...").ConfigureAwait(false);
                 packet.SetToolId(toolCall.Id);
             }
             catch (OperationCanceledException)

@@ -18,20 +18,24 @@ internal class TaskCompletionChat
     private Dictionary<string,string> prompts = TaskCompletionChatPrompts.prompts;
     private IModel model;
     private bool _isFunctionCallingModel;
+    private bool _autoExecution;
 
-	internal TaskCompletionChat(bool isFunctionCallingModel, ChatService chatService, IHost Host)
+	internal TaskCompletionChat(bool isFunctionCallingModel, bool autoExecution, ChatService chatService, IHost Host)
 	{
-		_chatService = chatService;
-		host = Host;
-        computer = new();
         _isFunctionCallingModel = isFunctionCallingModel;
+		_autoExecution = autoExecution;
+        _chatService = chatService;
+		host = Host;
+
+        computer = new();
+
         if(_isFunctionCallingModel)
         {
-            model = new FunctionCallingModel(_chatService, host);
+            model = new FunctionCallingModel(_autoExecution, _chatService, host);
         }
         else
         {
-            model = new TextBasedModel(_chatService, host);
+            model = new TextBasedModel(_autoExecution, _chatService, host);
         }
 	}
 

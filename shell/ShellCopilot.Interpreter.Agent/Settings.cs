@@ -1,5 +1,7 @@
 using System.Net;
 using ShellCopilot.Abstraction;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Security;
 
 namespace ShellCopilot.Interpreter.Agent;
@@ -55,5 +57,7 @@ internal class ConfigData
     public string Deployment { set; get; }
     public string ModelName { set; get; }
     public bool AutoExecution { set; get; }
+             
+    [JsonConverter(typeof(SecureStringJsonConverter))]
     public SecureString Key { set; get; }
 }

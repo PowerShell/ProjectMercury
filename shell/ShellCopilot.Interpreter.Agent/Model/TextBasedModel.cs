@@ -10,7 +10,7 @@ namespace ShellCopilot.Interpreter.Agent;
 
 internal class TextBasedModel : BaseModel
 {
-    internal TextBasedModel(ChatService chatService, IHost Host) : base(chatService, Host)
+    internal TextBasedModel(bool autoExecution, ChatService chatService, IHost Host) : base(autoExecution, chatService, Host)
     {
     }
 
@@ -19,9 +19,20 @@ internal class TextBasedModel : BaseModel
         InternalChatResultsPacket packet;
         if (WasCodeGiven(responseContent))
         {
-            _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
-            bool choice = await host.PromptForConfirmationAsync($"\nWould you like to run the code?", true, token);
-            if (choice)
+            ChatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
+
+            bool runChoice;
+            if (AutoExecution)
+            {
+                runChoice = true;
+            }
+            else
+            {
+                // Prompt the user to run the code (if not in auto execution mode
+                runChoice = await Host.PromptForConfirmationAsync("Would you like to run the code?", true, token);
+            }
+            
+            if (runChoice)
             {
                 packet = await ExecuteProvidedCode(responseContent, token);
             }
@@ -32,7 +43,7 @@ internal class TextBasedModel : BaseModel
         }
         else
         {
-            _chatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
+            ChatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
             packet = new InternalChatResultsPacket(responseContent, "No code was given.");
         }
         return packet;
@@ -72,9 +83,9 @@ internal class TextBasedModel : BaseModel
         else
         {
             Task<ToolResponsePacket> func() => computer.Run(language, code, token);
-            ToolResponsePacket toolResponse = await host.RunWithSpinnerAsync(func, "Running code...");
-            host.RenderFullResponse("```\n" + toolResponse.Content + "\n");
-            toolMessage = _chatService.ReduceToolResponseContentTokens(toolResponse.Content);
+            ToolResponsePacket toolResponse = await Host.RunWithSpinnerAsync(func, "Running code...");
+            Host.RenderFullResponse("```\n" + toolResponse.Content + "\n");
+            toolMessage = ChatService.ReduceToolResponseContentTokens(toolResponse.Content);
         }
 
         return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
