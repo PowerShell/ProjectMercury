@@ -117,7 +117,8 @@ internal class TaskCompletionChat
                 }
                 else
                 {
-                    input = prompts["StopTask"];
+                    // input = prompts["StopTask"];
+                    chatCompleted = true;
                 }
             }
             else
@@ -147,13 +148,9 @@ internal class TaskCompletionChat
             {
                 chatCompleted = true;
             }
-            else if (packet.didNotCallTool)
-            {
-                input = prompts["UseTool"];
-            }
             else
             {
-                input = prompts["Force"];
+                chatCompleted = true;
             }
         }
     }

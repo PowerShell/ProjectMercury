@@ -130,7 +130,7 @@ internal class FunctionCallingModel : BaseModel
                 else
                 {
                     // Prompt the user to run the code (if not in auto execution mode
-                    runChoice = await Host.PromptForConfirmationAsync("Would you like to run the code?", true, token);
+                    runChoice = await Host.PromptForConfirmationAsync("Would you like to run the code? Select 'n' to provide more guidance, the process state will be saved.", true, token);
                 }
 
                 if (runChoice)

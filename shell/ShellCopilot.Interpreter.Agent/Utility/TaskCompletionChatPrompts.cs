@@ -36,8 +36,8 @@ public static class TaskCompletionChatPrompts
         // Use the tool
         { "UseTool", "\nUse the tool I gave you to execute the code.'\n" },
         // User chose not to run code
-        { "StopTask", "\nUser chose not to run code. Say exactly 'I cannot continue the task until " +
-            "the code is executed. Let me know what you'd like to do next.'\n" },
+        { "StopTask", "\nUser chose not to run code. Say exactly 'Would you like to add more details to the task or go a different direction?" +
+            " Let me know what you'd like to do next.'\n" },
     };
 
 }
