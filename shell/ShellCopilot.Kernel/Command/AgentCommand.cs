@@ -39,8 +39,10 @@ internal sealed class AgentCommand : CommandBase
     private void UseAgentAction(string name)
     {
         var shell = (Shell)Shell;
+        var host = shell.Host;
+
         LLMAgent chosenAgent = string.IsNullOrEmpty(name)
-            ? shell.Host.PromptForSelectionAsync(
+            ? host.PromptForSelectionAsync(
                 title: "[orange1]Please select an [Blue]agent[/] to use[/]:",
                 choices: shell.Agents,
                 converter: AgentName).GetAwaiter().GetResult()
@@ -53,25 +55,26 @@ internal sealed class AgentCommand : CommandBase
         }
 
         shell.SwitchActiveAgent(chosenAgent);
-        shell.Host.MarkupLine($"Using the agent [green]{chosenAgent.Impl.Name}[/]:");
-        chosenAgent.Display(shell.Host);
+        host.MarkupLine($"Using the agent [green]{chosenAgent.Impl.Name}[/]:");
+        chosenAgent.Display(host);
     }
 
     private void PopAgentAction()
     {
         var shell = (Shell)Shell;
+        var host = shell.Host;
 
         try
         {
             shell.PopActiveAgent();
 
             var current = shell.ActiveAgent;
-            shell.Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
-            current.Display(shell.Host);
+            host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
+            current.Display(host);
         }
         catch (Exception ex)
         {
-            shell.Host.MarkupErrorLine(ex.Message);
+            host.WriteErrorLine(ex.Message);
         }
     }
 
@@ -91,7 +94,7 @@ internal sealed class AgentCommand : CommandBase
         var current = chosenAgent.Impl;
         if (current.SettingFile is null)
         {
-            shell.Host.MarkupErrorLine($"The agent '{current.Name}' doesn't support configuration.");
+            shell.Host.WriteErrorLine($"The agent '{current.Name}' doesn't support configuration.");
             return;
         }
 
@@ -107,7 +110,7 @@ internal sealed class AgentCommand : CommandBase
         }
         catch (Exception ex)
         {
-            shell.Host.MarkupErrorLine(ex.Message);
+            shell.Host.WriteErrorLine(ex.Message);
         }
     }
 
@@ -124,7 +127,7 @@ internal sealed class AgentCommand : CommandBase
     private static void AgentNotFound(string name, Shell shell)
     {
         string availableAgentNames = string.Join(',', shell.Agents.Select(AgentName));
-        shell.Host.MarkupErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}");
+        shell.Host.WriteErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}");
     }
 
     private IEnumerable<string> AgentCompleter(CompletionContext context)

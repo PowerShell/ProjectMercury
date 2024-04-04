@@ -1,5 +1,6 @@
 ﻿using Markdig;
 using Markdown.VT;
+using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Kernel;
 
@@ -7,19 +8,19 @@ internal class CodeBlockVisitor : IVTRenderVisitor
 {
     internal CodeBlockVisitor()
     {
-        CodeBlock = new List<string>();
+        CodeBlocks = [];
     }
 
-    internal List<string> CodeBlock { get; }
+    internal List<CodeBlock> CodeBlocks { get; }
 
     internal void Reset()
     {
-        CodeBlock.Clear();
+        CodeBlocks.Clear();
     }
 
-    public void VisitCodeBlock(string code)
+    public void VisitCodeBlock(string code, string language)
     {
-        CodeBlock.Add(code);
+        CodeBlocks.Add(new CodeBlock(code, language));
     }
 }
 
@@ -38,15 +39,15 @@ internal class MarkdownRender
         _pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
     }
 
-    internal List<string> GetAllCodeBlocks()
+    internal List<CodeBlock> GetAllCodeBlocks()
     {
-        var code = _visitor.CodeBlock;
+        var code = _visitor.CodeBlocks;
         return code.Count > 0 ? code : null;
     }
 
-    internal string GetLastCodeBlock()
+    internal CodeBlock GetLastCodeBlock()
     {
-        var code = _visitor.CodeBlock;
+        var code = _visitor.CodeBlocks;
         return code.Count > 0 ? code[^1] : null;
     }
 

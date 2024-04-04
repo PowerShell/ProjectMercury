@@ -131,5 +131,5 @@ public sealed class VTRenderer : TextRendererBase<VTRenderer>
 
 public interface IVTRenderVisitor
 {
-    public void VisitCodeBlock(string code);
+    public void VisitCodeBlock(string code, string language);
 }

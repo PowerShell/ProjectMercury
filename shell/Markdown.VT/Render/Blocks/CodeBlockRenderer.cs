@@ -36,17 +36,18 @@ public class CodeBlockRenderer : VTObjectRenderer<CodeBlock>
         renderer.WriteLine();
         renderer.PushIndentAndUpdateWidth(VTRenderer.DefaultIndent);
 
+        string langId = null;
         ILanguage language = null;
         if (obj is FencedCodeBlock fencedCodeBlock && fencedCodeBlock.Info is string info)
         {
             string infoPrefix = (obj.Parser as FencedCodeBlockParser)?.InfoPrefix ?? FencedCodeBlockParser.DefaultInfoPrefix;
-            string langId = info.StartsWith(infoPrefix, StringComparison.Ordinal) ? info.Substring(infoPrefix.Length) : info;
+            langId = info.StartsWith(infoPrefix, StringComparison.Ordinal) ? info.Substring(infoPrefix.Length) : info;
             language = string.IsNullOrEmpty(langId) ? null : Languages.FindById(langId);
         }
 
         // Call the visitor with the original code.
         string code = ExtractCode(obj);
-        renderer.Visitor?.VisitCodeBlock(code);
+        renderer.Visitor?.VisitCodeBlock(code, language?.Name ?? langId);
 
         int start = 0;
         string vtText = _vtHighlighter.GetVTString(code, language);

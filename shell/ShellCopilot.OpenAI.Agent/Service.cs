@@ -27,8 +27,10 @@ internal class ChatService
         _isInteractive = isInteractive;
         _historyRoot = historyRoot;
         _settings = settings;
-        _chatHistory = new List<ChatMessage>();
+        _chatHistory = [];
     }
+
+    internal List<ChatMessage> ChatHistory => _chatHistory;
 
     internal void AddResponseToHistory(string response)
     {
@@ -196,11 +198,11 @@ internal class ChatService
         ChatCompletionsOptions chatOptions = new()
         {
             ChoiceCount = 1,
-            Temperature = (float)0.7,
+            Temperature = 0,
             MaxTokens = MaxResponseToken,
         };
 
-        List<ChatMessage> history = _isInteractive ? _chatHistory : new List<ChatMessage>();
+        List<ChatMessage> history = _isInteractive ? _chatHistory : [];
         if (history.Count is 0)
         {
             history.Add(new ChatMessage(ChatRole.System, _gptToUse.SystemPrompt));
