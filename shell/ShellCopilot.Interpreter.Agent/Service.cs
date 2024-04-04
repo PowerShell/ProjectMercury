@@ -76,7 +76,7 @@ internal class ChatService
         }
     }
 
-    private void SaveHistory(string name)
+    internal void SaveHistory(string name)
     {
         string historyFile = Path.Combine(_historyRoot, name);
         using var stream = new FileStream(historyFile, FileMode.Create, FileAccess.Write, FileShare.None);
@@ -84,7 +84,8 @@ internal class ChatService
         var options = new JsonSerializerOptions
         {
             WriteIndented = true,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase), new ChatRequestMessageConverter() }
         };
 
         JsonSerializer.Serialize(stream, _chatHistory, options);
@@ -421,6 +422,64 @@ internal class ChatService
         catch (OperationCanceledException)
         {
             return null;
+        }
+    }
+}
+
+public class ChatRequestMessageConverter : JsonConverter<ChatRequestMessage>
+{
+    public override bool CanConvert(Type typeToConvert)
+    {
+        return typeof(ChatRequestMessage).IsAssignableFrom(typeToConvert);
+    }
+
+    public override ChatRequestMessage Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var jsonObject = JsonDocument.ParseValue(ref reader).RootElement;
+
+        // Determine the type of the message based on its properties
+        if (jsonObject.TryGetProperty("Role", out JsonElement roleElementS) && roleElementS.GetString() == "system")
+        {
+            return JsonSerializer.Deserialize<ChatRequestSystemMessage>(jsonObject.GetRawText(), options);
+        }
+        else if (jsonObject.TryGetProperty("Role", out JsonElement roleElementU) && roleElementU.GetString() == "user")
+        {
+            return JsonSerializer.Deserialize<ChatRequestUserMessage>(jsonObject.GetRawText(), options);
+        }
+        else if(jsonObject.TryGetProperty("Role", out JsonElement roleElementA) && roleElementA.GetString() == "assistant")
+        {
+            return JsonSerializer.Deserialize<ChatRequestAssistantMessage>(jsonObject.GetRawText(), options);
+        }
+        else if(jsonObject.TryGetProperty("Role", out JsonElement roleElementT) && roleElementT.GetString() == "tool")
+        {
+            return JsonSerializer.Deserialize<ChatRequestToolMessage>(jsonObject.GetRawText(), options);
+        }
+        // Add more else if blocks for other derived types as needed
+
+        throw new JsonException();
+    }
+
+    public override void Write(Utf8JsonWriter writer, ChatRequestMessage value, JsonSerializerOptions options)
+    {
+        var newOptions = new JsonSerializerOptions(options);
+        newOptions.Converters.Remove(this);
+
+        switch (value)
+        {
+            case ChatRequestUserMessage userMessage:
+                JsonSerializer.Serialize(writer, userMessage, newOptions);
+                break;
+            case ChatRequestAssistantMessage assistantMessage:
+                JsonSerializer.Serialize(writer, assistantMessage, newOptions);
+                break;
+            case ChatRequestSystemMessage systemMessage:
+                JsonSerializer.Serialize(writer, systemMessage, newOptions);
+                break;
+            case ChatRequestToolMessage toolMessage:
+                JsonSerializer.Serialize(writer, toolMessage, newOptions);
+                break;
+            default:
+                throw new JsonException("Unknown subclass of ChatRequestMessage");
         }
     }
 }

@@ -48,6 +48,7 @@ internal class TaskCompletionChat
     public async Task<bool> StartTask(string input, RenderingStyle _renderingStyle, CancellationToken token)
     {
         bool chatCompleted = false;
+        bool askToSave = false;
         string previousCode = "";
         //input += prompts["Initial"];
         while (!chatCompleted)
@@ -60,7 +61,21 @@ internal class TaskCompletionChat
             {
                 InternalChatResultsPacket packet = await model.SmartChat(input, _renderingStyle, token);
 
-                PromptEngineering(ref input, ref chatCompleted, ref previousCode, packet);
+                PromptEngineering(ref input, ref chatCompleted, ref askToSave, ref previousCode, packet, token);
+
+                if (askToSave)
+                {
+                    // Save the task
+                    bool saveChoice = await host.PromptForConfirmationAsync("Would you like to save the conversation?", true, token);
+                    if (saveChoice)
+                    {
+                        string fileName = await host.PromptForSecretAsync("Please enter the file name: ", token);
+                        if(!string.IsNullOrEmpty(fileName))
+                        {
+                            _chatService.SaveHistory(fileName);
+                        }
+                    }
+                }
             }
             catch (OperationCanceledException)
             {
@@ -71,7 +86,13 @@ internal class TaskCompletionChat
         return chatCompleted;
     }
 
-    private void PromptEngineering(ref string input, ref bool chatCompleted, ref string previousCode, InternalChatResultsPacket packet)
+    private void PromptEngineering(
+        ref string input, 
+        ref bool chatCompleted, 
+        ref bool askToSave,
+        ref string previousCode, 
+        InternalChatResultsPacket packet, 
+        CancellationToken token)
     {
         if (packet.wasResponseCancelled)
         {
@@ -130,15 +151,12 @@ internal class TaskCompletionChat
         {
             if (packet.isTaskComplete)
             {
-                //TODO: add a way to save the file
                 chatCompleted = true;
-                computer.Terminate();
+                askToSave = true;
             }
             else if (packet.isTaskImpossible)
             {
-                //TODO: add a way to save the file
                 chatCompleted = true;
-                computer.Terminate();
             }
             else if (packet.isMoreInformationNeeded)
             {
