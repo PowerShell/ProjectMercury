@@ -19,6 +19,7 @@ public class GPT
     public string Deployment { set; get; }
     public string ModelName { set; get; }
     public bool AutoExecution { set; get; }
+    public bool DisplayErrors { set; get; }
     public SecureString Key { set; get; }
 
     public GPT(
@@ -26,6 +27,7 @@ public class GPT
         string deployment,
         string modelName,
         bool autoExecution,
+        bool displayErrors,
         SecureString key)
     {
         ArgumentException.ThrowIfNullOrEmpty(modelName);
@@ -34,6 +36,7 @@ public class GPT
         Deployment = deployment;
         ModelName = modelName.ToLowerInvariant();
         AutoExecution = autoExecution;
+        DisplayErrors = displayErrors;
         Key = key;
 
         Dirty = false;

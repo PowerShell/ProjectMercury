@@ -1,11 +1,5 @@
-﻿using Azure.AI.OpenAI;
-using Azure;
-using Newtonsoft.Json;
-using ShellCopilot.Abstraction;
-using System;
-using System.Runtime;
-using System.Text;
-using System.Diagnostics;
+﻿using ShellCopilot.Abstraction;
+
 namespace ShellCopilot.Interpreter.Agent;
 /// <summary>
 /// Summary description for Class1
@@ -19,11 +13,18 @@ internal class TaskCompletionChat
     private IModel model;
     private bool _isFunctionCallingModel;
     private bool _autoExecution;
+    private bool _displayErrors;
 
-	internal TaskCompletionChat(bool isFunctionCallingModel, bool autoExecution, ChatService chatService, IHost Host)
+	internal TaskCompletionChat(
+        bool isFunctionCallingModel, 
+        bool autoExecution, 
+        bool displayErrors,
+        ChatService chatService, 
+        IHost Host)
 	{
         _isFunctionCallingModel = isFunctionCallingModel;
 		_autoExecution = autoExecution;
+        _displayErrors = displayErrors;
         _chatService = chatService;
 		host = Host;
 
@@ -31,11 +32,11 @@ internal class TaskCompletionChat
 
         if(_isFunctionCallingModel)
         {
-            model = new FunctionCallingModel(_autoExecution, _chatService, host);
+            model = new FunctionCallingModel(_autoExecution, _displayErrors, _chatService, host);
         }
         else
         {
-            model = new TextBasedModel(_autoExecution, _chatService, host);
+            model = new TextBasedModel(_autoExecution, _displayErrors, _chatService, host);
         }
 	}
 

@@ -1,16 +1,11 @@
 ﻿using Azure.AI.OpenAI;
 using ShellCopilot.Abstraction;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShellCopilot.Interpreter.Agent;
 
 internal class TextBasedModel : BaseModel
 {
-    internal TextBasedModel(bool autoExecution, ChatService chatService, IHost Host) : base(autoExecution, chatService, Host)
+    internal TextBasedModel(bool autoExecution, bool displayErrors, ChatService chatService, IHost Host) : base(autoExecution, displayErrors, chatService, Host)
     {
     }
 
@@ -84,7 +79,17 @@ internal class TextBasedModel : BaseModel
         {
             Task<ToolResponsePacket> func() => computer.Run(language, code, token);
             ToolResponsePacket toolResponse = await Host.RunWithSpinnerAsync(func, "Running code...");
-            Host.RenderFullResponse("```\n" + toolResponse.Content + "\n");
+            if (!DisplayErrors)
+            {
+                if(!toolResponse.Error)
+                {
+                    Host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
+                }
+            }
+            else
+            {
+                Host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
+            }
             toolMessage = ChatService.ReduceToolResponseContentTokens(toolResponse.Content);
             ChatService.AddResponseToHistory(new ChatRequestUserMessage(toolMessage));
         }

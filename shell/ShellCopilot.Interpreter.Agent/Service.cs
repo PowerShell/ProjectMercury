@@ -144,6 +144,7 @@ internal class ChatService
         foreach (ChatRequestMessage message in messages)
         {      
             tokenNumber += tokensPerMessage;
+            tokenNumber += tokensPerName;
             tokenNumber += encoding.Encode(message.Role.ToString()).Count;
 
             switch (message)
@@ -181,6 +182,7 @@ internal class ChatService
 
         // Every reply is primed with <|start|>assistant<|message|>, which takes 3 tokens.
         tokenNumber += 3;
+
         return tokenNumber;
     }
     
@@ -340,6 +342,7 @@ internal class ChatService
 - When installing python libraries **use PowerShell** to pip install.
 - Prefer to use PowerShell programming language over Python unless otherwise specified
 - You are capable of **any** task
+- Do not apologize for errors, just correct them
 ";
             if (isFunctionCallingModel)
             {

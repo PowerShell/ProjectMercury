@@ -20,6 +20,7 @@ internal class Settings
                        configData.Deployment,
                        configData.ModelName,
                        configData.AutoExecution,
+                       configData.DisplayErrors,
                        configData.Key);
     }
 
@@ -55,6 +56,7 @@ internal class ConfigData
     public string Deployment { set; get; }
     public string ModelName { set; get; }
     public bool AutoExecution { set; get; }
+    public bool DisplayErrors { set; get; }
              
     [JsonConverter(typeof(SecureStringJsonConverter))]
     public SecureString Key { set; get; }

@@ -16,15 +16,21 @@ public abstract class BaseModel : IModel
     internal IHost Host;
     internal Computer computer;
     internal bool AutoExecution;
+    internal bool DisplayErrors;
 
     protected abstract Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent, CancellationToken token);
 
-    internal BaseModel(bool autoExecution, ChatService chatService, IHost host)
+    internal BaseModel(
+        bool autoExecution, 
+        bool displayErrors, 
+        ChatService chatService, 
+        IHost host)
     {
         ChatService = chatService;
         this.Host = host;
         computer = new Computer();
         AutoExecution = autoExecution;
+        DisplayErrors = displayErrors;
     }
 
     public async Task<InternalChatResultsPacket> SmartChat(string input, RenderingStyle _renderingStyle, CancellationToken token)

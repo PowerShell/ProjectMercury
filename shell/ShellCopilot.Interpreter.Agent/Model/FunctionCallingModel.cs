@@ -1,5 +1,4 @@
 ﻿using Azure.AI.OpenAI;
-using Newtonsoft.Json;
 using ShellCopilot.Abstraction;
 using System.Text;
 using System.Text.Json;
@@ -44,7 +43,7 @@ internal class FunctionCallingModel : BaseModel
     private Dictionary<int, string> functionNamesByIndex = [];
     private Dictionary<int, StringBuilder> functionArgumentBuildersByIndex = [];
 
-    internal FunctionCallingModel(bool autoExecution, ChatService chatService, IHost Host) : base (autoExecution, chatService, Host)
+    internal FunctionCallingModel(bool autoExecution, bool displayErrors, ChatService chatService, IHost Host) : base (autoExecution, displayErrors, chatService, Host)
     {
     }
 
@@ -114,7 +113,7 @@ internal class FunctionCallingModel : BaseModel
             // Extract the language and code from the arguments
             if (arguments != null)
             {
-                Dictionary<string, string> argumentsDict = JsonConvert.DeserializeObject<Dictionary<string, string>>(arguments);
+                Dictionary<string, string> argumentsDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(arguments);
                 language = argumentsDict["language"];
                 code = argumentsDict["code"];
                 Host.RenderFullResponse($"```{language}\n\n{language}:\n\n{code}\n\n```");
@@ -142,7 +141,17 @@ internal class FunctionCallingModel : BaseModel
                     // Reduce code output in chat history as needed
                     if (toolResponse.Content is not null)
                     {
-                        Host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
+                        if (!DisplayErrors)
+                        {
+                            if (!toolResponse.Error)
+                            {
+                                Host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
+                            }
+                        }
+                        else
+                        {
+                            Host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
+                        }
                         toolMessage = ChatService.ReduceToolResponseContentTokens(toolResponse.Content);
                     }
                     else

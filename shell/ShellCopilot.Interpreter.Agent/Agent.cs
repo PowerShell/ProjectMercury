@@ -20,6 +20,7 @@ public sealed class InterpreterAgent : ILLMAgent
     private string _historyRoot;
     private bool _isFunctionCallingModel;
     private bool _autoExecution;
+    private bool _displayErrors;
     private RenderingStyle _renderingStyle;
     private Settings _settings;
     private FileSystemWatcher _watcher;
@@ -67,6 +68,7 @@ public sealed class InterpreterAgent : ILLMAgent
         _settings = ReadSettings();
         _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.GPT.ModelName);
         _autoExecution = _settings.GPT.AutoExecution;
+        _displayErrors = _settings.GPT.DisplayErrors;
         _chatService = new ChatService(_isInteractive, _historyRoot, _settings);
 
         Description = "An agent that specializes in completing code related tasks. This agent will write a plan, write code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. Currently only supports PowerShell and Python.";
@@ -106,7 +108,11 @@ public sealed class InterpreterAgent : ILLMAgent
 
         try
         {
-            _taskCompletionChat = new TaskCompletionChat(_isFunctionCallingModel, _autoExecution, _chatService, host);
+            _taskCompletionChat = new TaskCompletionChat(_isFunctionCallingModel, 
+                                                         _autoExecution,
+                                                         _displayErrors,
+                                                         _chatService,
+                                                         host);
             await _taskCompletionChat.StartTask(input, _renderingStyle, token);
         }
         catch (OperationCanceledException)
@@ -209,6 +215,7 @@ public sealed class InterpreterAgent : ILLMAgent
       ""Deployment"" : ""gpt4"",
       ""ModelName"" : ""gpt-4-0613"",   // required field to infer properties of the service, such as token limit.
       ""AutoExecution"" : false,
+      ""DisplayErrors"" : true,
       ""Key"" : null
 }}
 ";
