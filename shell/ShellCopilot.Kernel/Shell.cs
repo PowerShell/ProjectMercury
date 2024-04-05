@@ -97,8 +97,6 @@ internal sealed class Shell : IShell
             SetReadLineExperience();
         }
         
-
-        
         LoadAvailableAgents();
         Console.CancelKeyPress += OnCancelKeyPress;
 
