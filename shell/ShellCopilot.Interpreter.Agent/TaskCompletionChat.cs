@@ -66,15 +66,15 @@ internal class TaskCompletionChat
                 if (askToSave)
                 {
                     // Save the task
-                    bool saveChoice = await host.PromptForConfirmationAsync("Would you like to save the conversation?", true, token);
-                    if (saveChoice)
-                    {
-                        string fileName = await host.PromptForSecretAsync("Please enter the file name: ", token);
-                        if(!string.IsNullOrEmpty(fileName))
-                        {
-                            _chatService.SaveHistory(fileName);
-                        }
-                    }
+                    // bool saveChoice = await host.PromptForConfirmationAsync("Would you like to save the conversation?", true, token);
+                    // if (saveChoice)
+                    // {
+                    //     string fileName = await host.PromptForSecretAsync("Please enter the file name: ", token);
+                    //     if(!string.IsNullOrEmpty(fileName))
+                    //     {
+                    //         _chatService.SaveHistory(fileName);
+                    //     }
+                    // }
                 }
             }
             catch (OperationCanceledException)
