@@ -40,16 +40,12 @@ $app_dir = Join-Path $shell_dir "ShellCopilot.App"
 $pkg_dir = Join-Path $shell_dir "ShellCopilot.Abstraction"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
 $interpreter_agent_dir = Join-Path $shell_dir "ShellCopilot.Interpreter.Agent"
-$az_cli_agent_dir = Join-Path $shell_dir "ShellCopilot.AzCLI.Agent"
-$az_ps_agent_dir = Join-Path $shell_dir "ShellCopilot.AzPS.Agent"
 $az_agent_dir = Join-Path $shell_dir "ShellCopilot.Azure.Agent"
 
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $Configuration.ToLower()
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.OpenAI.Agent"
 $interpreter_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Interpreter.Agent"
-$az_cli_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.AzCLI.Agent"
-$az_ps_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.AzPS.Agent"
 $az_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Azure.Agent"
 
 if ($Clean) {
@@ -87,18 +83,6 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "`n[Build the Interpreter agent ...]`n" -ForegroundColor Green
     $interpreter_csproj = GetProjectFile $interpreter_agent_dir
     dotnet publish $interpreter_csproj -c $Configuration -o $interpreter_out_dir
-}
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "`n[Build the AzCLI agent ...]`n" -ForegroundColor Green
-    $az_cli_csproj = GetProjectFile $az_cli_agent_dir
-    dotnet publish $az_cli_csproj -c $Configuration -o $az_cli_out_dir
-}
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "`n[Build the AzPS agent ...]`n" -ForegroundColor Green
-    $az_ps_csproj = GetProjectFile $az_ps_agent_dir
-    dotnet publish $az_ps_csproj -c $Configuration -o $az_ps_out_dir
 }
 
 if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {

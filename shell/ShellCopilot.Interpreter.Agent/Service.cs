@@ -58,6 +58,10 @@ internal class ChatService
         _settings = settings;
     }
 
+    internal void RefreshChat()
+    {
+        _chatHistory.Clear();
+    }
     private void LoadHistory(string name)
     {
         string historyFile = Path.Combine(_historyRoot, name);

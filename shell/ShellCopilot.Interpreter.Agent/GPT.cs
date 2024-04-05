@@ -94,7 +94,7 @@ public class GPT
     /// <returns>A boolean value indicates whether the validation and setup was successful.</returns>
     private async Task AskForModel(IHost host, CancellationToken cancellationToken)
     {
-        host.MarkupErrorLine($"'{ModelName}' is not a supported OpenAI chat completion model.");
+        host.MarkupWarningLine($"'{ModelName}' is not a supported OpenAI chat completion model.");
         ModelName = await host.PromptForSelectionAsync(
             title: "Choose from the list of [green]supported OpenAI models[/]:",
             choices: ModelInfo.SupportedModels(),

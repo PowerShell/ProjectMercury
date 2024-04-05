@@ -82,6 +82,17 @@ public sealed class InterpreterAgent : ILLMAgent
     }
 
     /// <inheritdoc/>
+    public void RefreshChat()
+    {
+        _chatService.RefreshChat();
+    }
+
+    /// <inheritdoc/>
+    public bool CanAcceptFeedback(UserAction action) => false;
+
+    /// <inheritdoc/>
+    public void OnUserAction(UserActionPayload actionPayload) { }
+    /// <inheritdoc/>
     public IEnumerable<CommandBase> GetCommands()
     {
         return null;
