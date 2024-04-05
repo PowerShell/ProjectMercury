@@ -14,7 +14,7 @@ param (
     [string] $Runtime = [NullString]::Value,
 
     [Parameter()]
-    [ValidateSet('openai-gpt', 'az-agent')]
+    [ValidateSet('openai-gpt', 'az-agent', 'interpreter-agent')]
     [string[]] $AgentToInclude,
 
     [Parameter()]
@@ -28,7 +28,7 @@ function GetProjectFile($dir)
 
 $ErrorActionPreference = 'Stop'
 
-$AgentToInclude ??= @('openai-gpt', 'az-agent')
+$AgentToInclude ??= @('openai-gpt', 'az-agent', 'interpreter-agent')
 $RID = $Runtime ?? (dotnet --info |
     Select-String '^\s*RID:\s+(\w+-\w+)$' |
     Select-Object -First 1 |
@@ -39,14 +39,14 @@ $shell_dir = Join-Path $PSScriptRoot "shell"
 $app_dir = Join-Path $shell_dir "ShellCopilot.App"
 $pkg_dir = Join-Path $shell_dir "ShellCopilot.Abstraction"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
-$interpreter_agent_dir = Join-Path $shell_dir "ShellCopilot.Interpreter.Agent"
 $az_agent_dir = Join-Path $shell_dir "ShellCopilot.Azure.Agent"
+$interpreter_agent_dir = Join-Path $shell_dir "ShellCopilot.Interpreter.Agent"
 
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $Configuration.ToLower()
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.OpenAI.Agent"
-$interpreter_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Interpreter.Agent"
 $az_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Azure.Agent"
+$interpreter_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Interpreter.Agent"
 
 if ($Clean) {
     $out_path = Join-Path $PSScriptRoot "out"
@@ -78,17 +78,16 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'openai-gpt') {
     dotnet publish $open_ai_csproj -c $Configuration -o $open_ai_out_dir
 }
 
-if ($LASTEXITCODE -eq 0) {
-    ## Move the nuget package to the package folder.
-    Write-Host "`n[Build the Interpreter agent ...]`n" -ForegroundColor Green
-    $interpreter_csproj = GetProjectFile $interpreter_agent_dir
-    dotnet publish $interpreter_csproj -c $Configuration -o $interpreter_out_dir
-}
-
 if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {
     Write-Host "`n[Build the Azure agents ...]`n" -ForegroundColor Green
     $az_csproj = GetProjectFile $az_agent_dir
     dotnet publish $az_csproj -c $Configuration -o $az_out_dir
+}
+
+if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter-agent') {
+    Write-Host "`n[Build the Interpreter agent ...]`n" -ForegroundColor Green
+    $interpreter_csproj = GetProjectFile $interpreter_agent_dir
+    dotnet publish $interpreter_csproj -c $Configuration -o $interpreter_out_dir
 }
 
 if ($LASTEXITCODE -eq 0) {
