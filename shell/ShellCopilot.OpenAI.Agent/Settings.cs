@@ -139,6 +139,26 @@ internal class Settings
             Active = Active.Name,
         };
     }
+
+    internal string Export(string name, string outFile, bool ignoreApiKey)
+    {
+        IList<GPT> gpts = name is null ? GPTs : new[] { GetGPTByName(name) };
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+            TypeInfoResolver = new GPTContractResolver(ignoreApiKey)
+        };
+
+        if (outFile is null)
+        {
+            return JsonSerializer.Serialize(gpts, options);
+        }
+
+        using var stream = File.Open(outFile, FileMode.Create, FileAccess.Write, FileShare.None);
+        JsonSerializer.Serialize(stream, gpts, options);
+        return null;
+    }
 }
 
 internal class ConfigData
