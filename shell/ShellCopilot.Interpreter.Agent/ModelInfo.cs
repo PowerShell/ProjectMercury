@@ -33,6 +33,7 @@ internal class ModelInfo
         ["gpt-35-turbo-16k-0613"] = GPT35_16K,
     };
 
+    /// For reference, see https://platform.openai.com/docs/guides/function-calling
     private static readonly Dictionary<string, ModelInfo> s_functionCallingModels = new()
     {
         ["gpt-4"] = GPT4, 
