@@ -2,6 +2,7 @@ using SharpToken;
 
 internal class ModelInfo
 {
+    private static readonly ModelInfo GPT4_TURBO = new(tokenLimit: 128_000, tokensPerMessage: 3, tokensPerName: 1);
     private static readonly ModelInfo GPT4 = new(tokenLimit: 8_192, tokensPerMessage: 3, tokensPerName: 1);
     private static readonly ModelInfo GPT4_32K = new(tokenLimit: 32_768, tokensPerMessage: 3, tokensPerName: 1);
     private static readonly ModelInfo GPT35_0301 = new(tokenLimit: 4_096, tokensPerMessage: 4, tokensPerName: -1);
@@ -10,8 +11,17 @@ internal class ModelInfo
 
     // For reference, see https://platform.openai.com/docs/models and the "Counting tokens" section in
     // https://github.com/openai/openai-cookbook/blob/main/examples/How_to_format_inputs_to_ChatGPT_models.ipynb
+    // Models updated 09APR2024
     private static readonly Dictionary<string, ModelInfo> s_modelMap = new()
     {
+        ["gpt-4-turbo"]               = GPT4_TURBO,
+        ["gpt-4-turbo-2024-04-09"]    = GPT4_TURBO,
+        ["gpt-4-turbo-preview"]       = GPT4_TURBO,
+        ["gpt-4-turbo-0125-preview"]  = GPT4_TURBO,
+        ["gpt-4-turbo-1106-preview"]  = GPT4_TURBO,
+        ["gpt-4-vision-preview"]      = GPT4_TURBO,
+        ["gpt-4-1106-vision-preview"] = GPT4_TURBO,
+
         ["gpt-4"]      = GPT4,
         ["gpt-4-0314"] = GPT4,
         ["gpt-4-0613"] = GPT4,
@@ -20,11 +30,13 @@ internal class ModelInfo
         ["gpt-4-32k-0314"] = GPT4_32K,
         ["gpt-4-32k-0613"] = GPT4_32K,
 
-        ["gpt-3.5-turbo"]      = GPT35_0613,
-        ["gpt-3.5-turbo-0301"] = GPT35_0301,
-        ["gpt-3.5-turbo-0613"] = GPT35_0613,
+        ["gpt-3.5-turbo-0125"] = GPT35_16K,
+        ["gpt-3.5-turbo"]      = GPT35_16K,
+        ["gpt-3.5-turbo-1106"] = GPT35_16K,
+        ["gpt-3.5-turbo-instruct"] = GPT35_0613,
 
         ["gpt-3.5-turbo-16k"]      = GPT35_16K,
+        ["gpt-3.5-turbo-0613"]     = GPT35_16K,
         ["gpt-3.5-turbo-16k-0613"] = GPT35_16K,
 
         // Azure naming of the 'gpt-3.5-turbo' models
@@ -36,13 +48,14 @@ internal class ModelInfo
     /// For reference, see https://platform.openai.com/docs/guides/function-calling
     private static readonly Dictionary<string, ModelInfo> s_functionCallingModels = new()
     {
-        ["gpt-4"] = GPT4, 
-        ["gpt-4-turbo-preview"] = GPT4, 
-        ["gpt-4-0125-preview"] = GPT4, 
-        ["gpt-4-1106-preview"] = GPT4, 
+        ["gpt-4-turbo-preview"] = GPT4_TURBO, 
+        ["gpt-4-0125-preview"]  = GPT4_TURBO, 
+        ["gpt-4-1106-preview"]  = GPT4_TURBO, 
+        
+        ["gpt-4"]      = GPT4, 
         ["gpt-4-0613"] = GPT4, 
         
-        ["gpt-3.5-turbo"] = GPT35_0613, 
+        ["gpt-3.5-turbo"]      = GPT35_0613, 
         ["gpt-3.5-turbo-0125"] = GPT35_0613, 
         ["gpt-3.5-turbo-1106"] = GPT35_0613, 
         ["gpt-3.5-turbo-0613"] = GPT35_0613,
