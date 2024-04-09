@@ -1,13 +1,14 @@
 ﻿using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Interpreter.Agent;
+
 /// <summary>
-/// Summary description for Class1
+/// Manages a task chat session with automated user responses that guide the AI to complete the task.
 /// </summary>
 internal class TaskCompletionChat
 {
-	private ChatService _chatService;
-	private IHost host;
+    private ChatService _chatService;
+    private IHost host;
     private Computer computer;
     private Dictionary<string,string> prompts = TaskCompletionChatPrompts.prompts;
     private IModel model;
@@ -15,13 +16,16 @@ internal class TaskCompletionChat
     private bool _autoExecution;
     private bool _displayErrors;
 
-	internal TaskCompletionChat(
+    /// <summary>
+    /// Constructor requires settings for the chat session. Type of model is resolved here.
+    /// </summary>
+    internal TaskCompletionChat(
         bool isFunctionCallingModel, 
         bool autoExecution, 
         bool displayErrors,
         ChatService chatService, 
         IHost Host)
-	{
+    {
         _isFunctionCallingModel = isFunctionCallingModel;
 		_autoExecution = autoExecution;
         _displayErrors = displayErrors;
@@ -40,17 +44,23 @@ internal class TaskCompletionChat
         }
 	}
 
+    /// <summary>
+    /// Shortcut to clean up the computer processes.
+    /// </summary>
     internal void CleanUpProcesses()
     {
         computer.Terminate();
     }
-
+    
+    /// <summary>
+    /// This method contains the while loop that manages the automated chat session.
+    /// All AI responses and code exeuction results are reduced to boolean values that determine the next automated user response.
+    /// </summary>
     public async Task<bool> StartTask(string input, RenderingStyle _renderingStyle, CancellationToken token)
     {
         bool chatCompleted = false;
-        bool askToSave = false;
         string previousCode = "";
-        //input += prompts["Initial"];
+
         while (!chatCompleted)
         {
             if (string.IsNullOrEmpty(input))
@@ -61,21 +71,7 @@ internal class TaskCompletionChat
             {
                 InternalChatResultsPacket packet = await model.SmartChat(input, _renderingStyle, token);
 
-                PromptEngineering(ref input, ref chatCompleted, ref askToSave, ref previousCode, packet, token);
-
-                if (askToSave)
-                {
-                    // Save the task
-                    // bool saveChoice = await host.PromptForConfirmationAsync("Would you like to save the conversation?", true, token);
-                    // if (saveChoice)
-                    // {
-                    //     string fileName = await host.PromptForSecretAsync("Please enter the file name: ", token);
-                    //     if(!string.IsNullOrEmpty(fileName))
-                    //     {
-                    //         _chatService.SaveHistory(fileName);
-                    //     }
-                    // }
-                }
+                AutomatedUserResponses(ref input, ref chatCompleted, ref previousCode, packet);
             }
             catch (OperationCanceledException)
             {
@@ -86,13 +82,14 @@ internal class TaskCompletionChat
         return chatCompleted;
     }
 
-    private void PromptEngineering(
+    /// <summary>
+    /// Resolves packet booleans into a user response or completes the chat session.
+    /// </summary>
+    private void AutomatedUserResponses(
         ref string input, 
         ref bool chatCompleted, 
-        ref bool askToSave,
         ref string previousCode, 
-        InternalChatResultsPacket packet, 
-        CancellationToken token)
+        InternalChatResultsPacket packet)
     {
         if (packet.wasResponseCancelled)
         {
@@ -138,7 +135,6 @@ internal class TaskCompletionChat
                 }
                 else
                 {
-                    // input = prompts["StopTask"];
                     chatCompleted = true;
                 }
             }
@@ -152,7 +148,6 @@ internal class TaskCompletionChat
             if (packet.isTaskComplete)
             {
                 chatCompleted = true;
-                askToSave = true;
             }
             else if (packet.isTaskImpossible)
             {
