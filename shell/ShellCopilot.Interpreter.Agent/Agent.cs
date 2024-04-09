@@ -46,11 +46,11 @@ public sealed class InterpreterAgent : ILLMAgent
     /// <inheritdoc/>
     public void Initialize(AgentConfig config)
     {
-        /// while (!System.Diagnostics.Debugger.IsAttached)
-        /// {
-        ///     System.Threading.Thread.Sleep(200);
-        /// }
-        /// System.Diagnostics.Debugger.Break();
+        // while (!System.Diagnostics.Debugger.IsAttached)
+        // {
+        //     System.Threading.Thread.Sleep(200);
+        // }
+        // System.Diagnostics.Debugger.Break();
 
         _isInteractive = config.IsInteractive;
         _renderingStyle = config.RenderingStyle;
@@ -66,9 +66,9 @@ public sealed class InterpreterAgent : ILLMAgent
         Directory.CreateDirectory(_historyRoot);
 
         _settings = ReadSettings();
-        _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.GPT.ModelName);
-        _autoExecution = _settings.GPT.AutoExecution;
-        _displayErrors = _settings.GPT.DisplayErrors;
+        _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.ModelName);
+        _autoExecution = _settings.AutoExecution;
+        _displayErrors = _settings.DisplayErrors;
         _chatService = new ChatService(_isInteractive, _historyRoot, _settings);
 
         Description = "An agent that specializes in completing code related tasks. This agent will write a plan, write code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. Currently only supports PowerShell and Python.";
@@ -228,6 +228,17 @@ public sealed class InterpreterAgent : ILLMAgent
       ""AutoExecution"" : false,
       ""DisplayErrors"" : true,
       ""Key"" : null
+
+    // To use the public OpenAI as the AI completion service:
+    // - Ignore the `Endpoint` and `Deployment` keys.
+    // - Set `Key` to be the OpenAI access token.
+    // Replace the above with the following:
+    /*
+      ""ModelName"": ""gpt-4-0613"",
+      ""AutoExecution"": false,
+      ""DisplayErrors"": false,
+      ""Key"": null
+    */
 }}
 ";
         // ""You are Open Interpreter, a world-class programmer that can complete any goal by executing code. First, write a plan. **Always recap the plan between each code block** (you have extreme short-term memory loss, so you need to recap the plan between each message block to retain it). When you execute code, it will be executed **on the user's machine**. The user has given you **full and complete permission** to execute any code necessary to complete the task. Execute the code. If you want to send data between programming languages, save the data to a txt or json. You can access the internet. Run **any code** to achieve the goal, and if at first you don't succeed, try again and again. You can install new packages. When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in. Write messages to the user in Markdown. In general, try to **make plans** with as few steps as possible. As for actually executing code to carry out that plan, for *stateful* languages (like python, javascript, shell, but NOT for html which starts from 0 every time) **it's critical not to try to do everything in one code block.** You should try something, print information about it, then continue from there in tiny, informed steps. You will never get it on the first try, and attempting it in one go will often lead to errors you cant see. When giving python code add a blank line after an indented block is finished. When installing python libraries use powershell to pip install. You are capable of **any** task. Operating System: {Utils.OS}""

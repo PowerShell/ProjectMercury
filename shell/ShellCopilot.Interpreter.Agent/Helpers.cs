@@ -19,6 +19,7 @@ internal static class Utils
     internal const string ApimGatewayDomain = ".azure-api.net";
     internal const string AzureOpenAIDomain = ".openai.azure.com";
     internal const string ShellCopilotEndpoint = "https://pscopilot.azure-api.net";
+    internal const string OpenAIEndpoint = "https://api.openai.com";
     internal const string KeyApplicationHelpLink = "https://github.com/PowerShell/ShellCopilot#readme";
 
     internal static readonly string OS;
@@ -99,40 +100,6 @@ internal class SecureStringJsonConverter : JsonConverter<SecureString>
     {
         string payload = Utils.ConvertFromSecureString(value);
         writer.WriteStringValue(payload);
-    }
-}
-
-/// <summary>
-/// The contract resolver for a GPT instance.
-/// </summary>
-internal class GPTContractResolver : DefaultJsonTypeInfoResolver
-{
-    private readonly bool _ignoreKey;
-    internal GPTContractResolver(bool ignoreKey)
-    {
-        // Allow the key to be ignored during de-serialization.
-        _ignoreKey = ignoreKey;
-    }
-
-    public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
-    {
-        JsonTypeInfo typeInfo = base.GetTypeInfo(type, options);
-
-        if (_ignoreKey && typeInfo.Type == typeof(GPT))
-        {
-            int index = 0;
-            for (; index < typeInfo.Properties.Count; index++)
-            {
-                if (typeInfo.Properties[index].Name is nameof(GPT.Key))
-                {
-                    break;
-                }
-            }
-
-            typeInfo.Properties.RemoveAt(index);
-        }
-
-        return typeInfo;
     }
 }
 

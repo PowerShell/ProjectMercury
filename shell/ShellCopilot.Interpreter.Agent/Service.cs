@@ -16,7 +16,6 @@ internal class ChatService
     private readonly bool _isInteractive;
     private readonly string _historyRoot;
 
-    private GPT _gptToUse;
     private Settings _settings;
     private OpenAIClient _client;
     private List<ChatRequestMessage> _chatHistory;
@@ -62,6 +61,7 @@ internal class ChatService
     {
         _chatHistory.Clear();
     }
+
     private void LoadHistory(string name)
     {
         string historyFile = Path.Combine(_historyRoot, name);
@@ -103,17 +103,15 @@ internal class ChatService
             return;
         }
 
-        _gptToUse = _settings.GPT;
-
         var clientOptions = new OpenAIClientOptions() { RetryPolicy = new ChatRetryPolicy() };
 
-        if (_gptToUse.Type is EndpointType.AzureOpenAI)
+        if (_settings.Type is EndpointType.AzureOpenAI)
         {
             // Create a client that targets Azure OpenAI service or Azure API Management service.
-            bool isApimEndpoint = _gptToUse.Endpoint.EndsWith(Utils.ApimGatewayDomain);
+            bool isApimEndpoint = _settings.Endpoint.EndsWith(Utils.ApimGatewayDomain);
             if (isApimEndpoint)
             {
-                string userkey = Utils.ConvertFromSecureString(_gptToUse.Key);
+                string userkey = Utils.ConvertFromSecureString(_settings.Key);
                 clientOptions.AddPolicy(
                     new UserKeyPolicy(
                         new AzureKeyCredential(userkey),
@@ -124,23 +122,23 @@ internal class ChatService
 
             string azOpenAIApiKey = isApimEndpoint
                 ? "placeholder-api-key"
-                : Utils.ConvertFromSecureString(_gptToUse.Key);
+                : Utils.ConvertFromSecureString(_settings.Key);
 
             _client = new OpenAIClient(
-                new Uri(_gptToUse.Endpoint),
+                new Uri(_settings.Endpoint),
                 new AzureKeyCredential(azOpenAIApiKey),
                 clientOptions);
         }
         else
         {
             // Create a client that targets the non-Azure OpenAI service.
-            _client = new OpenAIClient(Utils.ConvertFromSecureString(_gptToUse.Key), clientOptions);
+            _client = new OpenAIClient(Utils.ConvertFromSecureString(_settings.Key), clientOptions);
         }
     }
 
     private int CountTokenForMessages(IEnumerable<ChatRequestMessage> messages)
     {
-        ModelInfo modelDetail = _gptToUse.ModelInfo;
+        ModelInfo modelDetail = _settings.ModelInfo;
         GptEncoding encoding = modelDetail.GptEncoding;
         int tokensPerMessage = modelDetail.TokensPerMessage;
         int tokensPerName = modelDetail.TokensPerName;
@@ -193,7 +191,7 @@ internal class ChatService
     
     internal string ReduceToolResponseContentTokens(string content)
     {
-        ModelInfo modelDetail = _gptToUse.ModelInfo;
+        ModelInfo modelDetail = _settings.ModelInfo;
         GptEncoding encoding = modelDetail.GptEncoding;
         string reducedContent = content;
         string truncationMessage = "\n...Output truncated.";
@@ -214,7 +212,7 @@ internal class ChatService
     private void ReduceChatHistoryAsNeeded(List<ChatRequestMessage> history, ChatRequestMessage input)
     {
         int totalTokens = CountTokenForMessages(Enumerable.Repeat(input, 1));
-        int tokenLimit = _gptToUse.ModelInfo.TokenLimit;
+        int tokenLimit = _settings.ModelInfo.TokenLimit;
 
         if (totalTokens + MaxResponseToken >= tokenLimit)
         {
@@ -266,13 +264,13 @@ internal class ChatService
         // https://github.com/microsoft/semantic-kernel/blob/main/samples/skills/FunSkill/Joke/config.json
 
         // Determine if the gpt model is a function calling model
-        bool isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_gptToUse.ModelName);
+        bool isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.ModelName);
 
         if (isFunctionCallingModel)
         {
             _chatOptions = new()
             {
-                DeploymentName = _gptToUse.Deployment,
+                DeploymentName = _settings.Deployment ?? _settings.ModelName,
                 ChoiceCount = 1,
                 Temperature = (float)0.0,
                 MaxTokens = MaxResponseToken,
@@ -283,7 +281,7 @@ internal class ChatService
         {
             _chatOptions = new()
             {
-                DeploymentName = _gptToUse.Deployment,
+                DeploymentName = _settings.Deployment ?? _settings.ModelName,
                 ChoiceCount = 1,
                 Temperature = (float)0.0,
                 MaxTokens = MaxResponseToken,
