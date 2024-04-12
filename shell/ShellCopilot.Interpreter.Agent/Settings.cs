@@ -110,7 +110,7 @@ internal class Settings
             _ => throw new UnreachableException(),
         };
 
-        host.RenderList(GPTInfo);
+        host.RenderList(this, GPTInfo);
     }
 
     /// <summary>
