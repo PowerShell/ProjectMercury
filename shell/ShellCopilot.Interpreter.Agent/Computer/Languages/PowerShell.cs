@@ -12,7 +12,7 @@ internal class PowerShell: SubprocessLanguage
 {
     internal PowerShell()
     {
-        StartCmd = ["pwsh.exe", "-file - -NoProfile"];
+        StartCmd = ["pwsh.exe", "-NoProfile -file -"];
         VersionCmd = ["pwsh.exe", "--version"];
         OutputQueue = new Queue<Dictionary<string, string>>();
     }

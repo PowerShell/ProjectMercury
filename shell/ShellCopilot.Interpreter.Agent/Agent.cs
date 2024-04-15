@@ -85,6 +85,7 @@ public sealed class InterpreterAgent : ILLMAgent
     public void RefreshChat()
     {
         _chatService.RefreshChat();
+        _taskCompletionChat?.CleanUpProcesses();
     }
 
     /// <inheritdoc/>

@@ -78,6 +78,7 @@ internal abstract class SubprocessLanguage : IBaseLanguage
             RedirectStandardError = true,
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
+            Environment = { ["NO_COLOR"] = "true" },
         };
 
         Process = new Process { StartInfo = startInfo };
