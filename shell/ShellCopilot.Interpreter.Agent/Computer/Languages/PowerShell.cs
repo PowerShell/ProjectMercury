@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text;
 
 namespace ShellCopilot.Interpreter.Agent;
 
