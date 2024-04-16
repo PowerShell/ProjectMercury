@@ -6,7 +6,7 @@
 internal interface IBaseLanguage
 {
     /// <summary>
-    /// Run the code and return the output in a DataPacket
+    /// Runs the code and returns the output in a DataPacket
     /// </summary>
     /// <param name="code"></param>
     /// <param name="token"></param>

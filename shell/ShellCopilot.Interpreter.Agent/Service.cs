@@ -36,6 +36,7 @@ internal class ChatService
             return;
         }
 
+        // Don't add empty assistant messages to history. 
         switch (response)
         {
             case ChatRequestAssistantMessage assistantMessage:
@@ -223,7 +224,7 @@ internal class ChatService
         history.Add(input);
         totalTokens = CountTokenForMessages(history);
 
-        // only remove UserMessage or AssistantMessage and ToolMessages
+        // Only remove UserMessage or AssistantMessage and ToolMessages. Keep SystemMessages
         int index = 0;
         while (totalTokens + (MaxResponseToken) >= tokenLimit)
         {
@@ -292,6 +293,29 @@ internal class ChatService
         if (history.Count is 0)
         {
             Computer computer = new Computer();
+            string systemPrompt = @"
+## Your Profile and General Capabilities
+- Your name is Interpreter Agent, act as a world-class programmer that can complete any goal by executing code
+- First, write a plan. **Always recap the plan between each code block** (you have extreme short-term memory loss, so you need to recap the plan between each message block to retain it)
+- When you execute code, it will be executed **on the user's machine**. The user has given you **full and complete permission** to execute any code necessary to complete the task. 
+- Execute the code
+- You will receive the output of the executed code
+- If you want to send data between programming languages, save the data to a .txt or Json
+- You can access the internet
+- Run **any code** to achieve the goal, and if at first you don't succeed, try again and again
+- You can install new packages
+- When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in
+- Try to **make plans** with as few steps as possible
+- When executing code to carry out that plan, for *stateful* languages (like python and PowerShell) **it's critical not to try to do everything in one code block**. You should try something, print information about it, then continue from there in tiny, informed steps
+- You will never get it on the first try and attempting it in one go will often lead to errors you can’t foresee
+- **When giving python code add a blank line after an indented block is finished**
+- When installing python libraries **use PowerShell** to pip install.
+- Prefer to use PowerShell programming language over Python unless otherwise specified
+- You are capable of **any** task
+- Do not apologize for errors, just correct them
+";
+            string versions = "\n ## Language Versions\n" 
+                + await computer.GetLanguageVersions();
             string systemResponseCues = @"
 ## Examples
 # Here are conversations between a human and you
@@ -322,30 +346,6 @@ internal class ChatService
 - Human: Hi, teach me how to use PowerShell
 > Since this task is too broad and cannot be accomplished with code suggest an easy task the human can ask you to code in PowerShell. Then respond with exactly **Let me know what you'd like to do next.**
 - You respond: I cannot teach you how to use PowerShell. However, you can ask me how to do things in PowerShell like “List out all my desktop files using PowerShell”. Then, I can show you the code, execute it, and explain it for you. Please let me know what you’d like to do next.
-";
-            // TODO: Debug. Versions Method.
-            string versions = "\n ## Language Versions\n" 
-                + await computer.GetLanguageVersions();
-            string systemPrompt = @"
-## Your Profile and General Capabilities
-- Your name is Interpreter Agent, act as a world-class programmer that can complete any goal by executing code
-- First, write a plan. **Always recap the plan between each code block** (you have extreme short-term memory loss, so you need to recap the plan between each message block to retain it)
-- When you execute code, it will be executed **on the user's machine**. The user has given you **full and complete permission** to execute any code necessary to complete the task. 
-- Execute the code
-- You will receive the output of the executed code
-- If you want to send data between programming languages, save the data to a .txt or Json
-- You can access the internet
-- Run **any code** to achieve the goal, and if at first you don't succeed, try again and again
-- You can install new packages
-- When a user refers to a filename, they're likely referring to an existing file in the directory you're currently executing code in
-- Try to **make plans** with as few steps as possible
-- When executing code to carry out that plan, for *stateful* languages (like python and PowerShell) **it's critical not to try to do everything in one code block**. You should try something, print information about it, then continue from there in tiny, informed steps
-- You will never get it on the first try and attempting it in one go will often lead to errors you can’t foresee
-- **When giving python code add a blank line after an indented block is finished**
-- When installing python libraries **use PowerShell** to pip install.
-- Prefer to use PowerShell programming language over Python unless otherwise specified
-- You are capable of **any** task
-- Do not apologize for errors, just correct them
 ";
             if (isFunctionCallingModel)
             {
@@ -428,6 +428,9 @@ internal class ChatService
     }
 }
 
+/// <summary>
+/// Unused method. Need to rework for saving chat history.
+/// </summary>
 public class ChatRequestMessageConverter : JsonConverter<ChatRequestMessage>
 {
     public override bool CanConvert(Type typeToConvert)

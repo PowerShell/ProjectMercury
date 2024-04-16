@@ -41,8 +41,15 @@ internal abstract class SubprocessLanguage : IBaseLanguage
 
     protected abstract void WriteToProcess(string input);
 
+    /// <summary>
+    /// Gets version of the language executable on the user's local machine.
+    /// </summary>
     public async Task<string> GetVersion()
     {
+        if(!IsOnPath())
+        {
+            return "Executable not found on path.";
+        }
         // Get the version of the powershell executable
         Process process = new();
         process.StartInfo.FileName = VersionCmd[0];
@@ -216,6 +223,12 @@ internal abstract class SubprocessLanguage : IBaseLanguage
             });
         }
     }
+
+    /// <summary>
+    /// All code will be preprocessed to contain the same end of execution marker.
+    /// </summary>
+    /// <param name="line"></param>
+    /// <returns></returns>
     protected bool DetectEndOfExecution(string line)
     {
         return line.Contains("##end_of_execution##");

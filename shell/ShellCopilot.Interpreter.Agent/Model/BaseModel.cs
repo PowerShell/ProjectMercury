@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.CommandLine.Parsing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Azure.AI.OpenAI;
+﻿using Azure.AI.OpenAI;
 using Azure;
 using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Interpreter.Agent;
 
+/// <summary>
+/// The base model class for LLMs. Implementations are FunctionCallingModel and TextBasedModels.
+/// </summary>
 public abstract class BaseModel : IModel
 {
     internal ChatService ChatService;
@@ -18,6 +15,12 @@ public abstract class BaseModel : IModel
     internal bool AutoExecution;
     internal bool DisplayErrors;
 
+    /// <summary>
+    /// Extracts code from the response and calls the appropriate method to execute the code.
+    /// </summary>
+    /// <param name="responseContent"></param>
+    /// <param name="token"></param>
+    /// <returns></returns>
     protected abstract Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent, CancellationToken token);
 
     internal BaseModel(
@@ -27,7 +30,7 @@ public abstract class BaseModel : IModel
         IHost host)
     {
         ChatService = chatService;
-        this.Host = host;
+        Host = host;
         computer = new Computer();
         AutoExecution = autoExecution;
         DisplayErrors = displayErrors;
@@ -95,6 +98,11 @@ public abstract class BaseModel : IModel
         return await HandleFunctionCall(responseContent, token);
     }
 
+    /// <summary>
+    /// Renders the streaming chat completions.
+    /// </summary>
+    /// <param name="streamingRender"></param>
+    /// <param name="chatUpdate"></param>
     protected virtual void RenderStreamingChat(IStreamRender streamingRender, StreamingChatCompletionsUpdate chatUpdate)
     {
         if (!string.IsNullOrEmpty(chatUpdate.ContentUpdate))
