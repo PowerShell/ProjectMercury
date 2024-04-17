@@ -4,10 +4,9 @@ using System.Text;
 namespace ShellCopilot.Interpreter.Agent;
 
 /// <summary>
-/// Implements the IBaseLanguage interface with common process definitions. This is the parent class for all
-/// languages.
+/// This is the parent class for all languages.
 /// </summary>
-internal abstract class SubprocessLanguage : IBaseLanguage
+internal abstract class SubprocessLanguage
 {
     protected Process Process { get; set; }
 

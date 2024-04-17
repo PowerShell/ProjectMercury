@@ -7,7 +7,7 @@ namespace ShellCopilot.Interpreter.Agent;
 /// <summary>
 /// The base model class for LLMs. Implementations are FunctionCallingModel and TextBasedModels.
 /// </summary>
-public abstract class BaseModel : IModel
+public abstract class BaseModel
 {
     internal ChatService ChatService;
     internal IHost Host;

@@ -7,7 +7,7 @@
 public class CodeExecutionService
 {
     private readonly List<string> Languages = ["powershell", "python"];
-    private readonly Dictionary<string, IBaseLanguage> ActiveLanguages = [];
+    private readonly Dictionary<string, SubprocessLanguage> ActiveLanguages = [];
 
     public CodeExecutionService()
     {
@@ -58,7 +58,7 @@ public class CodeExecutionService
 
     public void Terminate()
     {
-        foreach (KeyValuePair<string, IBaseLanguage> runningProcess in ActiveLanguages)
+        foreach (KeyValuePair<string, SubprocessLanguage> runningProcess in ActiveLanguages)
         {
             runningProcess.Value.Terminate();
             RemoveLanguage(runningProcess.Key);

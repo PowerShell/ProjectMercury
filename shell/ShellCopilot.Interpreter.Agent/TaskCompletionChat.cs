@@ -11,7 +11,7 @@ internal class TaskCompletionChat
     private IHost host;
     private CodeExecutionService _executionService;
     private Dictionary<string,string> prompts = TaskCompletionChatPrompts.prompts;
-    private IModel model;
+    private BaseModel model;
     private bool _isFunctionCallingModel;
     private bool _autoExecution;
     private bool _displayErrors;
