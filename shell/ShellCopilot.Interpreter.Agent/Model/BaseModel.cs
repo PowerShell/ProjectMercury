@@ -11,7 +11,7 @@ public abstract class BaseModel : IModel
 {
     internal ChatService ChatService;
     internal IHost Host;
-    internal Computer computer;
+    internal CodeExecutionService ExecutionService;
     internal bool AutoExecution;
     internal bool DisplayErrors;
 
@@ -27,11 +27,12 @@ public abstract class BaseModel : IModel
         bool autoExecution, 
         bool displayErrors, 
         ChatService chatService, 
+        CodeExecutionService executionService,
         IHost host)
     {
         ChatService = chatService;
         Host = host;
-        computer = new Computer();
+        ExecutionService = executionService;
         AutoExecution = autoExecution;
         DisplayErrors = displayErrors;
     }

@@ -9,7 +9,7 @@ internal class TaskCompletionChat
 {
     private ChatService _chatService;
     private IHost host;
-    private Computer computer;
+    private CodeExecutionService _executionService;
     private Dictionary<string,string> prompts = TaskCompletionChatPrompts.prompts;
     private IModel model;
     private bool _isFunctionCallingModel;
@@ -32,24 +32,24 @@ internal class TaskCompletionChat
         _chatService = chatService;
 		host = Host;
 
-        computer = new();
+        _executionService = new();
 
         if(_isFunctionCallingModel)
         {
-            model = new FunctionCallingModel(_autoExecution, _displayErrors, _chatService, host);
+            model = new FunctionCallingModel(_autoExecution, _displayErrors, _chatService, _executionService, host);
         }
         else
         {
-            model = new TextBasedModel(_autoExecution, _displayErrors, _chatService, host);
+            model = new TextBasedModel(_autoExecution, _displayErrors, _chatService, _executionService, host);
         }
 	}
 
     /// <summary>
-    /// Shortcut to clean up the computer processes.
+    /// Shortcut to clean all code processes.
     /// </summary>
     internal void CleanUpProcesses()
     {
-        computer.Terminate();
+        _executionService.Terminate();
     }
     
     /// <summary>

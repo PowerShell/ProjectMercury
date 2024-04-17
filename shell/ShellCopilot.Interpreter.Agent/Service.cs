@@ -291,7 +291,7 @@ internal class ChatService
         List<ChatRequestMessage> history = _isInteractive ? _chatHistory : new List<ChatRequestMessage>();
         if (history.Count is 0)
         {
-            Computer computer = new Computer();
+            CodeExecutionService executionService = new CodeExecutionService();
             string systemPrompt = @"
 ## Your Profile and General Capabilities
 - Your name is Interpreter Agent, act as a world-class programmer that can complete any goal by executing code
@@ -314,7 +314,7 @@ internal class ChatService
 - Do not apologize for errors, just correct them
 ";
             string versions = "\n ## Language Versions\n" 
-                + await computer.GetLanguageVersions();
+                + await executionService.GetLanguageVersions();
             string systemResponseCues = @"
 ## Examples
 # Here are conversations between a human and you

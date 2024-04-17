@@ -5,7 +5,11 @@ namespace ShellCopilot.Interpreter.Agent;
 
 internal class TextBasedModel : BaseModel
 {
-    internal TextBasedModel(bool autoExecution, bool displayErrors, ChatService chatService, IHost Host) : base(autoExecution, displayErrors, chatService, Host)
+    internal TextBasedModel(bool autoExecution, 
+                            bool displayErrors, 
+                            ChatService chatService,
+                            CodeExecutionService executionService,
+                            IHost Host) : base(autoExecution, displayErrors, chatService, executionService, Host)
     {
     }
 
@@ -77,7 +81,7 @@ internal class TextBasedModel : BaseModel
         }
         else
         {
-            Task<ToolResponsePacket> func() => computer.Run(language, code, token);
+            Task<ToolResponsePacket> func() => ExecutionService.Run(language, code, token);
             ToolResponsePacket toolResponse = await Host.RunWithSpinnerAsync(func, "Running code...");
             if (!DisplayErrors)
             {

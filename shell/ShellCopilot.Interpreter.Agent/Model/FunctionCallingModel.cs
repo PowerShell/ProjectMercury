@@ -43,7 +43,11 @@ internal class FunctionCallingModel : BaseModel
     private Dictionary<int, string> functionNamesByIndex = [];
     private Dictionary<int, StringBuilder> functionArgumentBuildersByIndex = [];
 
-    internal FunctionCallingModel(bool autoExecution, bool displayErrors, ChatService chatService, IHost Host) : base (autoExecution, displayErrors, chatService, Host)
+    internal FunctionCallingModel(bool autoExecution, 
+                                  bool displayErrors, 
+                                  ChatService chatService, 
+                                  CodeExecutionService executionService,
+                                  IHost Host) : base (autoExecution, displayErrors, chatService, executionService, Host)
     {
     }
 
@@ -136,7 +140,7 @@ internal class FunctionCallingModel : BaseModel
                 if (runChoice)
                 {
                     // Use the tool
-                    ToolResponsePacket toolResponse = await UseTool(toolCall, language, code, computer, token);
+                    ToolResponsePacket toolResponse = await UseTool(toolCall, language, code, token);
 
                     // Reduce code output in chat history as needed
                     if (toolResponse.Content is not null)
@@ -181,7 +185,7 @@ internal class FunctionCallingModel : BaseModel
         return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
     }
 
-    private async Task<ToolResponsePacket> UseTool(ChatCompletionsToolCall toolCall, string language, string code, Computer computer, CancellationToken token)
+    private async Task<ToolResponsePacket> UseTool(ChatCompletionsToolCall toolCall, string language, string code, CancellationToken token)
     {
         var functionToolCall = toolCall as ChatCompletionsFunctionToolCall;
         ToolResponsePacket packet = new(language, code);
@@ -190,7 +194,7 @@ internal class FunctionCallingModel : BaseModel
         {
             try
             {
-                Task<ToolResponsePacket> func_run_code() => computer.Run(language, code, token);
+                Task<ToolResponsePacket> func_run_code() => ExecutionService.Run(language, code, token);
                 packet = await Host.RunWithSpinnerAsync(func_run_code, "Running Code...").ConfigureAwait(false);
                 packet.SetToolId(toolCall.Id);
             }

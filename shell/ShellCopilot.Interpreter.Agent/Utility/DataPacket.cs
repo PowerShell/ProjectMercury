@@ -4,7 +4,7 @@ using System;
 namespace ShellCopilot.Interpreter.Agent;
 
 /// <summary>
-/// This class is used to encapsulate data that is sent between Agent and Computer
+/// This class is used to encapsulate data that is sent between Agent and CodeExeuctionService.
 /// Using the Azure.AI.OpenAI ChatRole.
 /// </summary>
 public class DataPacket(ChatRole Role, string Content)

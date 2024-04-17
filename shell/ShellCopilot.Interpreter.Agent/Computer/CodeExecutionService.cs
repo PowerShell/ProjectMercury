@@ -1,15 +1,15 @@
 ﻿namespace ShellCopilot.Interpreter.Agent;
 
     /// <summary>
-    /// This class acts as a computer object that can be used to execute code on the local machine. All information 
+    /// This class handles and methods handle code exeuction on the local machine. All information 
     /// generated in this class will be sent back using DataPackets
     /// </summary>
-public class Computer
+public class CodeExecutionService
 {
     private readonly List<string> Languages = ["powershell", "python"];
     private readonly Dictionary<string, IBaseLanguage> ActiveLanguages = [];
 
-    public Computer()
+    public CodeExecutionService()
     {
     }
 
