@@ -23,16 +23,16 @@ internal class TaskCompletionChat
         bool isFunctionCallingModel, 
         bool autoExecution, 
         bool displayErrors,
-        ChatService chatService, 
+        ChatService chatService,
+        CodeExecutionService executionService,
         IHost Host)
     {
         _isFunctionCallingModel = isFunctionCallingModel;
 		_autoExecution = autoExecution;
         _displayErrors = displayErrors;
         _chatService = chatService;
+        _executionService = executionService;
 		host = Host;
-
-        _executionService = new();
 
         if(_isFunctionCallingModel)
         {

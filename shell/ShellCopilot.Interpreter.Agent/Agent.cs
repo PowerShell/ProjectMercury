@@ -26,6 +26,7 @@ public sealed class InterpreterAgent : ILLMAgent
     private FileSystemWatcher _watcher;
     private ChatService _chatService;
     private TaskCompletionChat _taskCompletionChat;
+    private CodeExecutionService _executionService;
 
     /// <inheritdoc/>
     public void Dispose()
@@ -70,6 +71,7 @@ public sealed class InterpreterAgent : ILLMAgent
         _autoExecution = _settings.AutoExecution;
         _displayErrors = _settings.DisplayErrors;
         _chatService = new ChatService(_isInteractive, _historyRoot, _settings);
+        _executionService = new CodeExecutionService();
 
         Description = "An agent that specializes in completing code related tasks. This agent will write a plan, write code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. Currently only supports PowerShell and Python.";
 
@@ -85,7 +87,7 @@ public sealed class InterpreterAgent : ILLMAgent
     public void RefreshChat()
     {
         _chatService.RefreshChat();
-        _taskCompletionChat?.CleanUpProcesses();
+        _executionService.Terminate();
     }
 
     /// <inheritdoc/>
@@ -124,6 +126,7 @@ public sealed class InterpreterAgent : ILLMAgent
                                                          _autoExecution,
                                                          _displayErrors,
                                                          _chatService,
+                                                         _executionService,
                                                          host);
             await _taskCompletionChat.StartTask(input, _renderingStyle, token);
         }
@@ -134,10 +137,6 @@ public sealed class InterpreterAgent : ILLMAgent
         catch (ArgumentException ex)
         {
             host.MarkupWarningLine($"[[{Name}]]: {ex.Message}");
-        }
-        finally
-        {
-            _taskCompletionChat.CleanUpProcesses();
         }
 
         return checkPass;

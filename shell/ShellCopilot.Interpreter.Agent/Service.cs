@@ -292,7 +292,7 @@ internal class ChatService
         if (history.Count is 0)
         {
             CodeExecutionService executionService = new CodeExecutionService();
-            string systemPrompt = @"
+            string generalRules = @"
 ## Your Profile and General Capabilities
 - Your name is Interpreter Agent, act as a world-class programmer that can complete any goal by executing code
 - First, write a plan. **Always recap the plan between each code block** (you have extreme short-term memory loss, so you need to recap the plan between each message block to retain it)
@@ -357,7 +357,7 @@ internal class ChatService
 > ### Example
 > 'I will use **PowerShell** to find the file on your system. If I find the file, then I will use the **path** on **Python** to import the file as a *data frame* using the *pandas* library.'
 ";
-                history.Add(new ChatRequestSystemMessage(systemPrompt + versions));
+                history.Add(new ChatRequestSystemMessage(generalRules + versions));
                 history.Add(new ChatRequestSystemMessage(functionCallingModelResponseRules));
                 history.Add(new ChatRequestSystemMessage(systemResponseCues));
             }
@@ -375,7 +375,7 @@ internal class ChatService
 > 'I will use **PowerShell** to find the file on your system. If I find the file, then I will use the **path** on **Python** to import the file as a *data frame* using the *pandas* library.'
 
 ";
-                history.Add(new ChatRequestSystemMessage(systemPrompt + versions));
+                history.Add(new ChatRequestSystemMessage(generalRules + versions));
                 history.Add(new ChatRequestSystemMessage(textBasedModelResponseRules));
                 history.Add(new ChatRequestSystemMessage(systemResponseCues));
             }
