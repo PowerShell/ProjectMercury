@@ -132,7 +132,7 @@ public sealed class InterpreterAgent : ILLMAgent
         }
         catch (OperationCanceledException)
         {
-            // Ignore the except
+            // Ignore the exception
         }
         catch (ArgumentException ex)
         {
