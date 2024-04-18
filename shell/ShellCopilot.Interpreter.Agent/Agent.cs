@@ -154,21 +154,6 @@ public sealed class InterpreterAgent : ILLMAgent
         return checkPass;
     }
 
-    private static string GetWarningBasedOnFinishReason(CompletionsFinishReason reason)
-    {
-        if (reason.Equals(CompletionsFinishReason.TokenLimitReached))
-        {
-            return "The response was incomplete as the max token limit was exhausted.";
-        }
-
-        if (reason.Equals(CompletionsFinishReason.ContentFiltered))
-        {
-            return "The response was truncated as it was identified as potentially sensitive per content moderation policies.";
-        }
-
-        return null;
-    }
-
     private Settings ReadSettings()
     {
         Settings settings = null;
@@ -182,7 +167,7 @@ public sealed class InterpreterAgent : ILLMAgent
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
             };
-            var data = System.Text.Json.JsonSerializer.Deserialize<ConfigData>(stream, options);
+            var data = JsonSerializer.Deserialize<ConfigData>(stream, options);
             settings = new Settings(data);
         }
 
@@ -198,7 +183,7 @@ public sealed class InterpreterAgent : ILLMAgent
             Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
         };
 
-        System.Text.Json.JsonSerializer.Serialize(stream, config.ToConfigData(), options);
+        JsonSerializer.Serialize(stream, config.ToConfigData(), options);
     }
 
     private void OnSettingFileChange(object sender, FileSystemEventArgs e)

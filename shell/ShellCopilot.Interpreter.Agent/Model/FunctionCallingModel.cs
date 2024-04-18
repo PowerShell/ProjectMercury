@@ -120,7 +120,7 @@ internal class FunctionCallingModel : BaseModel
                 Dictionary<string, string> argumentsDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(arguments);
                 language = argumentsDict["language"];
                 code = argumentsDict["code"];
-                Host.RenderFullResponse($"```{language}\n\n{language}:\n\n{code}\n\n```");
+                Host.RenderFullResponse($"```{language}\n\n# {language}\n\n{code}\n\n```");
             }
 
             // Ask the user if they want to run the code

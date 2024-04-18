@@ -20,6 +20,10 @@ internal class TextBasedModel : BaseModel
         {
             ChatService.AddResponseToHistory(new ChatRequestAssistantMessage(responseContent));
 
+            string[] langAndCode = ExtractCodeFromResponse(responseContent);
+            string language = langAndCode[0];
+            string code = langAndCode[1];
+
             bool runChoice;
             if (AutoExecution)
             {
@@ -33,7 +37,7 @@ internal class TextBasedModel : BaseModel
             
             if (runChoice)
             {
-                packet = await ExecuteProvidedCode(responseContent, token);
+                packet = await ExecuteProvidedCode(responseContent, language, code, token);
             }
             else
             {
@@ -66,15 +70,11 @@ internal class TextBasedModel : BaseModel
         }
         return isCodeBlockComplete;
     }
-    private async Task<InternalChatResultsPacket> ExecuteProvidedCode(string responseContent, CancellationToken token)
+
+    private async Task<InternalChatResultsPacket> ExecuteProvidedCode(string responseContent, string language, string code, CancellationToken token)
     {
         string toolMessage = "";
-        string language = "";
-        string code = "";
 
-        string[] langAndCode = ExtractCodeFromResponse(responseContent);
-        language = langAndCode[0];
-        code = langAndCode[1];
         if (language.Equals("None") && code.Equals("None"))
         {
             toolMessage = "No code was given.";
