@@ -10,7 +10,7 @@ public static class TaskCompletionChatPrompts
     {
         // The initial prompt sent with user input
         { "Initial", "\nList out the plan without any code.\n" },
-        // General error handling
+        // General Error handling
         { "Error", "\nFix the error before proceeding to the next step. If the code needs user input then say EXACTLY 'Please provide more information'. If it is a Python syntax error try adding a blank line after an indentation is complete.\n" },
         // Repeating same code
         { "SameError", "\nYou have already told me to fix the error. Please provide more information.\n"},

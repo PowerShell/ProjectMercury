@@ -73,11 +73,11 @@ internal class TextBasedModel : BaseModel
 
     private async Task<InternalChatResultsPacket> ExecuteProvidedCode(string responseContent, string language, string code, CancellationToken token)
     {
-        string toolMessage = "";
+        InternalChatResultsPacket packet = new(responseContent,"",language,code);
 
         if (language.Equals("None") && code.Equals("None"))
         {
-            toolMessage = "No code was given.";
+            packet.SetToolResponse("No code was given.");
         }
         else
         {
@@ -94,11 +94,11 @@ internal class TextBasedModel : BaseModel
             {
                 Host.RenderFullResponse($"```\n\n{language} output:\n\n{toolResponse.Content}\n\n```");
             }
-            toolMessage = ChatService.ReduceToolResponseContentTokens(toolResponse.Content);
-            ChatService.AddResponseToHistory(new ChatRequestUserMessage(toolMessage));
+            packet.SetToolResponse(ChatService.ReduceToolResponseContentTokens(toolResponse.Content));
+            packet.SetError(toolResponse.Error);
         }
 
-        return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
+        return packet;
     }
 
     private string[] ExtractCodeFromResponse(string responseContent)

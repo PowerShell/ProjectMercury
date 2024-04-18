@@ -27,16 +27,26 @@ public class InternalChatResultsPacket(string AIResponse, string ToolResponse, s
     public readonly bool isNoTaskPresent =
         AIResponse?.IndexOf("Let me know what you'd like to do next.", StringComparison.OrdinalIgnoreCase) >= 0;
 
-    public readonly string toolResponse = ToolResponse;
+    public string toolResponse = ToolResponse;
     public readonly bool wasToolCancelled = ToolResponse.Contains("Tool call was cancelled.");
     public readonly bool wasToolSupported = !ToolResponse.Contains("The tool is not supported.");
     public readonly bool didUserRun = !ToolResponse.Contains("User chose not to run code.");
     public readonly bool languageSupported = !ToolResponse.Contains("Language not supported.");
     public readonly bool languageOnPath = !ToolResponse.Contains("Language not found on path.");
     public readonly bool wasCodeGiven = !ToolResponse.Contains("No code was given.");
-    public readonly bool wasThereAnError = ToolResponse.Contains("Error");
+    public bool wasThereAnError = ToolResponse.Contains("Error");
     public readonly bool didNotCallTool = ToolResponse.Contains("Tool was not called.");
 
     public readonly string Language = language;
     public readonly string Code = code;
+
+    public void SetToolResponse(string response)
+    {
+        toolResponse = response;
+    }
+
+    public void SetError(bool error)
+    {
+        wasThereAnError = error;
+    }
 }

@@ -367,6 +367,17 @@ internal class ChatService
 ## Your Response Rules:
 - **Make sure to code in your response** and write it as a markdown code block. 
 - You must specify the language after the ```
+- On the first line of code you must add a blank line
+- On the second line of code you must add a comment with the language you are using
+- The last line of the code you must add a blank line
+> ### Example
+> ```python
+>
+> # python
+>
+> print('Hello World')
+>
+> ```
 - You must provide **only one code block** with each response corresponding to a step in the plan
 - A pip install counts as a code block
 - Starting from the first step respond with the step number

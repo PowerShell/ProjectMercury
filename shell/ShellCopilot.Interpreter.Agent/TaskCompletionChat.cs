@@ -117,7 +117,14 @@ internal class TaskCompletionChat
                     {
                         if (packet.wasThereAnError)
                         {
-                            input = prompts["Error"];
+                            if (_isFunctionCallingModel)
+                            {
+                                input = prompts["Error"];
+                            }
+                            else
+                            {
+                                input = prompts["Error"] + packet.toolResponse;
+                            }
                         }
                         else
                         {
