@@ -95,11 +95,9 @@ public sealed class InterpreterAgent : ILLMAgent
 
     /// <inheritdoc/>
     public void OnUserAction(UserActionPayload actionPayload) { }
+
     /// <inheritdoc/>
-    public IEnumerable<CommandBase> GetCommands()
-    {
-        return null;
-    }
+    public IEnumerable<CommandBase> GetCommands() => null;
 
     /// <inheritdoc/>
     public async Task<bool> Chat(string input, IShell shell)
