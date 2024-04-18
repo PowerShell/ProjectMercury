@@ -8,7 +8,7 @@ namespace ShellCopilot.Interpreter.Agent;
 
 public sealed class InterpreterAgent : ILLMAgent
 {
-    public string Name => "interpreter-gpt";
+    public string Name => "interpreter";
     public string Description { private set; get; }
     public string SettingFile { private set; get; }
 
