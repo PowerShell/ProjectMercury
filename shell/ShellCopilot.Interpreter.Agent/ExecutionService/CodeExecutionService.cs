@@ -1,4 +1,6 @@
-﻿namespace ShellCopilot.Interpreter.Agent;
+﻿using System.Diagnostics;
+
+namespace ShellCopilot.Interpreter.Agent;
 
     /// <summary>
     /// This class handles code exeuction on the local machine. All information 
@@ -6,8 +8,8 @@
     /// </summary>
 public class CodeExecutionService
 {
-    private readonly List<string> Languages = ["powershell", "python"];
-    private readonly Dictionary<string, SubprocessLanguage> ActiveLanguages = [];
+    private readonly HashSet<string> Languages = new(StringComparer.OrdinalIgnoreCase) { "powershell", "python" };
+    private readonly Dictionary<string, SubprocessLanguage> ActiveLanguages = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// This method is used to run code on the local machine. It will return a DataPacket with the output of the code.
@@ -92,25 +94,23 @@ public class CodeExecutionService
 
     private bool CheckAndAddLanguage(string language)
     {
-        if (Languages.Contains(language))
+        if (Languages.TryGetValue(language, out string actualName))
         {
-            if (!ActiveLanguages.ContainsKey(language))
+            if (!ActiveLanguages.ContainsKey(actualName))
             {
-                switch (language)
+                SubprocessLanguage lang = actualName switch
                 {
-                    case "powershell":
-                        ActiveLanguages.Add(language, new PowerShell());
-                        break;
-                    case "python":
-                        ActiveLanguages.Add(language, new Python());
-                        break;
-                }
+                    "powershell" => new PowerShell(),
+                    "python" => new Python(),
+                    _ => throw new NotSupportedException()
+                };
+
+                ActiveLanguages.Add(actualName, lang);
             }
+
             return true;
         }
-        else
-        {
-            return false;
-        }
+
+        return false;
     }
 }
