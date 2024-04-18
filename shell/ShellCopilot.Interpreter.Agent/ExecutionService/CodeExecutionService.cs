@@ -1,17 +1,13 @@
 ﻿namespace ShellCopilot.Interpreter.Agent;
 
     /// <summary>
-    /// This class handles and methods handle code exeuction on the local machine. All information 
+    /// This class handles code exeuction on the local machine. All information 
     /// generated in this class will be sent back using DataPackets
     /// </summary>
 public class CodeExecutionService
 {
     private readonly List<string> Languages = ["powershell", "python"];
     private readonly Dictionary<string, SubprocessLanguage> ActiveLanguages = [];
-
-    public CodeExecutionService()
-    {
-    }
 
     /// <summary>
     /// This method is used to run code on the local machine. It will return a DataPacket with the output of the code.
