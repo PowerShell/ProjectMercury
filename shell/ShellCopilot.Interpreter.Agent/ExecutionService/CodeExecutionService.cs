@@ -22,7 +22,7 @@ public class CodeExecutionService
 
         if (CheckAndAddLanguage(language) is false)
         {
-            packet.SetContent("Language not supported.");
+            packet.SetContent($"Language not supported.");
             return packet;
         }
 
@@ -31,6 +31,7 @@ public class CodeExecutionService
             packet.SetContent("Language not found on path.");
             return packet;
         }
+
         try
         {
             foreach (Dictionary<string, string> outputItem in await ActiveLanguages[language].Run(code, token))
@@ -89,6 +90,7 @@ public class CodeExecutionService
         {
             RemoveLanguage(language);
         }
+
         return versions.Trim();
     }
 
