@@ -14,7 +14,7 @@ param (
     [string] $Runtime = [NullString]::Value,
 
     [Parameter()]
-    [ValidateSet('openai-gpt', 'az-agent', 'interpreter-agent')]
+    [ValidateSet('openai-gpt', 'az-agent', 'interpreter')]
     [string[]] $AgentToInclude,
 
     [Parameter()]
@@ -28,7 +28,7 @@ function GetProjectFile($dir)
 
 $ErrorActionPreference = 'Stop'
 
-$AgentToInclude ??= @('openai-gpt', 'az-agent', 'interpreter-agent')
+$AgentToInclude ??= @('openai-gpt', 'az-agent', 'interpreter')
 $RID = $Runtime ?? (dotnet --info |
     Select-String '^\s*RID:\s+(\w+-\w+)$' |
     Select-Object -First 1 |
@@ -84,7 +84,7 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {
     dotnet publish $az_csproj -c $Configuration -o $az_out_dir
 }
 
-if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter-agent') {
+if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter') {
     Write-Host "`n[Build the Interpreter agent ...]`n" -ForegroundColor Green
     $interpreter_csproj = GetProjectFile $interpreter_agent_dir
     dotnet publish $interpreter_csproj -c $Configuration -o $interpreter_out_dir

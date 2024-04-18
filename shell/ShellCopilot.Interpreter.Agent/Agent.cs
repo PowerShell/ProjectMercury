@@ -47,12 +47,6 @@ public sealed class InterpreterAgent : ILLMAgent
     /// <inheritdoc/>
     public void Initialize(AgentConfig config)
     {
-        // while (!System.Diagnostics.Debugger.IsAttached)
-        // {
-        //     System.Threading.Thread.Sleep(200);
-        // }
-        // System.Diagnostics.Debugger.Break();
-
         _isInteractive = config.IsInteractive;
         _renderingStyle = config.RenderingStyle;
         _configRoot = config.ConfigurationRoot;
@@ -114,6 +108,9 @@ public sealed class InterpreterAgent : ILLMAgent
         if (_refreshSettings)
         {
             _settings = ReadSettings();
+            _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.ModelName);
+            _autoExecution = _settings.AutoExecution;
+            _displayErrors = _settings.DisplayErrors;
             _chatService.RefreshSettings(_settings);
             _refreshSettings = false;
         }
@@ -130,11 +127,7 @@ public sealed class InterpreterAgent : ILLMAgent
         }
         catch (OperationCanceledException)
         {
-            // Ignore the exception
-        }
-        catch (ArgumentException ex)
-        {
-            host.MarkupWarningLine($"[[{Name}]]: {ex.Message}");
+            // Ignore the exception.
         }
 
         return checkPass;
