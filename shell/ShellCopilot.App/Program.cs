@@ -25,6 +25,7 @@ internal class Program
 
         Console.OutputEncoding = Encoding.Default;
         Argument<string> query = new("query", getDefaultValue: () => null, "The query term used to get response from AI.");
+        Option<string> channel = new("--channel", "A named pipe used to setup communication between aish and the command-line shell.");
         Option<FileInfo> shellWrapper = new("--shell-wrapper", "Path to the configuration file to wrap Shell Copilot as a different application.");
 
         query.AddValidator(result =>
@@ -37,12 +38,12 @@ internal class Program
             }
         });
 
-        RootCommand rootCommand = new("AI for the command line.") { query, shellWrapper };
-        rootCommand.SetHandler(StartShellAsync, query, shellWrapper);
+        RootCommand rootCommand = new("AI for the command line.") { query, channel, shellWrapper };
+        rootCommand.SetHandler(StartShellAsync, query, channel, shellWrapper);
         return rootCommand.Invoke(args);
     }
 
-    private async static Task StartShellAsync(string query, FileInfo shellWrapperConfigFile)
+    private async static Task StartShellAsync(string query, string channel, FileInfo shellWrapperConfigFile)
     {
         if (!ReadShellWrapperConfig(shellWrapperConfigFile, out ShellWrapper shellWrapper))
         {
@@ -50,11 +51,12 @@ internal class Program
         }
 
         Utils.Setup(shellWrapper?.Name);
+        ShellArgs args = new(shellWrapper, channel);
 
         Shell shell;
         if (query is not null)
         {
-            shell = new(interactive: false, shellWrapper);
+            shell = new(interactive: false, args);
 
             if (Console.IsInputRedirected)
             {
@@ -77,7 +79,7 @@ internal class Program
             return;
         }
 
-        shell = new(interactive: true, shellWrapper);
+        shell = new(interactive: true, args);
         await shell.RunREPLAsync();
     }
 

@@ -161,11 +161,12 @@ public sealed class PostCodeMessage : PipeMessage
 /// <summary>
 /// The base type for common pipe operations.
 /// </summary>
-public abstract class PipeCommon
+public abstract class PipeCommon : IDisposable
 {
     private readonly string _pipeName;
     private readonly byte[] _lengthBuffer;
     private readonly PipeStream _pipeStream;
+    private bool _disposed;
 
     /// <summary>
     /// Gets the pipe name.
@@ -196,11 +197,18 @@ public abstract class PipeCommon
     }
 
     /// <summary>
-    /// Close the named pipe.
+    /// Dispose the pipe object.
     /// </summary>
-    public void Close()
+    public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         _pipeStream.Close();
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -526,10 +534,39 @@ public sealed class CopilotServerPipe : PipeCommon
     /// <summary>
     /// Starts to receive and process messages sent from client.
     /// </summary>
+    /// <param name="timeout">The number of milliseconds to wait for a client to connect to the server.</param>
+    /// <param name="callback">A callback to invoke when connection succeeds or fails.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    public async Task StartProcessingAsync(CancellationToken cancellationToken)
+    public async Task StartProcessingAsync(int timeout, Action<Exception> callback, CancellationToken cancellationToken)
     {
-        await _server.WaitForConnectionAsync(cancellationToken);
+        if (timeout <= 0 && timeout != Timeout.Infinite)
+        {
+            throw new ArgumentOutOfRangeException(nameof(timeout), "The timeout value should be greater than 0 or equal to -1 (infinite).");
+        }
+
+        try
+        {
+            CancellationToken tokenForConnection = cancellationToken;
+            if (timeout > 0)
+            {
+                var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                source.CancelAfter(timeout);
+                tokenForConnection = source.Token;
+            }
+
+            await _server.WaitForConnectionAsync(tokenForConnection);
+            callback(null);
+        }
+        catch (Exception ex)
+        {
+            if (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+            {
+                ex = new TimeoutException("Could not receive connection from a client within the specified timeout period.");
+            }
+
+            callback(ex);
+            return;
+        }
 
         while (true)
         {
