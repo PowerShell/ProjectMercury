@@ -6,7 +6,7 @@ namespace ShellCopilot.Interpreter.Agent;
 /// <summary>
 /// This is the parent class for all languages.
 /// </summary>
-internal abstract class SubprocessLanguage
+internal abstract class SubprocessLanguage : IDisposable
 {
     protected Process Process { get; set; }
 
@@ -24,7 +24,7 @@ internal abstract class SubprocessLanguage
     /// <summary>
     /// This event is used to signal when the process has finished running.
     /// </summary>
-    protected ManualResetEvent Done = new ManualResetEvent(false);
+    protected ManualResetEventSlim DoneExeuctionEvent = new(false);
 
     /// <summary>
     /// The queue to store the output of code processes.
@@ -45,33 +45,39 @@ internal abstract class SubprocessLanguage
     /// </summary>
     public async Task<string> GetVersion()
     {
-        if(!IsOnPath())
+        // Get the version of the executable
+        // Separate process needed to get version of executable because of different starting arguments.
+        ProcessStartInfo startInfo = new()
         {
-            return "Executable not found on path.";
-        }
-        // Get the version of the powershell executable
-        Process process = new();
-        process.StartInfo.FileName = VersionCmd[0];
-        process.StartInfo.Arguments = VersionCmd[1];
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-        process.StartInfo.StandardErrorEncoding = Encoding.UTF8;
-        process.Start();
-        string version = await process.StandardOutput.ReadToEndAsync();
-        process.WaitForExit();
+            FileName = VersionCmd[0],
+            Arguments = VersionCmd[1],
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        };
+
+        Process VersionProcess = new Process { StartInfo = startInfo };
+
+        VersionProcess.Start();
+
+        string version = await VersionProcess.StandardOutput.ReadToEndAsync();
+
+        VersionProcess.WaitForExit();
+        VersionProcess.Dispose();
+
         return version;
     }
 
     /// <summary>
     /// Assigns process with a new process if possible.
     /// </summary>
-    protected void StartProcess()
+    protected void StartLangServer()
     {
         if (Process != null)
         {
-            Terminate();
+            Dispose();
         }
 
         ProcessStartInfo startInfo = new()
@@ -84,25 +90,13 @@ internal abstract class SubprocessLanguage
             RedirectStandardError = true,
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
-            Environment = { ["NO_COLOR"] = "true" },
+            Environment = { ["NO_COLOR"] = "true", ["__SuppressAnsiEscapeSequences"] = "1" },
         };
 
         Process = new Process { StartInfo = startInfo };
 
-        Process.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
-        {
-            if (!String.IsNullOrEmpty(e.Data))
-            {
-                HandleStreamOutput(e.Data, false);
-            }
-        });
-        Process.ErrorDataReceived += new DataReceivedEventHandler((sender, e) =>
-        {
-            if (!String.IsNullOrEmpty(e.Data))
-            {
-                HandleStreamOutput(e.Data, true);
-            }
-        });
+        Process.OutputDataReceived += HandleStandardOutput;
+        Process.ErrorDataReceived += HandleStandardError;
 
         Process.Start();
 
@@ -127,7 +121,7 @@ internal abstract class SubprocessLanguage
                 processedCode = PreprocessCode(code);
                 if(Process is null)
                 {
-                    StartProcess();
+                    StartLangServer();
                 }
             }
             catch(Exception e)
@@ -140,7 +134,7 @@ internal abstract class SubprocessLanguage
             }
 
             // Reset the event so we can wait for the process to finish
-            Done.Reset();
+            DoneExeuctionEvent.Reset();
 
             try
             {
@@ -155,22 +149,13 @@ internal abstract class SubprocessLanguage
                 return OutputQueue;
             }
 
-            while (true)
-            {
-                if(OutputQueue.Count > 0 && Done.WaitOne(0))
-                {
-                    await Task.Delay(1000);
-                    return OutputQueue;
-                }
-                else
-                {
-                    await Task.Delay(100);
-                }
-            }
+            await Task.Run(() => DoneExeuctionEvent.Wait(token), token);
+
+            return OutputQueue;
+
         }
         catch (OperationCanceledException)
         {
-            Terminate();
             throw;
         }
     }
@@ -178,49 +163,59 @@ internal abstract class SubprocessLanguage
     /// <summary>
     /// Ends the process and cleans up any resources.
     /// </summary>
-    public void Terminate()
+    public void Dispose()
     {
         if(Process != null)
         {
-            Done.Set();
+            Process.OutputDataReceived -= HandleStandardOutput;
+            Process.ErrorDataReceived -= HandleStandardError;
             Process.Kill();
             Process.Dispose();
             Process = null;
         }
+        DoneExeuctionEvent.Dispose();
+
     }
 
     /// <summary>
     /// Internal function to handle the output of the process.
     /// </summary>
-    private void HandleStreamOutput(string line, bool isErrorStream)
+    private void HandleStandardError(object sender, DataReceivedEventArgs e)
     {
-        if (isErrorStream)
+        string line = e.Data;
+        if (string.IsNullOrEmpty(line))
         {
-            OutputQueue.Enqueue(new Dictionary<string,string>
-            {
-                { "type", "error" },
-                { "content", line },
-            });
-            Done.Set();
+            return;
         }
-        else
+        OutputQueue.Enqueue(new Dictionary<string,string>
         {
-            if(DetectEndOfExecution(line))
-            {
-                OutputQueue.Enqueue(new Dictionary<string,string>
-                {
-                    { "type", "end" },
-                    { "content", line }
-                });
-                Done.Set();
-                return;
-            }
+            { "type", "error" },
+            { "content", line },
+        });
+    }
+
+    private void HandleStandardOutput(object sender, DataReceivedEventArgs e)
+    {
+        string line = e.Data;
+        if(string.IsNullOrEmpty(line))
+        {
+            return;
+        }
+        if(DetectEndOfExecution(line))
+        {
             OutputQueue.Enqueue(new Dictionary<string,string>
             {
-                { "type", "output" },
+                { "type", "end" },
                 { "content", line }
             });
+            DoneExeuctionEvent.Set();
+            return;
         }
+        OutputQueue.Enqueue(new Dictionary<string,string>
+        {
+            { "type", "output" },
+            { "content", line }
+        });
     }
 
     /// <summary>

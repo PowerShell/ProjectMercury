@@ -64,8 +64,8 @@ public sealed class InterpreterAgent : ILLMAgent
         _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.ModelName);
         _autoExecution = _settings.AutoExecution;
         _displayErrors = _settings.DisplayErrors;
-        _chatService = new ChatService(_isInteractive, _historyRoot, _settings);
         _executionService = new CodeExecutionService();
+        _chatService = new ChatService(_isInteractive, _historyRoot, _settings, _executionService);
 
         Description = "An agent that specializes in completing code related tasks. This agent will write a plan, write code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. Currently only supports PowerShell and Python.";
 

@@ -19,13 +19,15 @@ internal class ChatService
     private OpenAIClient _client;
     private List<ChatRequestMessage> _chatHistory;
     private ChatCompletionsOptions _chatOptions;
+    private CodeExecutionService _executionService;
 
-    internal ChatService(bool isInteractive, string historyRoot, Settings settings)
+    internal ChatService(bool isInteractive, string historyRoot, Settings settings, CodeExecutionService executionService)
     {
         _isInteractive = isInteractive;
         _historyRoot = historyRoot;
         _settings = settings;
         _chatHistory = new List<ChatRequestMessage>();
+        _executionService = executionService;
     }
 
     internal void AddResponseToHistory(ChatRequestMessage response)
@@ -55,11 +57,26 @@ internal class ChatService
     internal void RefreshSettings(Settings settings)
     {
         _settings = settings;
+
+        // clear chat history, text based models will not support ToolMessages in the chat history
+        _chatHistory.Clear();
+
+        // reset client to null to conenct to a new model
+        _client = null;
     }
 
     internal void RefreshChat()
     {
-        _chatHistory.Clear();
+        // TODO:: Keep system messages. Remove user, assistant, and tool messages.
+        for(int i = 0; i < _chatHistory.Count; )
+        {
+            if (_chatHistory[i] is ChatRequestSystemMessage)
+            {
+                i++;
+                continue;
+            }
+            _chatHistory.RemoveAt(i);
+        }
     }
 
     private void LoadHistory(string name)
@@ -291,7 +308,6 @@ internal class ChatService
         List<ChatRequestMessage> history = _isInteractive ? _chatHistory : new List<ChatRequestMessage>();
         if (history.Count is 0)
         {
-            CodeExecutionService executionService = new CodeExecutionService();
             string generalRules = @"
 ## Your Profile and General Capabilities
 - Your name is Interpreter Agent, act as a world-class programmer that can complete any goal by executing code
@@ -314,7 +330,7 @@ internal class ChatService
 - Do not apologize for errors, just correct them
 ";
             string versions = "\n ## Language Versions\n" 
-                + await executionService.GetLanguageVersions();
+                + await _executionService.GetLanguageVersions();
             string systemResponseCues = @"
 ## Examples
 # Here are conversations between a human and you

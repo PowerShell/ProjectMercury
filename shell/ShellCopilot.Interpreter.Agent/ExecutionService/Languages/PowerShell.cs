@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using ShellCopilot.Abstraction;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace ShellCopilot.Interpreter.Agent;
 
@@ -12,16 +14,21 @@ internal class PowerShell: SubprocessLanguage
     internal PowerShell()
     {
         // -NoProfile prevents the profile from loading and -file - reads the code from stdin
-        StartCmd = ["pwsh.exe", "-NoProfile -file -"];
+        StartCmd = ["pwsh.exe", "-NoProfile -Command -"];
         VersionCmd = ["pwsh.exe", "--version"];
         OutputQueue = new Queue<Dictionary<string, string>>();
     }
 
     protected override string PreprocessCode(string code)
     {
+        string try_catch_code = """
+try {
+    $ErrorActionPreference = 'Stop'
+""";
         code = code.TrimEnd();
+        code = try_catch_code + "\n    " + code + "\n} catch {\n    [Console]::Error.WriteLine($_)\r\n    [Console]::Error.WriteLine($_.InvocationInfo.PositionMessage)\n}\n";
         // Add end marker (listen for this in HandleStreamOutput to know when code ends)
-        code += "\nWrite-Output '##end_of_execution##'";
+        code += "\nWrite-Host '##end_of_execution##'";
         return code;
     }
 

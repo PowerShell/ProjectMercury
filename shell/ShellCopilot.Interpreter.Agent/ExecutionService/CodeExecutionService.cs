@@ -10,6 +10,7 @@ public class CodeExecutionService
 {
     private readonly HashSet<string> Languages = new(StringComparer.OrdinalIgnoreCase) { "powershell", "python" };
     private readonly Dictionary<string, SubprocessLanguage> ActiveLanguages = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, bool> LangPathBools = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// This method is used to run code on the local machine. It will return a DataPacket with the output of the code.
@@ -19,14 +20,15 @@ public class CodeExecutionService
     public async Task<ToolResponsePacket> Run(string language, string code, CancellationToken token)
     {
         ToolResponsePacket packet = new(language, code);
+        SubprocessLanguage langObj;
 
-        if (CheckAndAddLanguage(language) is false)
+        if (!TryGetLanguage(language, out langObj))
         {
             packet.SetContent($"Language not supported.");
             return packet;
         }
 
-        if (ActiveLanguages[language].IsOnPath() is false)
+        if (!LangPathBools[language])
         {
             packet.SetContent("Language not found on path.");
             return packet;
@@ -34,7 +36,8 @@ public class CodeExecutionService
 
         try
         {
-            foreach (Dictionary<string, string> outputItem in await ActiveLanguages[language].Run(code, token))
+            var outputQueue = await langObj.Run(code, token);
+            foreach (Dictionary<string, string> outputItem in outputQueue)
             {
                 if (outputItem["type"] == "error")
                 {
@@ -59,18 +62,9 @@ public class CodeExecutionService
     {
         foreach (KeyValuePair<string, SubprocessLanguage> runningProcess in ActiveLanguages)
         {
-            runningProcess.Value.Terminate();
-            RemoveLanguage(runningProcess.Key);
+            runningProcess.Value.Dispose();
         }
-    }
-
-    private void RemoveLanguage(string language)
-    {
-        if (ActiveLanguages.ContainsKey(language))
-        {
-            ActiveLanguages[language].Terminate();
-            ActiveLanguages.Remove(language);
-        }
+        ActiveLanguages.Clear();
     }
 
     public async Task<string> GetLanguageVersions()
@@ -79,40 +73,74 @@ public class CodeExecutionService
         string versions = "";
         foreach (string language in Languages)
         {
-            if (CheckAndAddLanguage(language))
+            if (TryGetLanguage(language, out SubprocessLanguage langObj))
             {
-                versions += "- **" + language + "**: " + await ActiveLanguages[language].GetVersion();
+                // Check if the language is on the path during version check to avoid checking it again later.
+                if (!LangPathBools.ContainsKey(language))
+                {
+                    LangPathBools.Add(language,langObj.IsOnPath());
+                }
+
+                if (LangPathBools.TryGetValue(language, out bool onPath))
+                {
+                    if (!onPath)
+                    {
+                        versions += "- **" + language + "**: " + "Executable not found on PATH";
+                    }
+                    else
+                    {
+                        versions += "- **" + language + "**: " + await langObj.GetVersion();
+                    }
+
+                }
+
             }
+
         }
 
-        // Remove the languages from the active languages list
-        foreach (string language in Languages)
-        {
-            RemoveLanguage(language);
-        }
+        // Remove the languages from the active languages list to conserve memory.
+        // Uncomment this code when more languages are added.
+        // For now we only have two languages so we don't need to remove them.
+        // foreach (string language in Languages)
+        // {
+        //     RemoveLanguage(language);
+        // }
 
         return versions.Trim();
     }
 
-    private bool CheckAndAddLanguage(string language)
+    private bool TryGetLanguage(string language,out SubprocessLanguage langObj)
     {
         if (Languages.TryGetValue(language, out string actualName))
         {
             if (!ActiveLanguages.ContainsKey(actualName))
             {
-                SubprocessLanguage lang = actualName switch
+                langObj = actualName switch
                 {
                     "powershell" => new PowerShell(),
                     "python" => new Python(),
                     _ => throw new NotSupportedException()
                 };
 
-                ActiveLanguages.Add(actualName, lang);
+                ActiveLanguages.Add(actualName, langObj);
+            
             }
-
+            ActiveLanguages.TryGetValue(actualName, out langObj);
             return true;
+
         }
 
+        langObj = null;
         return false;
     }
+
+    private void RemoveLanguage(string language)
+    {
+        if (ActiveLanguages.ContainsKey(language))
+        {
+            ActiveLanguages[language].Dispose();
+            ActiveLanguages.Remove(language);
+        }
+    }
+
 }
