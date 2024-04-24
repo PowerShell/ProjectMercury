@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Azure.AI.OpenAI;
 using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Interpreter.Agent;
@@ -18,14 +17,10 @@ public sealed class InterpreterAgent : ILLMAgent
     private bool _isDisposed;
     private string _configRoot;
     private string _historyRoot;
-    private bool _isFunctionCallingModel;
-    private bool _autoExecution;
-    private bool _displayErrors;
     private RenderingStyle _renderingStyle;
     private Settings _settings;
     private FileSystemWatcher _watcher;
     private ChatService _chatService;
-    private TaskCompletionChat _taskCompletionChat;
     private CodeExecutionService _executionService;
 
     /// <inheritdoc/>
@@ -61,9 +56,6 @@ public sealed class InterpreterAgent : ILLMAgent
         Directory.CreateDirectory(_historyRoot);
 
         _settings = ReadSettings();
-        _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.ModelName);
-        _autoExecution = _settings.AutoExecution;
-        _displayErrors = _settings.DisplayErrors;
         _executionService = new CodeExecutionService();
         _chatService = new ChatService(_isInteractive, _historyRoot, _settings, _executionService);
 
@@ -108,21 +100,13 @@ public sealed class InterpreterAgent : ILLMAgent
         if (_refreshSettings)
         {
             _settings = ReadSettings();
-            _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.ModelName);
-            _autoExecution = _settings.AutoExecution;
-            _displayErrors = _settings.DisplayErrors;
             _chatService.RefreshSettings(_settings);
             _refreshSettings = false;
         }
 
         try
         {
-            _taskCompletionChat = new TaskCompletionChat(_isFunctionCallingModel, 
-                                                         _autoExecution,
-                                                         _displayErrors,
-                                                         _chatService,
-                                                         _executionService,
-                                                         host);
+            TaskCompletionChat _taskCompletionChat = new(_settings, _chatService, _executionService, host);
             await _taskCompletionChat.StartTask(input, _renderingStyle, token);
         }
         catch (OperationCanceledException)

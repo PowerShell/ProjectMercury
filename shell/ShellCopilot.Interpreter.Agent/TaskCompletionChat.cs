@@ -1,4 +1,5 @@
 ﻿using ShellCopilot.Abstraction;
+using System.Runtime;
 
 namespace ShellCopilot.Interpreter.Agent;
 
@@ -20,16 +21,14 @@ internal class TaskCompletionChat
     /// Constructor requires settings for the chat session. Type of model is resolved here.
     /// </summary>
     internal TaskCompletionChat(
-        bool isFunctionCallingModel, 
-        bool autoExecution, 
-        bool displayErrors,
+        Settings settings,
         ChatService chatService,
         CodeExecutionService executionService,
         IHost Host)
     {
-        _isFunctionCallingModel = isFunctionCallingModel;
-		_autoExecution = autoExecution;
-        _displayErrors = displayErrors;
+        _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(settings.ModelName);
+		_autoExecution = settings.AutoExecution;
+        _displayErrors = settings.DisplayErrors;
         _chatService = chatService;
         _executionService = executionService;
 		host = Host;
