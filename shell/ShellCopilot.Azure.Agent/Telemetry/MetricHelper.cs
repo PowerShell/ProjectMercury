@@ -5,6 +5,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
 using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Generic;
 using System.Text.Json;
 
 namespace ShellCopilot.Azure;
@@ -63,6 +64,20 @@ public class MetricHelper
 
     public void LogTelemetry(AzTrace trace)
     {
+        while (true)
+        {
+            string historyJson = JsonSerializer.Serialize(trace.HistoryMessage);
+            if (historyJson.Length > 8192)
+            {
+                trace.HistoryMessage.RemoveAt(0);
+            }
+            else
+            {
+                break;
+            }
+            
+        }
+        
         Dictionary<string, string> eventProperties = new()
         {
             { "CorrelationID", trace.CorrelationID },
