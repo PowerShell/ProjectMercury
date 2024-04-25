@@ -21,14 +21,30 @@ internal class PowerShell: SubprocessLanguage
 
     protected override string PreprocessCode(string code)
     {
-        string try_catch_code = """
+        string try_catch_code = @"
 try {
     $ErrorActionPreference = 'Stop'
-""";
+";
+        string end_code = @"
+}
+catch {
+    $e = $_.Exception
+    $msg = $e.GetType().FullName + "": "" + $e.Message
+    $indent = """"
+    while ($e.InnerException) {
+        $e = $e.InnerException
+        $indent += ""---> ""
+        $msg += ""`n"" + $indent + $e.GetType().FullName + "": "" + $e.Message
+    }
+    [Console]::Error.WriteLine($msg)
+    [Console]::Error.WriteLine($_.InvocationInfo.PositionMessage)
+} finally {
+    Write-Host '##end_of_execution##'
+}
+";
         code = code.TrimEnd();
-        code = try_catch_code + "\n    " + code + "\n} catch {\n    [Console]::Error.WriteLine($_)\r\n    [Console]::Error.WriteLine($_.InvocationInfo.PositionMessage)\n}\n";
+        code = try_catch_code + code + end_code;
         // Add end marker (listen for this in HandleStreamOutput to know when code ends)
-        code += "\nWrite-Host '##end_of_execution##'";
         return code;
     }
 

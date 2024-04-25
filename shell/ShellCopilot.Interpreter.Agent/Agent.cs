@@ -32,7 +32,7 @@ public sealed class InterpreterAgent : ILLMAgent
         }
 
         // This terminates any remaining processes used to run code.
-        _taskCompletionChat.CleanUpProcesses();
+        _executionService.Terminate();
 
         GC.SuppressFinalize(this);
         _watcher.Dispose();
