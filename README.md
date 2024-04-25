@@ -1,6 +1,6 @@
 # AISH
 
-This is a repository of various **A**.**I** + **Sh**ell prototypes we have created to test out experiences and
+This is a repository of various **I** + **Sh**ell prototypes we have created to test out experiences and
 features. **AISH** is the latest and most finished prototype. It is a CLI tool that creates
 an interactive chat session with a registered Large Language Model. Currently we are in a **Private Preview** state and everything is subject to change.
 
@@ -21,7 +21,7 @@ Here are the steps to install and use AISH.
 
 ## Agent Concept
 
-AISH has a concept of different A.I Agents, these can be thought of like modules that users can use to interact with different A.I models. Right now there are three supported agents
+AISH has a concept of different AI Agents, these can be thought of like modules that users can use to interact with different AI models. Right now there are three supported agents
 - `az-cli`
 - `az-ps`
 - `openai-gpt`
