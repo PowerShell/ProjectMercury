@@ -5,7 +5,6 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
 using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
 using System.Text.Json;
 
 namespace ShellCopilot.Azure;
