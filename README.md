@@ -21,8 +21,9 @@ Here are the steps to install and use AISH.
 
 ## Agent Concept
 
-AISH has a concept of different A.I Agents, these can be thought of like modules that users can use to interact with different A.I models. Right now there are two supported agents
+AISH has a concept of different A.I Agents, these can be thought of like modules that users can use to interact with different A.I models. Right now there are three supported agents
 - `az-cli`
+- `az-ps`
 - `openai-gpt`
 
 If you run `aish` you will get prompted to choose between the two.
@@ -34,6 +35,15 @@ This agent is for talking specifically to an Az CLI endpoint tailored to helping
 Prerequisites:
 - Have [Azure CLI installed](https://learn.microsoft.com/cli/azure/install-azure-cli)
 - Login with an Azure account within the Microsoft tenant with `az login` command
+
+### Az-PS Agent
+
+This agent is for talking specifically to an Az PowerShell endpoint tailored to helping users with Azure PowerShell questions.
+
+Prerequisites:
+- Have [Azure PowerShell installed](https://learn.microsoft.com/powershell/azure/install-azure-powershell)
+- Login with an Azure account within the Microsoft tenant with `Connect-AzAccount` command
+
 
 ### OpenAI-GPT Agent
 
@@ -75,7 +85,6 @@ Windows Terminal offers an easy pane option by running:
 ```shell
 wt -w 0 sp aish
 ```
-
 
 If you use Windows Terminal and would like to tie this command to a key like `F3` in your PowerShell session,
 you can add the following code to your `$PROFILE`:
