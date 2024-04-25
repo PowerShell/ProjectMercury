@@ -1,6 +1,6 @@
 # AISH
 
-This is a repository of various **I** + **Sh**ell prototypes we have created to test out experiences and
+This is a repository of various **AI** + **Sh**ell prototypes we have created to test out experiences and
 features. **AISH** is the latest and most finished prototype. It is a CLI tool that creates
 an interactive chat session with a registered Large Language Model. Currently we are in a **Private Preview** state and everything is subject to change.
 
