@@ -2,7 +2,6 @@
 using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
 using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
@@ -13,7 +12,7 @@ public class MetricHelper
 {
     public static readonly bool TelemetryOptOut = GetEnvironmentVariableAsBool("COPILOT_TELEMETRY_OPTOUT", false);
 
-    private string _endpoint;
+    private readonly string _endpoint;
     private TelemetryClient _telemetryClient;
 
     public MetricHelper(string endpoint)
@@ -115,7 +114,7 @@ public class MetricHelper
 
 internal class MyCustomTelemetryInitializer : ITelemetryInitializer
 {
-    private string _endpoint;
+    private readonly string _endpoint;
     public void Initialize(ITelemetry telemetry)
     {
         (telemetry as ISupportProperties).Properties["Endpoint"] = _endpoint;
@@ -123,23 +122,24 @@ internal class MyCustomTelemetryInitializer : ITelemetryInitializer
 
     public MyCustomTelemetryInitializer(string endpoint) 
     {
+        ArgumentException.ThrowIfNullOrEmpty(endpoint);
         _endpoint = endpoint;
     }
 }
 
 internal class MyCustomTelemetryProcessor : ITelemetryProcessor
 {
-    ITelemetryProcessor next;
+    private readonly ITelemetryProcessor _next;
 
     public MyCustomTelemetryProcessor(ITelemetryProcessor next)
     {
-        this.next = next;
-
+        _next = next;
     }
+
     public void Process(ITelemetry item)
     {
         // Example processor - not filtering out anything.
         // This should be replaced with actual logic.
-        this.next.Process(item);
+        _next.Process(item);
     }
 }
