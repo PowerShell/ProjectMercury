@@ -75,7 +75,6 @@ public class MetricHelper
             {
                 break;
             }
-            
         }
         
         Dictionary<string, string> eventProperties = new()
