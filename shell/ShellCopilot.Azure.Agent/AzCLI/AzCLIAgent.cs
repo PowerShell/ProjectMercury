@@ -20,11 +20,12 @@ public sealed class AzCLIAgent : ILLMAgent
     public string SettingFile { private set; get; } = null;
 
     private const string SettingFileName = "az-cli.agent.json";
+    private readonly Stopwatch _watch = new();
+
     private AzCLIChatService _chatService;
     private StringBuilder _text;
     private MetricHelper _metricHelper;
     private List<HistoryMessage> _historyForTelemetry;
-    private Stopwatch _watch = new Stopwatch();
 
     public void Dispose()
     {
