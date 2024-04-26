@@ -28,12 +28,35 @@ internal class Python: SubprocessLanguage
     protected override void WriteToProcess(string code)
     {
         // Split the code into lines and send each line to the process
-        List<string> lines = code.Split("\n").ToList();
+        var codeSpan = code.AsSpan();
 
-        foreach (string line in lines)
+        // Count all '\n' in the code
+        int numLines = code.Count(c => c == '\n');
+
+        // Create a span to hold the ranges of each line
+        Range[] numLinesRange = new Range[numLines];
+
+        // Initialize the size of the Span with the number of lines
+        var lines = new Span<Range>(numLinesRange);
+
+        // Split the code into lines
+        int lineNums = MemoryExtensions.Split(codeSpan, lines, '\n');
+        
+        foreach(Range line in lines)
         {
-            Process.StandardInput.WriteLine(line);
+            ReadOnlySpan<char> lineSpan = codeSpan.Slice(line.Start.Value, line.End.Value - line.Start.Value);
+
+            Process.StandardInput.WriteLine(lineSpan.ToString());
             Process.StandardInput.Flush();
         }
+        
+        // List<string> lines = code.Split("\n").ToList();
+
+        // foreach (string line in lines)
+        // {
+        //     Process.StandardInput.WriteLine(line);
+        //     Process.StandardInput.Flush();
+        // }
+
     }
 }
