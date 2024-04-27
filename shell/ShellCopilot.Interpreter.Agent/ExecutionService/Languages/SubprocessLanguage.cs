@@ -181,6 +181,12 @@ internal abstract class SubprocessLanguage : IDisposable
         {
             return;
         }
+        if (DetectKeyBoardInterrupt(line))
+        {
+            OutputQueue.Enqueue(new OutputData(OutputType.Interrupt, line));
+            DoneExeuctionEvent.Set();
+            return;
+        }
         OutputQueue.Enqueue(new OutputData(OutputType.Error, line));
     }
 
@@ -198,6 +204,19 @@ internal abstract class SubprocessLanguage : IDisposable
             return;
         }
         OutputQueue.Enqueue(new OutputData(OutputType.Output, line));
+    }
+    
+    /// <summary>
+    /// Detects if the process was interrupted by a keyboard interrupt for Python.
+    /// Overload this method for other languages.
+    /// </summary>
+    virtual protected bool DetectKeyBoardInterrupt(string line)
+    {
+        if (line.Contains("KeyboardInterrupt"))
+        {
+            return true;
+        }
+        return false;
     }
 
     /// <summary>

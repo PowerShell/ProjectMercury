@@ -45,6 +45,8 @@ public class CodeExecutionService
                     case OutputType.Output:
                         packet.SetContent(outputItem.Content + "\n");
                         break;
+                    case OutputType.Interrupt:
+                        throw new OperationCanceledException();
                 }
             }
         } 

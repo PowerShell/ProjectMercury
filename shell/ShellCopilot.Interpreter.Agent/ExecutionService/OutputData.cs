@@ -4,7 +4,8 @@ internal enum OutputType
 {
     Output,
     Error,
-    End
+    End,
+    Interrupt,
 }
 
 internal class OutputData
