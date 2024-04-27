@@ -29,7 +29,7 @@ internal abstract class SubprocessLanguage : IDisposable
     /// <summary>
     /// The queue to store the output of code processes.
     /// </summary>
-    protected Queue<Dictionary<string,string>> OutputQueue { get; set; }
+    protected Queue<OutputData> OutputQueue { get; set; }
 
     /// <summary>
     /// Preprocesses the code before running it removing backticks and language name.
@@ -109,7 +109,7 @@ internal abstract class SubprocessLanguage : IDisposable
     /// </summary>
     /// <param name="code"></param>
     /// <returns></returns>
-    public async Task<Queue<Dictionary<string, string>>> Run(string code, CancellationToken token)
+    public async Task<Queue<OutputData>> Run(string code, CancellationToken token)
     {
         OutputQueue.Clear();
 
@@ -126,10 +126,7 @@ internal abstract class SubprocessLanguage : IDisposable
             }
             catch(Exception e)
             {
-                OutputQueue.Enqueue(new Dictionary<string, string> {
-                    { "type", "error" },
-                    { "content", "Error starting process\n" + e }
-                });
+                OutputQueue.Enqueue(new OutputData (OutputType.Error, "Error starting process\n" + e));
                 return OutputQueue;
             }
 
@@ -142,10 +139,7 @@ internal abstract class SubprocessLanguage : IDisposable
             }
             catch(Exception e)
             {
-                OutputQueue.Enqueue(new Dictionary<string, string> {
-                    { "type", "error" },
-                    { "content", "Error writing to process\n" + e }
-                });
+                OutputQueue.Enqueue(new OutputData(OutputType.Error, "Error writing to process\n" + e));
                 return OutputQueue;
             }
 
@@ -187,11 +181,7 @@ internal abstract class SubprocessLanguage : IDisposable
         {
             return;
         }
-        OutputQueue.Enqueue(new Dictionary<string,string>
-        {
-            { "type", "error" },
-            { "content", line },
-        });
+        OutputQueue.Enqueue(new OutputData(OutputType.Error, line));
     }
 
     private void HandleStandardOutput(object sender, DataReceivedEventArgs e)
@@ -203,19 +193,11 @@ internal abstract class SubprocessLanguage : IDisposable
         }
         if(DetectEndOfExecution(line))
         {
-            OutputQueue.Enqueue(new Dictionary<string,string>
-            {
-                { "type", "end" },
-                { "content", line }
-            });
+            OutputQueue.Enqueue(new OutputData(OutputType.End, line));
             DoneExeuctionEvent.Set();
             return;
         }
-        OutputQueue.Enqueue(new Dictionary<string,string>
-        {
-            { "type", "output" },
-            { "content", line }
-        });
+        OutputQueue.Enqueue(new OutputData(OutputType.Output, line));
     }
 
     /// <summary>

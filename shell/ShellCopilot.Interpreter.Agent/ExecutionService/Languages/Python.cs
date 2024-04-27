@@ -15,7 +15,7 @@ internal class Python: SubprocessLanguage
         // Without these flags, the output is buffered and we can't read it until the process ends
         StartCmd = ["python.exe", "-qui"];
         VersionCmd = ["python.exe", "-V"];
-        OutputQueue = new Queue<Dictionary<string, string>>();
+        OutputQueue = new();
     }
 
     protected override string PreprocessCode(string code)

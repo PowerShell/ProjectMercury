@@ -16,7 +16,7 @@ internal class PowerShell: SubprocessLanguage
         // -NoProfile prevents the profile from loading and -file - reads the code from stdin
         StartCmd = ["pwsh.exe", "-NoProfile -Command -"];
         VersionCmd = ["pwsh.exe", "--version"];
-        OutputQueue = new Queue<Dictionary<string, string>>();
+        OutputQueue = new();
     }
 
     protected override string PreprocessCode(string code)

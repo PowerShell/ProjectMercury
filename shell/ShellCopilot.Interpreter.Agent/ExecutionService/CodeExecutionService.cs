@@ -1,11 +1,9 @@
-﻿using System.Diagnostics;
+﻿namespace ShellCopilot.Interpreter.Agent;
 
-namespace ShellCopilot.Interpreter.Agent;
-
-    /// <summary>
-    /// This class handles code exeuction on the local machine. All information 
-    /// generated in this class will be sent back using DataPackets
-    /// </summary>
+/// <summary>
+/// This class handles code exeuction on the local machine. All information 
+/// generated in this class will be sent back using DataPackets
+/// </summary>
 public class CodeExecutionService
 {
     private readonly HashSet<string> Languages = new(StringComparer.OrdinalIgnoreCase) { "powershell", "python" };
@@ -20,9 +18,8 @@ public class CodeExecutionService
     public async Task<ToolResponsePacket> Run(string language, string code, CancellationToken token)
     {
         ToolResponsePacket packet = new(language, code);
-        SubprocessLanguage langObj;
 
-        if (!TryGetLanguage(language, out langObj))
+        if (!TryGetLanguage(language, out SubprocessLanguage langObj))
         {
             packet.SetContent($"Language not supported.");
             return packet;
@@ -37,16 +34,17 @@ public class CodeExecutionService
         try
         {
             var outputQueue = await langObj.Run(code, token);
-            foreach (Dictionary<string, string> outputItem in outputQueue)
+            foreach (OutputData outputItem in outputQueue)
             {
-                if (outputItem["type"] == "error")
+                switch (outputItem.Type)
                 {
-                    packet.SetError(true);
-                    packet.SetContent(outputItem["content"] + "\n");
-                }
-                else if (outputItem["type"] == "output")
-                {
-                    packet.SetContent(outputItem["content"] + "\n");
+                    case OutputType.Error:
+                        packet.SetError(true);
+                        packet.SetContent(outputItem.Content + "\n");
+                        break;
+                    case OutputType.Output:
+                        packet.SetContent(outputItem.Content + "\n");
+                        break;
                 }
             }
         } 
@@ -60,7 +58,7 @@ public class CodeExecutionService
 
     public void Terminate()
     {
-        foreach (KeyValuePair<string, SubprocessLanguage> runningProcess in ActiveLanguages)
+        foreach (var runningProcess in ActiveLanguages)
         {
             runningProcess.Value.Dispose();
         }
@@ -78,7 +76,7 @@ public class CodeExecutionService
                 // Check if the language is on the path during version check to avoid checking it again later.
                 if (!LangPathBools.ContainsKey(language))
                 {
-                    LangPathBools.Add(language,langObj.IsOnPath());
+                    LangPathBools.Add(language, langObj.IsOnPath());
                 }
 
                 if (LangPathBools.TryGetValue(language, out bool onPath))
