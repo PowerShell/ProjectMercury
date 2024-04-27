@@ -39,24 +39,14 @@ internal class Python: SubprocessLanguage
         // Initialize the size of the Span with the number of lines
         var lines = new Span<Range>(numLinesRange);
 
-        // Split the code into lines
+        // Split the code into lines, lines contains the ranges of each line
         int lineNums = MemoryExtensions.Split(codeSpan, lines, '\n');
         
         foreach(Range line in lines)
         {
-            ReadOnlySpan<char> lineSpan = codeSpan.Slice(line.Start.Value, line.End.Value - line.Start.Value);
-
-            Process.StandardInput.WriteLine(lineSpan.ToString());
+            Process.StandardInput.WriteLine(codeSpan[line.Start.Value..line.End.Value]);
             Process.StandardInput.Flush();
         }
-        
-        // List<string> lines = code.Split("\n").ToList();
-
-        // foreach (string line in lines)
-        // {
-        //     Process.StandardInput.WriteLine(line);
-        //     Process.StandardInput.Flush();
-        // }
 
     }
 }
