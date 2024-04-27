@@ -172,7 +172,7 @@ internal abstract class SubprocessLanguage : IDisposable
     }
 
     /// <summary>
-    /// Internal function to handle the output of the process.
+    /// Internal function to handle the standard output of the process.
     /// </summary>
     private void HandleStandardError(object sender, DataReceivedEventArgs e)
     {
@@ -190,6 +190,9 @@ internal abstract class SubprocessLanguage : IDisposable
         OutputQueue.Enqueue(new OutputData(OutputType.Error, line));
     }
 
+    /// <summary>
+    /// Internal function to handle the error output of the process.
+    /// </summary>
     private void HandleStandardOutput(object sender, DataReceivedEventArgs e)
     {
         string line = e.Data;
