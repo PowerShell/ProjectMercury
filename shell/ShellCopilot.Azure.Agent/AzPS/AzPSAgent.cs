@@ -18,13 +18,13 @@ public sealed class AzPSAgent : ILLMAgent
     public string SettingFile { private set; get; } = null;
 
     private const string SettingFileName = "az-ps.agent.json";
+    private readonly Stopwatch _watch = new();
 
     private string _configRoot;
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
     private MetricHelper _metricHelper;
     private LinkedList<HistoryMessage> _historyForTelemetry;
-    private Stopwatch _watch = new Stopwatch();
 
     public void Dispose()
     {

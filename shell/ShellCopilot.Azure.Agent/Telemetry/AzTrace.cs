@@ -4,7 +4,7 @@ namespace ShellCopilot.Azure;
 
 public class AzTrace
 {
-    private static string s_installationId;
+    private static readonly string s_installationId;
     private static string GetInstallationID()
     {
         string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
