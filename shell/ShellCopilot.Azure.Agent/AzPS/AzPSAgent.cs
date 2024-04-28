@@ -23,7 +23,7 @@ public sealed class AzPSAgent : ILLMAgent
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
     private MetricHelper _metricHelper;
-    private List<HistoryMessage> _historyForTelemetry;
+    private LinkedList<HistoryMessage> _historyForTelemetry;
     private Stopwatch _watch = new Stopwatch();
 
     public void Dispose()
@@ -70,7 +70,7 @@ public sealed class AzPSAgent : ILLMAgent
     {
         // DisLike Action
         string DetailedMessage = null;
-        List<HistoryMessage> history = null;
+        LinkedList<HistoryMessage> history = null;
         if (actionPayload.Action == UserAction.Dislike)
         {
             DislikePayload dislikePayload = (DislikePayload)actionPayload;
@@ -168,8 +168,8 @@ public sealed class AzPSAgent : ILLMAgent
                 var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
 
                 // Append last Q&A history in HistoryMessage
-                _historyForTelemetry.Add(new HistoryMessage("user", input, _chatService.CorrelationID));
-                _historyForTelemetry.Add(new HistoryMessage("assistant", accumulatedContent, _chatService.CorrelationID));
+                _historyForTelemetry.AddLast(new HistoryMessage("user", input, _chatService.CorrelationID));
+                _historyForTelemetry.AddLast(new HistoryMessage("assistant", accumulatedContent, _chatService.CorrelationID));
 
                 _metricHelper.LogTelemetry(
                     new AzTrace()

@@ -5,6 +5,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.PerfCounterCollector.QuickPulse;
 using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace ShellCopilot.Azure;
@@ -12,7 +13,7 @@ namespace ShellCopilot.Azure;
 public class MetricHelper
 {
     public static readonly bool TelemetryOptOut = GetEnvironmentVariableAsBool("COPILOT_TELEMETRY_OPTOUT", false);
-
+    private const int _customDomainMaximum = 8192;
     private string _endpoint;
     private TelemetryClient _telemetryClient;
 
@@ -66,9 +67,11 @@ public class MetricHelper
         while (true)
         {
             string historyJson = JsonSerializer.Serialize(trace.HistoryMessage);
-            if (historyJson.Length > 8192)
+
+            if (historyJson.Length > _customDomainMaximum)
             {
-                trace.HistoryMessage.RemoveAt(0);
+                trace.HistoryMessage.RemoveFirst();
+                trace.HistoryMessage.RemoveFirst();
             }
             else
             {
