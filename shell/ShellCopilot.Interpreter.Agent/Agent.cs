@@ -196,7 +196,7 @@ public sealed class InterpreterAgent : ILLMAgent
     /*
       ""ModelName"": ""gpt-4-0613"",
       ""AutoExecution"": false,
-      ""DisplayErrors"": false,
+      ""DisplayErrors"": true,
       ""Key"": null
     */
 }}

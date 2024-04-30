@@ -159,6 +159,7 @@ internal class Settings
             Deployment = this.Deployment,
             ModelName = this.ModelName,
             AutoExecution = this.AutoExecution,
+            DisplayErrors = this.DisplayErrors,
             Key = this.Key,
         };
     }
