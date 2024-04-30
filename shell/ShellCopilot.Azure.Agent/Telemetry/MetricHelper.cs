@@ -11,7 +11,7 @@ namespace ShellCopilot.Azure;
 public class MetricHelper
 {
     public static readonly bool TelemetryOptOut = GetEnvironmentVariableAsBool("COPILOT_TELEMETRY_OPTOUT", false);
-
+    private const int CustomDomainMaximumSize = 8192;
     private readonly string _endpoint;
     private TelemetryClient _telemetryClient;
 
@@ -62,6 +62,24 @@ public class MetricHelper
 
     public void LogTelemetry(AzTrace trace)
     {
+        string historyJson;
+
+        while (true)
+        {
+            historyJson = JsonSerializer.Serialize(trace.HistoryMessage);
+
+            if (historyJson.Length > CustomDomainMaximumSize)
+            {
+                // Remove the oldest round of conversation from history when it exceeds Application Insights limit.
+                trace.HistoryMessage.RemoveFirst();
+                trace.HistoryMessage.RemoveFirst();
+            }
+            else
+            {
+                break;
+            }
+        }
+        
         Dictionary<string, string> eventProperties = new()
         {
             { "CorrelationID", trace.CorrelationID },
@@ -71,7 +89,7 @@ public class MetricHelper
             { "Duration", trace.Duration?.ToString() },
             { "Command", trace.Command },
             { "DetailedMessage", trace.DetailedMessage },
-            { "HistoryMessage", JsonSerializer.Serialize(trace.HistoryMessage) },
+            { "HistoryMessage", historyJson },
             { "StartTime", trace.StartTime?.ToString() },
             { "EndTime", trace.EndTime?.ToString() },
         };

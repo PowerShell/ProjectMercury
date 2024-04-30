@@ -54,7 +54,7 @@ public class AzTrace
     /// Reason of dislike
     /// </summary>
     public string DetailedMessage;
-    internal List<HistoryMessage> HistoryMessage;
+    internal LinkedList<HistoryMessage> HistoryMessage;
     /// <summary>
     /// Agent Information - may contain:
     /// Handler Version
