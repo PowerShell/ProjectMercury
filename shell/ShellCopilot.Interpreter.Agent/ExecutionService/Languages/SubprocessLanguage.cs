@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace ShellCopilot.Interpreter.Agent;
 
@@ -240,7 +241,14 @@ internal abstract class SubprocessLanguage : IDisposable
         var values = Environment.GetEnvironmentVariable("PATH");
         foreach (var path in values.Split(Path.PathSeparator))
         {
-            var fullPath = Path.Combine(path, StartCmd[0]);
+            string fileType = "";
+            // detect operating system windows
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                fileType = ".exe";
+            }
+
+            var fullPath = Path.Combine(path, StartCmd[0] + fileType);
             if (File.Exists(fullPath))
             {
                 return true;

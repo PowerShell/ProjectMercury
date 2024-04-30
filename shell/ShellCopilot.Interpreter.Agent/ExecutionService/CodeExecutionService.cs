@@ -111,21 +111,21 @@ public class CodeExecutionService
 
     private bool TryGetLanguage(string language,out SubprocessLanguage langObj)
     {
+        if(ActiveLanguages.TryGetValue(language, out langObj))
+        {
+            return true;
+        }
+
         if (Languages.TryGetValue(language, out string actualName))
         {
-            if (!ActiveLanguages.ContainsKey(actualName))
-            {
-                langObj = actualName switch
+            langObj = actualName switch
                 {
                     "powershell" => new PowerShell(),
                     "python" => new Python(),
                     _ => throw new NotSupportedException()
                 };
 
-                ActiveLanguages.Add(actualName, langObj);
-            
-            }
-            ActiveLanguages.TryGetValue(actualName, out langObj);
+            ActiveLanguages.Add(actualName, langObj);
             return true;
 
         }

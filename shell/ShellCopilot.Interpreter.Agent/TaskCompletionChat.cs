@@ -1,5 +1,5 @@
-﻿using ShellCopilot.Abstraction;
-using System.Runtime;
+﻿using System.Runtime;
+using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Interpreter.Agent;
 

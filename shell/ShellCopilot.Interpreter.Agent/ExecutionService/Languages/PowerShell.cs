@@ -14,38 +14,34 @@ internal class PowerShell: SubprocessLanguage
     internal PowerShell()
     {
         // -NoProfile prevents the profile from loading and -file - reads the code from stdin
-        StartCmd = ["pwsh.exe", "-NoProfile -Command -"];
-        VersionCmd = ["pwsh.exe", "--version"];
+        StartCmd = ["pwsh", "-NoProfile -Command -"];
+        VersionCmd = ["pwsh", "--version"];
         OutputQueue = new();
     }
 
     protected override string PreprocessCode(string code)
     {
-        string try_catch_code = @"
-try {
+        string try_catch_code = @$"
+try {{
     $ErrorActionPreference = 'Stop'
-";
-        string end_code = @"
-}
-catch {
+    {code.AsSpan().TrimEnd()}
+}}
+catch {{
     $e = $_.Exception
     $msg = $e.GetType().FullName + "": "" + $e.Message
     $indent = """"
-    while ($e.InnerException) {
+    while ($e.InnerException) {{
         $e = $e.InnerException
         $indent += ""---> ""
         $msg += ""`n"" + $indent + $e.GetType().FullName + "": "" + $e.Message
-    }
+    }}
     [Console]::Error.WriteLine($msg)
     [Console]::Error.WriteLine($_.InvocationInfo.PositionMessage)
-} finally {
+}} finally {{
     Write-Host '##end_of_execution##'
-}
+}}
 ";
-        code = code.TrimEnd();
-        code = try_catch_code + code + end_code;
-        // Add end marker (listen for this in HandleStreamOutput to know when code ends)
-        return code;
+        return try_catch_code;
     }
 
     protected override void WriteToProcess(string code)

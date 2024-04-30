@@ -13,8 +13,8 @@ internal class Python: SubprocessLanguage
         // -i runs the code in interactive mode
         // -u unbuffered binary stdout and stderr
         // Without these flags, the output is buffered and we can't read it until the process ends
-        StartCmd = ["python.exe", "-qui"];
-        VersionCmd = ["python.exe", "-V"];
+        StartCmd = ["python", "-qui"];
+        VersionCmd = ["python", "-V"];
         OutputQueue = new();
     }
 
