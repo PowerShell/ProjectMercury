@@ -136,9 +136,9 @@ public class CodeExecutionService
 
     private void RemoveLanguage(string language)
     {
-        if (ActiveLanguages.ContainsKey(language))
+        if (ActiveLanguages.TryGetValue(language, out var langObj))
         {
-            ActiveLanguages[language].Dispose();
+            langObj.Dispose();
             ActiveLanguages.Remove(language);
         }
     }
