@@ -20,33 +20,29 @@ internal class Python: SubprocessLanguage
 
     protected override string PreprocessCode(string code)
     {
-        code = code.TrimEnd();
-        code += "\n\nprint('##end_of_execution##')";
-        return code;
+        // 1. Since code is inserted via string interpolation into an indented try block every subsequent line of
+        // code needs an extra indent to be valid Python syntax.
+        // 2. If code throws an error, the error message is printed to stderr for proper user prompt generation.
+        // 3. Did not use the finally block to print `##end_of_execution##` because errors enountered
+        // by Python parser are not caught by the try block.
+
+        string try_catch_code =
+$@"
+import sys
+import traceback
+try:
+    {code.Replace("\n", "\n    ")}
+except Exception:
+    print(traceback.format_exc(), file=sys.stderr)
+
+print('##end_of_execution##')
+";
+        return try_catch_code;
     }
 
     protected override void WriteToProcess(string code)
     {
-        // Split the code into lines and send each line to the process
-        var codeSpan = code.AsSpan();
-
-        // Count all '\n' in the code
-        int numLines = code.Count(c => c == '\n');
-
-        // Create a span to hold the ranges of each line
-        Range[] numLinesRange = new Range[numLines];
-
-        // Initialize the size of the Span with the number of lines
-        var lines = new Span<Range>(numLinesRange);
-
-        // Split the code into lines, lines contains the ranges of each line
-        int lineNums = MemoryExtensions.Split(codeSpan, lines, '\n');
-        
-        foreach(Range line in lines)
-        {
-            Process.StandardInput.WriteLine(codeSpan[line.Start.Value..line.End.Value]);
-            Process.StandardInput.Flush();
-        }
-
+        Process.StandardInput.WriteLine(code);
+        Process.StandardInput.Flush();
     }
 }

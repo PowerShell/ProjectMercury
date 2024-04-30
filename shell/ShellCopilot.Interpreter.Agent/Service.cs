@@ -18,7 +18,6 @@ internal class ChatService
     private Settings _settings;
     private OpenAIClient _client;
     private List<ChatRequestMessage> _chatHistory;
-    private ChatCompletionsOptions _chatOptions;
     private CodeExecutionService _executionService;
 
     internal ChatService(bool isInteractive, string historyRoot, Settings settings, CodeExecutionService executionService)
@@ -38,17 +37,11 @@ internal class ChatService
         }
 
         // Don't add empty assistant messages to history. 
-        switch (response)
+        if (response is ChatRequestAssistantMessage assistantMessage
+    && string.IsNullOrEmpty(assistantMessage.Content)
+    && assistantMessage.ToolCalls.Count == 0)
         {
-            case ChatRequestAssistantMessage assistantMessage:
-                if (string.IsNullOrEmpty(assistantMessage.Content))
-                {
-                    if (assistantMessage.ToolCalls.Count == 0)
-                    {
-                        return;
-                    }
-                }
-                break;
+            return;
         }
 
         _chatHistory.Add(response);
@@ -67,7 +60,6 @@ internal class ChatService
 
     internal void RefreshChat()
     {
-        // TODO:: Keep system messages. Remove user, assistant, and tool messages.
         for(int i = 0; i < _chatHistory.Count; )
         {
             if (_chatHistory[i] is ChatRequestSystemMessage)
@@ -213,14 +205,14 @@ internal class ChatService
         string reducedContent = content;
         string truncationMessage = "\n...Output truncated.";
 
-        if(encoding.Encode(reducedContent).Count >= MaxResponseToken)
+        // MaxResponseToken is used to limit ToolResponseTokens as well
+        if(encoding.Encode(reducedContent).Count > MaxResponseToken)
         {
-            while (encoding.Encode(reducedContent + truncationMessage).Count >= MaxResponseToken)
+            do
             {
-                // Remove half characters from the end of the content
-                reducedContent = reducedContent.Substring(0, reducedContent.Length / 2);
+                reducedContent = string.Concat(reducedContent.AsSpan(0, reducedContent.Length / 2), truncationMessage);
             }
-            reducedContent += truncationMessage;
+            while (encoding.Encode(reducedContent).Count > MaxResponseToken);
         }
         
         return reducedContent;
@@ -242,7 +234,7 @@ internal class ChatService
 
         // Only remove UserMessage or AssistantMessage and ToolMessages. Keep SystemMessages
         int index = 0;
-        while (totalTokens + (MaxResponseToken) >= tokenLimit)
+        while (totalTokens + MaxResponseToken >= tokenLimit)
         {
             switch (history[index])
             {
@@ -258,7 +250,7 @@ internal class ChatService
                     break;
                 default:
                     index++;
-                    break;
+                    continue;
 
             }
             totalTokens = CountTokenForMessages(history);
@@ -279,6 +271,8 @@ internal class ChatService
         // Those settings seem to be important enough, as the Semantic Kernel plugin specifies
         // those settings (see the URL below). We can use default values when not defined.
         // https://github.com/microsoft/semantic-kernel/blob/main/samples/skills/FunSkill/Joke/config.json
+        
+        ChatCompletionsOptions _chatOptions;
 
         // Determine if the gpt model is a function calling model
         bool isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.ModelName);
@@ -360,7 +354,7 @@ Here are conversations between a human and you
 ### Conversation of Human C with you given the context
 - Human: Hi, teach me how to use PowerShell
 > Since this task is too broad and cannot be accomplished with code suggest an easy task the human can ask you to code in PowerShell. Then respond with exactly **Let me know what you'd like to do next.**
-- You respond: I cannot teach you how to use PowerShell. However, you can ask me how to do things in PowerShell like “List out all my desktop files using PowerShell”. Then, I can show you the code, execute it, and explain it for you. Please let me know what you'd like to do next.
+- You respond: I cannot teach you how to use PowerShell. However, you can ask me how to do things in PowerShell like ""List out all my desktop files using PowerShell"". Then, I can show you the code, execute it, and explain it for you. Please let me know what you'd like to do next.
 ";
             if (isFunctionCallingModel)
             {

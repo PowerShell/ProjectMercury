@@ -91,7 +91,7 @@ internal abstract class SubprocessLanguage : IDisposable
             RedirectStandardError = true,
             StandardOutputEncoding = Encoding.UTF8,
             StandardErrorEncoding = Encoding.UTF8,
-            Environment = { ["NO_COLOR"] = "true", ["__SuppressAnsiEscapeSequences"] = "1" },
+            Environment = { ["NO_COLOR"] = "1", ["__SuppressAnsiEscapeSequences"] = "1" },
         };
 
         Process = new Process { StartInfo = startInfo };
@@ -144,6 +144,8 @@ internal abstract class SubprocessLanguage : IDisposable
                 return OutputQueue;
             }
 
+            // TODO: This is done inorder to keep the method an async method for the purposes of running it with
+            // the host method RunWithSpinnerAsync
             await Task.Run(() => DoneExeuctionEvent.Wait(token), token);
 
             return OutputQueue;
@@ -169,7 +171,6 @@ internal abstract class SubprocessLanguage : IDisposable
             Process = null;
         }
         DoneExeuctionEvent.Dispose();
-
     }
 
     /// <summary>
@@ -182,13 +183,15 @@ internal abstract class SubprocessLanguage : IDisposable
         {
             return;
         }
+        // Pressing CTRL+C in Shell Copilot during python code execution will propogate the command to 
+        // the python process and cause a KeyboardInterrupt exception. This is caught and handled here.
         if (DetectKeyBoardInterrupt(line))
         {
             OutputQueue.Enqueue(new OutputData(OutputType.Interrupt, line));
             DoneExeuctionEvent.Set();
             return;
         }
-        OutputQueue.Enqueue(new OutputData(OutputType.Error, line));
+        OutputQueue.Enqueue(new OutputData(OutputType.Error, line));;
     }
 
     /// <summary>
@@ -241,14 +244,9 @@ internal abstract class SubprocessLanguage : IDisposable
         var values = Environment.GetEnvironmentVariable("PATH");
         foreach (var path in values.Split(Path.PathSeparator))
         {
-            string fileType = "";
-            // detect operating system windows
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                fileType = ".exe";
-            }
-
-            var fullPath = Path.Combine(path, StartCmd[0] + fileType);
+            string fullPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? Path.Combine(path, StartCmd[0] + ".exe")
+                : Path.Combine(path, StartCmd[0]);
             if (File.Exists(fullPath))
             {
                 return true;

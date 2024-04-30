@@ -33,7 +33,10 @@ public class CodeExecutionService
 
         try
         {
-            var outputQueue = await langObj.Run(code, token);
+            // Create a copy of the OutputQueue to ensure that further additions to the queue
+            // do not affect enumeration operations.
+            var outputQueue = new Queue<OutputData>(await langObj.Run(code, token));
+
             foreach (OutputData outputItem in outputQueue)
             {
                 switch (outputItem.Type)
@@ -81,17 +84,13 @@ public class CodeExecutionService
                     LangPathBools.Add(language, langObj.IsOnPath());
                 }
 
-                if (LangPathBools.TryGetValue(language, out bool onPath))
+                if (LangPathBools[language])
                 {
-                    if (!onPath)
-                    {
-                        versions += "- **" + language + "**: " + "Executable not found on PATH";
-                    }
-                    else
-                    {
-                        versions += "- **" + language + "**: " + await langObj.GetVersion();
-                    }
-
+                    versions += $"- **{ language}**: { await langObj.GetVersion()}";
+                }
+                else
+                {
+                    versions += $"- **{language}**: Executable not found on PATH";
                 }
 
             }
@@ -111,7 +110,7 @@ public class CodeExecutionService
 
     private bool TryGetLanguage(string language,out SubprocessLanguage langObj)
     {
-        if(ActiveLanguages.TryGetValue(language, out langObj))
+        if (ActiveLanguages.TryGetValue(language, out langObj))
         {
             return true;
         }
@@ -127,7 +126,6 @@ public class CodeExecutionService
 
             ActiveLanguages.Add(actualName, langObj);
             return true;
-
         }
 
         langObj = null;
@@ -136,9 +134,9 @@ public class CodeExecutionService
 
     private void RemoveLanguage(string language)
     {
-        if (ActiveLanguages.ContainsKey(language))
+        if (ActiveLanguages.TryGetValue(language, out SubprocessLanguage langObj))
         {
-            ActiveLanguages[language].Dispose();
+            langObj.Dispose();
             ActiveLanguages.Remove(language);
         }
     }
