@@ -7,7 +7,7 @@
 /// </summary>
 internal class Python: SubprocessLanguage
 {
-    internal Python()
+    internal Python() : base()
     {
         // -q doesn't print the banner
         // -i runs the code in interactive mode
@@ -15,7 +15,6 @@ internal class Python: SubprocessLanguage
         // Without these flags, the output is buffered and we can't read it until the process ends
         StartCmd = ["python", "-qui"];
         VersionCmd = ["python", "-V"];
-        OutputQueue = new();
     }
 
     protected override string PreprocessCode(string code)

@@ -15,22 +15,22 @@ internal abstract class SubprocessLanguage : IDisposable
     /// The command to start the process. This is an array of strings where the first element is the program
     /// to run and the second element is the arguments to pass to the program.
     /// </summary>
-    protected string[] StartCmd { get; set; }
+    protected string[] StartCmd;
 
     /// <summary>
     /// The command to get the version of the language.
     /// </summary>
-    protected string[] VersionCmd { get; set;}
+    protected string[] VersionCmd;
 
     /// <summary>
     /// This event is used to signal when the process has finished running.
     /// </summary>
-    protected ManualResetEventSlim DoneExeuctionEvent = new(false);
+    protected readonly ManualResetEventSlim DoneExeuctionEvent;
 
     /// <summary>
     /// The queue to store the output of code processes.
     /// </summary>
-    protected Queue<OutputData> OutputQueue { get; set; }
+    protected readonly Queue<OutputData> OutputQueue;
 
     /// <summary>
     /// Preprocesses the code before running it removing backticks and language name.
@@ -40,6 +40,12 @@ internal abstract class SubprocessLanguage : IDisposable
     protected abstract string PreprocessCode(string code);
 
     protected abstract void WriteToProcess(string input);
+
+    protected SubprocessLanguage()
+    {
+        OutputQueue = new();
+        DoneExeuctionEvent = new(false);
+    }
 
     /// <summary>
     /// Gets version of the language executable on the user's local machine.
@@ -76,11 +82,6 @@ internal abstract class SubprocessLanguage : IDisposable
     /// </summary>
     protected void StartLangServer()
     {
-        if (Process != null)
-        {
-            Dispose();
-        }
-
         ProcessStartInfo startInfo = new()
         {
             FileName = StartCmd[0],

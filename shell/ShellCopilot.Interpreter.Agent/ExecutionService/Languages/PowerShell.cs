@@ -11,12 +11,11 @@ namespace ShellCopilot.Interpreter.Agent;
 /// </summary>
 internal class PowerShell: SubprocessLanguage
 {
-    internal PowerShell()
+    internal PowerShell() : base()
     {
         // -NoProfile prevents the profile from loading and -file - reads the code from stdin
         StartCmd = ["pwsh", "-NoProfile -Command -"];
         VersionCmd = ["pwsh", "--version"];
-        OutputQueue = new();
     }
 
     protected override string PreprocessCode(string code)
