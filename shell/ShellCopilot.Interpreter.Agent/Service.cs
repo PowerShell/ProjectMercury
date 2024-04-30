@@ -60,15 +60,16 @@ internal class ChatService
 
     internal void RefreshChat()
     {
-        for(int i = 0; i < _chatHistory.Count; )
+        int i = 0;
+        for (; i < _chatHistory.Count; i++)
         {
-            if (_chatHistory[i] is ChatRequestSystemMessage)
+            if (_chatHistory[i] is not ChatRequestSystemMessage)
             {
-                i++;
-                continue;
+                break;
             }
-            _chatHistory.RemoveAt(i);
         }
+
+        _chatHistory.RemoveRange(i, _chatHistory.Count - i);
     }
 
     private void LoadHistory(string name)
