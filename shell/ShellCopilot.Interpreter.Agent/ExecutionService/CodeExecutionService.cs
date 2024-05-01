@@ -116,11 +116,11 @@ public class CodeExecutionService
         if (Languages.TryGetValue(language, out string actualName))
         {
             langObj = actualName switch
-                {
-                    "powershell" => new PowerShell(),
-                    "python" => new Python(),
-                    _ => throw new NotSupportedException()
-                };
+            {
+                "powershell" => new PowerShell(),
+                "python" => new Python(),
+                _ => throw new NotSupportedException()
+            };
 
             ActiveLanguages.Add(actualName, langObj);
             return true;
