@@ -92,43 +92,32 @@ internal class TaskCompletionChat
             {
                 input = prompts["SameError"];
             }
-            else if(packet.didNotCallTool)
-            {
-                input = prompts["UseTool"];
-            }
             else if (packet.wasToolSupported && packet.languageSupported)
             {
                 if (packet.didUserRun)
                 {
-                    if (packet.wasToolCancelled)
+                    if (packet.wasThereAnError)
                     {
-                        input = prompts["ToolCancelled"];
-                    }
-                    else
-                    {
-                        if (packet.wasThereAnError)
+                        if (_isFunctionCallingModel)
                         {
-                            if (_isFunctionCallingModel)
-                            {
-                                input = prompts["Error"];
-                            }
-                            else
-                            {
-                                input = prompts["Error"] + packet.toolResponse;
-                            }
+                            input = prompts["Error"];
                         }
                         else
                         {
-                            if (_isFunctionCallingModel)
-                            {
-                                input = prompts["OutputFunctionBased"];
-                            }
-                            else
-                            {
-                                input = prompts["OutputTextBased"] + packet.toolResponse;
-                            }
-                            previousCode = packet.Code;
+                            input = prompts["Error"] + packet.toolResponse;
                         }
+                    }
+                    else
+                    {
+                        if (_isFunctionCallingModel)
+                        {
+                            input = prompts["OutputFunctionBased"];
+                        }
+                        else
+                        {
+                            input = prompts["OutputTextBased"] + packet.toolResponse;
+                        }
+                        previousCode = packet.Code;
                     }
                 }
                 else

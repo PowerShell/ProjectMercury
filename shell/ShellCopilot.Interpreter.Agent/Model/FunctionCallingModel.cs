@@ -173,7 +173,7 @@ internal class FunctionCallingModel : BaseModel
             }
             catch (OperationCanceledException)
             {
-                toolMessage = "User chose not to run code.";
+                toolMessage = "Tool call was cancelled.";
                 ChatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, toolCall.Id));
                 return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
             }
