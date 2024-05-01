@@ -53,6 +53,7 @@ internal class FunctionCallingModel : BaseModel
 
     protected override void RenderStreamingChat(IStreamRender streamingRender, StreamingChatCompletionsUpdate chatUpdate)
     {
+        // 'chatUpdate' contains either 'ToolCallUpdate' or 'ContentUpdate', but never both.
         UpdateFunctionToolCallData(chatUpdate);
 
         if (!string.IsNullOrEmpty(chatUpdate.ContentUpdate))
