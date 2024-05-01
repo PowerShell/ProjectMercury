@@ -223,7 +223,7 @@ internal class ChatService
         string truncationMessage = "\n...Output truncated.";
 
         // MaxResponseToken is used to limit ToolResponseTokens as well
-        if(encoding.Encode(reducedContent).Count > MaxResponseToken)
+        if (encoding.Encode(reducedContent).Count > MaxResponseToken)
         {
             do
             {
