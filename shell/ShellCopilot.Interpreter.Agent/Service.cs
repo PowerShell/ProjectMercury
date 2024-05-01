@@ -38,8 +38,8 @@ internal class ChatService
 
         // Don't add empty assistant messages to history. 
         if (response is ChatRequestAssistantMessage assistantMessage
-    && string.IsNullOrEmpty(assistantMessage.Content)
-    && assistantMessage.ToolCalls.Count == 0)
+            && string.IsNullOrEmpty(assistantMessage.Content)
+            && assistantMessage.ToolCalls.Count is 0)
         {
             return;
         }
