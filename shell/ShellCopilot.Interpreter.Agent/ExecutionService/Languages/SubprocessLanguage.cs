@@ -192,7 +192,7 @@ internal abstract class SubprocessLanguage : IDisposable
             DoneExeuctionEvent.Set();
             return;
         }
-        OutputQueue.Enqueue(new OutputData(OutputType.Error, line));;
+        OutputQueue.Enqueue(new OutputData(OutputType.Error, line));
     }
 
     /// <summary>
