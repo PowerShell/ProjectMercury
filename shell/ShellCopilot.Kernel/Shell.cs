@@ -96,6 +96,7 @@ internal sealed class Shell : IShell
             CommandRunner = new CommandRunner(this);
             SetReadLineExperience();
         }
+
         LoadAvailableAgents();
         Console.CancelKeyPress += OnCancelKeyPress;
 
