@@ -66,7 +66,7 @@ the task is complete while correcting itself for any errors. Currently only supp
 > aish:1> /agent config
 >```
 
-a. Example of the `interpreter.agent.json` file:
+a. Default `interpreter.agent.json` file:
 
 >```json
 >{
@@ -87,6 +87,26 @@ a. Example of the `interpreter.agent.json` file:
 >      "DisplayErrors": true,
 >      "Key": null
 >    */
+>}
+>```
+b. To use Azure.OpenAI as the AI completion service specify the endpoint and deployment keys in the `interpreter.agent.json` file.
+>```json
+>{
+>      "Endpoint" : "https://pscopilot.azure-api.net",
+>      "Deployment" : "gpt4",
+>      "ModelName" : "gpt-4-0613",   // required field to infer properties of the service, such as token limit.
+>      "AutoExecution" : false,
+>      "DisplayErrors" : true,
+>      "Key" : null
+>}
+>```
+c. To use OpenAI as the AI completion service, ignore the `Endpoint` and `Deployment` keys in the `interpreter.agent.json` file.
+>```json
+>{
+>      "ModelName": "gpt-4-0613",
+>      "AutoExecution": false,
+>      "DisplayErrors": true,
+>      "Key": null
 >}
 >```
 
