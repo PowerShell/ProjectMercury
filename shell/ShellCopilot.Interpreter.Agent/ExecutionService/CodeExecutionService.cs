@@ -92,9 +92,7 @@ public class CodeExecutionService
                 {
                     versions += $"- **{language}**: Executable not found on PATH";
                 }
-
             }
-
         }
 
         // Remove the languages from the active languages list to conserve memory.
