@@ -7,6 +7,9 @@
 
     <!-- Disable deps.json generation -->
     <GenerateDependencyFile>false</GenerateDependencyFile>
+
+    <!-- Deploy the produced assembly -->
+    <PublishDir>out\Aish</PublishDir>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
@@ -16,13 +19,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.6" />
-    <PackageReference Include="Azure.Core" Version="1.34.0" />
-    <PackageReference Include="SharpToken" Version="1.2.2" />
-    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-beta.10">
+    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-beta.10" />
+    <PackageReference Include="System.Management.Automation" Version="7.4.0">
       <ExcludeAssets>contentFiles</ExcludeAssets>
-      <PrivateAssets>all</PrivateAssets>
+      <PrivateAssets>All</PrivateAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Aish.psd1;Aish.psm1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

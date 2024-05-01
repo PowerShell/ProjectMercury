@@ -20,7 +20,7 @@ internal class CodeBlockVisitor : IVTRenderVisitor
 
     public void VisitCodeBlock(string code, string language)
     {
-        CodeBlocks.Add(new CodeBlock(code, language));
+        CodeBlocks.Add(new CodeBlock(code.Replace("\r\n", "\n"), language));
     }
 }
 

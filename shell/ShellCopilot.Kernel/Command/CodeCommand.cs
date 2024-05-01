@@ -11,6 +11,7 @@ internal sealed class CodeCommand : CommandBase
     {
         var copy = new Command("copy", "Copy the code snippet from the last response to clipboard.");
         var save = new Command("save", "Save the code snippet from the last response to a file.");
+        var post = new Command("post", "Post the code snippet from the last response to the connected command-line shell.");
 
         var nth = new Argument<int>("n", () => -1, "The n-th (starts from 1) code block to copy.");
         nth.AddValidator(result => {
@@ -29,9 +30,11 @@ internal sealed class CodeCommand : CommandBase
 
         AddCommand(copy);
         AddCommand(save);
+        AddCommand(post);
 
         copy.SetHandler(CopyAction, nth);
         save.SetHandler(SaveAction, file, append);
+        post.SetHandler(PostAction);
     }
 
     private static string GetCodeText(Shell shell, int index)
@@ -106,6 +109,35 @@ internal sealed class CodeCommand : CommandBase
 
             host.MarkupLine("[cyan]Code snippet saved to the file.[/]");
             shell.OnUserAction(new CodePayload(UserAction.CodeSave, code));
+        }
+        catch (Exception e)
+        {
+            host.WriteErrorLine(e.Message);
+        }
+    }
+
+    private void PostAction()
+    {
+        var shell = (Shell)Shell;
+        var host = shell.Host;
+
+        List<CodeBlock> code = shell.GetCodeBlockFromLastResponse();
+        if (code is null || code.Count is 0)
+        {
+            host.MarkupLine("[olive]No code snippet available to post.[/]");
+            return;
+        }
+
+        List<string> codeToPost = new(capacity: code.Count);
+        foreach (CodeBlock item in code)
+        {
+            codeToPost.Add(item.Code);
+        }
+
+        try
+        {
+            shell.Channel.PostCode(new PostCodeMessage(codeToPost));
+            host.MarkupLine("[cyan]Code snippet was successfully posted.[/]");
         }
         catch (Exception e)
         {

@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Globalization;
 using System.Text;
 using ShellCopilot.Abstraction;
 
@@ -8,7 +7,7 @@ namespace ShellCopilot.Kernel;
 internal class Channel : IDisposable
 {
     private const int MaxNamedPipeNameSize = 104;
-    private const int ConnectionTimeout = 5000;
+    private const int ConnectionTimeout = 3000;
 
     private readonly string _aishPipeName;
     private readonly CopilotClientPipe _clientPipe;
@@ -17,7 +16,7 @@ internal class Channel : IDisposable
     private readonly CancellableReadKey _readkeyProxy;
     private readonly Queue<string> _queries;
 
-    private bool _connected;
+    private bool _setupSuccess;
     private bool _disposed;
     private Exception _exception;
     private Thread _serverThread;
@@ -29,7 +28,7 @@ internal class Channel : IDisposable
         _aishPipeName = new StringBuilder(MaxNamedPipeNameSize)
             .Append(Utils.AppName.Replace(' ', '_'))
             .Append('.')
-            .Append(Environment.ProcessId.ToString(CultureInfo.InvariantCulture))
+            .Append(Environment.ProcessId)
             .Append('.')
             .Append(Utils.DefaultAppName)
             .ToString();
@@ -58,7 +57,7 @@ internal class Channel : IDisposable
         }
         catch (Exception ex)
         {
-            _connected = false;
+            _setupSuccess = false;
             _exception = ex;
             _connSetupWaitHandler.Set();
         }
@@ -73,13 +72,13 @@ internal class Channel : IDisposable
     {
         if (exception is null)
         {
-            _connected = true;
+            _setupSuccess = true;
         }
         else if (_exception is null)
         {
             // _exception may already be set because '_clientPipe.AskConnection' failed.
             // We don't want to overwrite the true exception with a timeout exception in that case.
-            _connected = false;
+            _setupSuccess = false;
             _exception = exception;
         }
 
@@ -90,6 +89,11 @@ internal class Channel : IDisposable
     {
         if (!Connected)
         {
+            if (_setupSuccess)
+            {
+                throw new NotSupportedException($"Both the client and server pipes may have been closed. Pipe connection status: client({_clientPipe.Connected}), server({_serverPipe.Connected}).");
+            }
+
             Debug.Assert(_exception is not null, "Error should be set when connection failed.");
             throw new NotSupportedException($"Bi-directional channel could not be established: {_exception.Message}", _exception);
         }
@@ -99,7 +103,7 @@ internal class Channel : IDisposable
     {
         string query = message.Context is null
             ? message.Query
-            : $"{message.Query}\n\nBelow is some context information regarding this query:\n{message.Context}";
+            : $"{message.Query}\n\n# Context for the query:\n{message.Context}";
 
         lock (this)
         {
@@ -110,13 +114,22 @@ internal class Channel : IDisposable
 
     internal Queue<string> Queries => _queries;
 
-    internal bool Connected
+    internal bool Connected => CheckConnection(blocking: true, out _);
+
+    internal bool CheckConnection(bool blocking, out bool setupInProgress)
     {
-        get
+        setupInProgress = false;
+        // We have started the setup, now wait for it to finish.
+        int timeout = blocking ? -1 : 0;
+        bool signalled = _connSetupWaitHandler.WaitOne(timeout);
+
+        if (signalled)
         {
-            _connSetupWaitHandler.WaitOne();
-            return _connected;
+            return _setupSuccess && _clientPipe.Connected && _serverPipe.Connected;
         }
+
+        setupInProgress = true;
+        return false;
     }
 
     internal CancellationToken ReadLineCancellationToken

@@ -550,7 +550,7 @@ internal sealed class Shell : IShell
                     if (input is not null)
                     {
                         // Write out the remote query, in the same style as user typing.
-                        Host.Markup($"[bold green]{_prompt}[/]:{count}> Remote Query Received:\n");
+                        Host.Markup($"\nRemote Query Received:\n");
                         Host.MarkupLine($"[teal]{input}[/]");
                     }
                     else

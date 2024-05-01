@@ -8,9 +8,9 @@ namespace ShellCopilot.Kernel;
 /// </summary>
 internal class CancellableReadKey
 {
-    private const int LongWaitForKeySleepTime = 300;
+    private const int LongWaitForKeySleepTime = 200;
     private const int ShortWaitForKeyTimeout = 5000;
-    private const int SpinCheckInterval = 30;
+    private const int SpinCheckInterval = 20;
 
     private readonly ManualResetEventSlim _waitHandle;
     private readonly ConsoleKeyInfo _nullKeyInfo;
@@ -40,7 +40,7 @@ internal class CancellableReadKey
 
     internal void RefreshCancellationSourceIfNeeded()
     {
-        if (_cancellationSource.IsCancellationRequested)
+        if (_cancellationSource is null || _cancellationSource.IsCancellationRequested)
         {
             _cancellationSource?.Dispose();
             _cancellationSource = new CancellationTokenSource();

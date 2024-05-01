@@ -358,25 +358,53 @@ public sealed class ShellServerPipe : PipeCommon
     /// Starts to receive and process messages sent from client.
     /// </summary>
     /// <param name="cancellationToken">A cancellation token.</param>
-    public async Task StartProcessingAsync(CancellationToken cancellationToken)
+    public async Task StartProcessingAsync(int timeout, CancellationToken cancellationToken)
     {
-        await _server.WaitForConnectionAsync(cancellationToken);
-        var message = await GetMessageAsync(cancellationToken);
-
-        if (message is not AskConnectionMessage askConnection)
+        if (timeout <= 0 && timeout != Timeout.Infinite)
         {
-            _server.Close();
-            // Log: first message is unexpected.
+            throw new ArgumentOutOfRangeException(nameof(timeout), "The timeout value should be greater than 0 or equal to -1 (infinite).");
+        }
+
+        try
+        {
+            CancellationToken tokenForConnection = cancellationToken;
+            if (timeout > 0)
+            {
+                var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                source.CancelAfter(timeout);
+                tokenForConnection = source.Token;
+            }
+
+            await _server.WaitForConnectionAsync(tokenForConnection);
+            var message = await GetMessageAsync(cancellationToken);
+
+            if (message is not AskConnectionMessage askConnection)
+            {
+                _server.Close();
+                // Log: first message is unexpected.
+                throw new InvalidOperationException($"Expect the first message to be '{nameof(MessageType.AskConnection)}', but it was '{message.Type}'.");
+            }
+
+            var client = new ShellClientPipe(askConnection.PipeName);
+            await client.ConnectAsync(timeout, cancellationToken);
+            InvokeOnAskConnection(client, exception: null);
+        }
+        catch (Exception ex)
+        {
+            if (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+            {
+                ex = new TimeoutException("Could not receive connection from AISH within the specified timeout period.");
+            }
+
+            InvokeOnAskConnection(shellClient: null, ex);
+
+            // Failed to establish the connection, so return.
             return;
         }
 
-        var client = new ShellClientPipe(askConnection.PipeName);
-        await client.ConnectAsync(10000, cancellationToken);
-        InvokeOnAskConnection(client);
-
         while (true)
         {
-            message = await GetMessageAsync(cancellationToken);
+            var message = await GetMessageAsync(cancellationToken);
             if (message is null)
             {
                 // Log: pipe closed/broken.
@@ -425,7 +453,7 @@ public sealed class ShellServerPipe : PipeCommon
     /// <summary>
     /// Helper to invoke the <see cref="OnAskConnection"/> event.
     /// </summary>
-    private void InvokeOnAskConnection(ShellClientPipe shellClient)
+    private void InvokeOnAskConnection(ShellClientPipe shellClient, Exception exception)
     {
         if (OnAskConnection is null)
         {
@@ -435,7 +463,7 @@ public sealed class ShellServerPipe : PipeCommon
 
         try
         {
-            OnAskConnection(shellClient);
+            OnAskConnection(shellClient, exception);
         }
         catch (Exception)
         {
@@ -474,7 +502,7 @@ public sealed class ShellServerPipe : PipeCommon
     /// <summary>
     /// Event for handling the <see cref="MessageType.AskConnection"/> message.
     /// </summary>
-    public event Action<ShellClientPipe> OnAskConnection;
+    public event Action<ShellClientPipe, Exception> OnAskConnection;
 
     /// <summary>
     /// Event for handling the <see cref="MessageType.AskContext"/> message.
