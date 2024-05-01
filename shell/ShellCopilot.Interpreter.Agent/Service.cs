@@ -37,7 +37,8 @@ internal class ChatService
             return;
         }
 
-        // Don't add empty assistant messages to history. 
+        // It happened before that the AI endpoint would not respond with text or a tool call. Not sure if it still happens,
+        // but we don't want to add empty assistant messages to history in case it happens again.
         if (response is ChatRequestAssistantMessage assistantMessage
             && string.IsNullOrEmpty(assistantMessage.Content)
             && assistantMessage.ToolCalls.Count is 0)
