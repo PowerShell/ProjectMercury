@@ -14,52 +14,15 @@ internal sealed class Shell : IShell
     private readonly Stack<LLMAgent> _activeAgentStack;
     private readonly ShellWrapper _wrapper;
     private readonly HashSet<string> _textToIgnore;
-    private readonly Setting _setting;
     private CancellationTokenSource _cancellationSource;
 
-    /// <summary>
-    /// Indicates if we want to exit the shell.
-    /// </summary>
     internal bool Exit { set; get; }
-
-    /// <summary>
-    /// Indicates if we want to regenerate for the last query.
-    /// </summary>
     internal bool Regenerate { set; get; }
-
-    /// <summary>
-    /// The last query sent by user.
-    /// </summary>
     internal string LastQuery { private set; get; }
-
-    /// <summary>
-    /// The agent that served the last query.
-    /// </summary>
-    internal LLMAgent LastAgent { private set; get; }
-
-    /// <summary>
-    /// Gets the host.
-    /// </summary>
     internal Host Host { get; }
-
-    /// <summary>
-    /// Gets the command runner.
-    /// </summary>
     internal CommandRunner CommandRunner { get; }
-
-    /// <summary>
-    /// Gets the agent list.
-    /// </summary>
     internal List<LLMAgent> Agents => _agents;
-
-    /// <summary>
-    /// Gets the cancellation token.
-    /// </summary>
     internal CancellationToken CancellationToken => _cancellationSource.Token;
-
-    /// <summary>
-    /// Gets the currently active agent.
-    /// </summary>
     internal LLMAgent ActiveAgent => _activeAgentStack.TryPeek(out var agent) ? agent : null;
 
     #region IShell implementation
@@ -76,10 +39,8 @@ internal sealed class Shell : IShell
     {
         _isInteractive = interactive;
         _wrapper = wrapper;
-        _prompt = wrapper?.Prompt ?? Utils.DefaultPrompt;
-
-        _agents = [];
-        _setting = new Setting();
+        _prompt = wrapper?.Prompt ?? Utils.DefaultAppName;
+        _agents = new List<LLMAgent>();
         _activeAgentStack = new Stack<LLMAgent>();
         _textToIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         _cancellationSource = new CancellationTokenSource();
@@ -87,80 +48,51 @@ internal sealed class Shell : IShell
         Exit = false;
         Regenerate = false;
         LastQuery = null;
-        LastAgent = null;
         Host = new Host();
 
         if (interactive)
         {
-            ShowBanner();
+            string banner = wrapper is null
+                ? "Shell Copilot (v0.1)"
+                : $"{wrapper.Banner} ({wrapper.Version})";
+
+            Host.WriteLine(banner).WriteLine();
             CommandRunner = new CommandRunner(this);
             SetReadLineExperience();
         }
+        
+
         
         LoadAvailableAgents();
         Console.CancelKeyPress += OnCancelKeyPress;
 
         if (interactive)
         {
-            ShowLandingPage();
-        }
-    }
-
-    internal void ShowBanner()
-    {
-        string banner = _wrapper?.Banner is null ? "Shell Copilot" : _wrapper.Banner;
-        string version = _wrapper?.Version is null ? "v0.1.0-preview.1" : _wrapper.Version;
-        Host.MarkupLine($"[bold]{banner.EscapeMarkup()}[/]")
-            .MarkupLine($"[grey]{version.EscapeMarkup()}[/]")
-            .WriteLine();
-    }
-
-    internal void ShowLandingPage()
-    {
-        // Write out information about the active agent.
-        var current = ActiveAgent;
-        if (current is not null)
-        {
-            bool isWrapped = true;
-            if (!current.Impl.Name.Equals(_wrapper?.Agent, StringComparison.OrdinalIgnoreCase))
+            // Write out information about the active agent.
+            var current = ActiveAgent;
+            if (current is not null)
             {
-                isWrapped = false;
-                Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
+                if (!current.Impl.Name.Equals(wrapper?.Agent, StringComparison.OrdinalIgnoreCase))
+                {
+                    Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
+                }
+
+                current.Display(Host);
             }
 
-            current.Display(Host, isWrapped ? _wrapper.Description : null);
+            // Write out help.
+            Host.MarkupLine($"Type {Formatter.InlineCode("/help")} for instructions.")
+                .WriteLine();
         }
-
-        // Write out help.
-        Host.MarkupLine($"Type {Formatter.InlineCode("/help")} for more instructions.")
-            .WriteLine();
     }
 
     /// <summary>
     /// Get all code blocks from the last LLM response.
     /// </summary>
     /// <returns></returns>
-    internal List<CodeBlock> GetCodeBlockFromLastResponse()
+    internal List<string> GetCodeBlockFromLastResponse()
     {
         return Host.MarkdownRender.GetAllCodeBlocks();
-    }
-
-    internal void OnUserAction(UserActionPayload actionPayload)
-    {
-        if (actionPayload.Action is UserAction.CodeCopy)
-        {
-            var codePayload = (CodePayload)actionPayload;
-            _textToIgnore.Add(codePayload.Code);
-        }
-
-        if (LastAgent.Impl.CanAcceptFeedback(actionPayload.Action))
-        {
-            var state = Tuple.Create(LastAgent.Impl, actionPayload);
-            ThreadPool.QueueUserWorkItem(
-                callBack: static tuple => tuple.Item1.OnUserAction(tuple.Item2),
-                state: state,
-                preferLocal: false);
-        }
     }
 
     /// <summary>
@@ -223,7 +155,7 @@ internal sealed class Shell : IShell
             }
             catch (Exception ex)
             {
-                Host.WriteErrorLine($"Failed to load the agent '{name}': {ex.Message}\n");
+                Host.MarkupErrorLine($"Failed to load the agent '{name}': {ex.Message}\n");
             }
         }
 
@@ -236,12 +168,11 @@ internal sealed class Shell : IShell
         try
         {
             LLMAgent chosenAgent = null;
-            string active = _wrapper?.Agent ?? _setting.ActiveAgent;
-            if (!string.IsNullOrEmpty(active))
+            if (_wrapper is not null)
             {
                 foreach (LLMAgent agent in _agents)
                 {
-                    if (agent.Impl.Name.Equals(active, StringComparison.OrdinalIgnoreCase))
+                    if (agent.Impl.Name.Equals(_wrapper.Agent, StringComparison.OrdinalIgnoreCase))
                     {
                         chosenAgent = agent;
                         break;
@@ -250,7 +181,7 @@ internal sealed class Shell : IShell
 
                 if (chosenAgent is null)
                 {
-                    Host.MarkupWarningLine($"The configured active agent '{active}' is not available.\n");
+                    Host.MarkupWarningLine($"The configured active agent '{_wrapper.Agent}' is not available.\n");
                 }
             }
 
@@ -292,7 +223,6 @@ internal sealed class Shell : IShell
         if (loadCommands)
         {
             ILLMAgent impl = agent.Impl;
-            impl.RefreshChat();
             CommandRunner.UnloadAgentCommands();
             CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
         }
@@ -331,7 +261,6 @@ internal sealed class Shell : IShell
             _activeAgentStack.Push(agent);
             if (current != agent)
             {
-                impl.RefreshChat();
                 CommandRunner.UnloadAgentCommands();
                 CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
             }
@@ -339,7 +268,6 @@ internal sealed class Shell : IShell
         else
         {
             _activeAgentStack.Push(agent);
-            impl.RefreshChat();
             CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
         }
     }
@@ -383,7 +311,7 @@ internal sealed class Shell : IShell
         string commandLine = input[1..].Trim();
         if (commandLine == string.Empty)
         {
-            Host.WriteErrorLine("Command is missing.");
+            Host.MarkupErrorLine("Command is missing.");
             return;
         }
 
@@ -393,7 +321,7 @@ internal sealed class Shell : IShell
         }
         catch (Exception e)
         {
-            Host.WriteErrorLine(e.Message);
+            Host.MarkupErrorLine(e.Message);
         }
     }
 
@@ -408,12 +336,6 @@ internal sealed class Shell : IShell
 
     private async Task<string> GetClipboardContent(string input)
     {
-        if (!_setting.UseClipboardContent)
-        {
-            // Skip it when this feature is disabled.
-            return null;
-        }
-
         string copiedText = Clipboard.GetText().Trim();
         if (string.IsNullOrEmpty(copiedText) || _textToIgnore.Contains(copiedText))
         {
@@ -425,19 +347,6 @@ internal sealed class Shell : IShell
         if (input.Contains(copiedText))
         {
             return null;
-        }
-
-        // If clipboard content was copied from the code from the last response (whole or partial)
-        // by mouse clicking, we should ignore it and don't show the prompt.
-        if (GetCodeBlockFromLastResponse() is List<CodeBlock> codeBlocks)
-        {
-            foreach (CodeBlock code in codeBlocks)
-            {
-                if (Utils.Contains(code.Code, copiedText))
-                {
-                    return null;
-                }
-            }
         }
 
         string textToShow = copiedText;
@@ -458,40 +367,6 @@ internal sealed class Shell : IShell
             defaultValue: true);
 
         return confirmed ? copiedText : null;
-    }
-
-    private async Task<string> ReadUserInput(int count)
-    {
-        Host.Markup($"[bold green]{_prompt}[/]:{count}> ");
-        string input = PSConsoleReadLine.ReadLine();
-
-        if (string.IsNullOrEmpty(input))
-        {
-            return null;
-        }
-
-        if (!input.Contains(' '))
-        {
-            foreach (var name in CommandRunner.Commands.Keys)
-            {
-                if (string.Equals(input, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    string command = $"/{name}";
-                    bool confirmed = await Host.PromptForConfirmationAsync(
-                        $"Do you mean to run the command {Formatter.InlineCode(command)} instead?",
-                        defaultValue: true);
-
-                    if (confirmed)
-                    {
-                        input = command;
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        return input;
     }
 
     /// <summary>
@@ -516,8 +391,10 @@ internal sealed class Shell : IShell
                 }
                 else
                 {
-                    input = await ReadUserInput(count);
-                    if (input is null)
+                    Host.Markup($"[bold green]{_prompt}[/]:{count}> ");
+                    input = PSConsoleReadLine.ReadLine();
+
+                    if (string.IsNullOrEmpty(input))
                     {
                         continue;
                     }
@@ -602,7 +479,7 @@ internal sealed class Shell : IShell
 
                             agent.OrchestratorRoleDisabled = true;
                             Host.WriteLine()
-                                .WriteErrorLine($"Operation failed: {ex.Message}")
+                                .MarkupErrorLine($"Operation failed: {ex.Message}")
                                 .WriteLine()
                                 .MarkupNoteLine($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Impl.Name}[/] for the query.");
                         }
@@ -614,7 +491,6 @@ internal sealed class Shell : IShell
                     // Use the current active agent for the query.
                     agent = ActiveAgent;
                     LastQuery = input;
-                    LastAgent = agent;
 
                     // TODO: Consider `WaitAsync(CancellationToken)` to handle an agent not responding to ctr+c.
                     // One problem to use `WaitAsync` is to make sure we give reasonable time for the agent to handle the cancellation.
@@ -635,13 +511,13 @@ internal sealed class Shell : IShell
                     }
 
                     Host.WriteErrorLine()
-                        .WriteErrorLine($"Agent failed to generate a response: {ex.Message}")
+                        .MarkupErrorLine($"Agent failed to generate a response: {ex.Message}")
                         .WriteErrorLine();
                 }
             }
             catch (ShellCopilotException e)
             {
-                Host.WriteErrorLine(e.Message);
+                Host.MarkupErrorLine(e.Message);
                 if (e.HandlerAction is ExceptionHandlerAction.Stop)
                 {
                     break;
@@ -658,8 +534,11 @@ internal sealed class Shell : IShell
     {
         if (ActiveAgent is null)
         {
-            Host.WriteErrorLine("No active agent was configured.");
-            Host.WriteErrorLine($"Run '{Utils.AppName} --settings' to configure the active agent. Run '{Utils.AppName} --help' for details.");
+            string settingCommand = Formatter.InlineCode($"{Utils.AppName} --settings");
+            string helpCommand = Formatter.InlineCode($"{Utils.AppName} --help");
+
+            Host.MarkupErrorLine($"No active agent was configured.");
+            Host.MarkupErrorLine($"Run {settingCommand} to configure the active agent. Run {helpCommand} for details.");
 
             return;
         }
@@ -670,11 +549,11 @@ internal sealed class Shell : IShell
         }
         catch (OperationCanceledException)
         {
-            Host.WriteErrorLine("Operation was aborted.");
+            Host.MarkupErrorLine("Operation was aborted.");
         }
         catch (ShellCopilotException exception)
         {
-            Host.WriteErrorLine(exception.Message);
+            Host.MarkupErrorLine(exception.Message.EscapeMarkup());
         }
     }
 }
