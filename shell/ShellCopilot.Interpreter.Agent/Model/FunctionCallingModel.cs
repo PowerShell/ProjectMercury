@@ -97,7 +97,7 @@ internal class FunctionCallingModel : BaseModel
         if (toolCallIdsByIndex.Count == 0)
         {
             ChatService.AddResponseToHistory(assistantHistoryMessage);
-            return new InternalChatResultsPacket(responseContent, "Tool was not called.");
+            return new InternalChatResultsPacket(responseContent, "No code was given.");
         }
 
         foreach (KeyValuePair<int, string> indexIdPair in toolCallIdsByIndex)
@@ -176,17 +176,23 @@ internal class FunctionCallingModel : BaseModel
             {
                 toolMessage = "Tool call was cancelled.";
                 ChatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, toolCall.Id));
+                ClearToolData();
                 return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
             }
             ChatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, toolCall.Id));
         }
 
         // Clear the tool call data.
+        ClearToolData();
+
+        return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
+    }
+
+    private void ClearToolData()
+    {
         toolCallIdsByIndex.Clear();
         functionNamesByIndex.Clear();
         functionArgumentBuildersByIndex.Clear();
-
-        return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
     }
 
     private async Task<ToolResponsePacket> UseTool(ChatCompletionsToolCall toolCall, string language, string code, CancellationToken token)

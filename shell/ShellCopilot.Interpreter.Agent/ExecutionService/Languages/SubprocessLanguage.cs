@@ -33,13 +33,11 @@ internal abstract class SubprocessLanguage : IDisposable
     protected readonly Queue<OutputData> OutputQueue;
 
     /// <summary>
-    /// Preprocesses the code before running it removing backticks and language name.
+    /// Preprocesses the code before running it wraps code in a try catch block and adds an end of execution marker.
     /// </summary>
     /// <param name="code"></param>
     /// <returns></returns>
     protected abstract string PreprocessCode(string code);
-
-    protected abstract void WriteToProcess(string input);
 
     protected SubprocessLanguage()
     {
@@ -115,47 +113,46 @@ internal abstract class SubprocessLanguage : IDisposable
     {
         OutputQueue.Clear();
 
+        string processedCode;
+
         try
         {
-            string processedCode;
-            try
+            processedCode = PreprocessCode(code);
+            if(Process is null)
             {
-                processedCode = PreprocessCode(code);
-                if(Process is null)
-                {
-                    StartLangServer();
-                }
+                StartLangServer();
             }
-            catch(Exception e)
-            {
-                OutputQueue.Enqueue(new OutputData (OutputType.Error, "Error starting process\n" + e));
-                return OutputQueue;
-            }
-
-            // Reset the event so we can wait for the process to finish
-            DoneExeuctionEvent.Reset();
-
-            try
-            {
-                WriteToProcess(processedCode);
-            }
-            catch(Exception e)
-            {
-                OutputQueue.Enqueue(new OutputData(OutputType.Error, "Error writing to process\n" + e));
-                return OutputQueue;
-            }
-
-            // TODO: This is done inorder to keep the method an async method for the purposes of running it with
-            // the host method RunWithSpinnerAsync
-            await Task.Run(() => DoneExeuctionEvent.Wait(token), token);
-
-            return OutputQueue;
-
         }
-        catch (OperationCanceledException)
+        catch(Exception e)
         {
-            throw;
+            OutputQueue.Enqueue(new OutputData (OutputType.Error, "Error starting process\n" + e));
+            return OutputQueue;
         }
+
+        // Reset the event so we can wait for the process to finish
+        DoneExeuctionEvent.Reset();
+
+        try
+        {
+            WriteToProcess(processedCode);
+        }
+        catch(Exception e)
+        {
+            OutputQueue.Enqueue(new OutputData(OutputType.Error, "Error writing to process\n" + e));
+            return OutputQueue;
+        }
+
+        // TODO: This is done inorder to keep the method an async method for the purposes of running it with
+        // the host method RunWithSpinnerAsync
+        await Task.Run(() => DoneExeuctionEvent.Wait(token), token);
+
+        // This is an effort to resolve the race condition between stderr and stdout with the Python Process.
+        // Sometimes stdout prints ##end_of_execution_## before stderr can fully enqueue all errors.
+        // The above scenario will modify the OutputQueue during enumeration in CodeExeuctionService.
+        // The 300ms delay should be sufficient to allow stderr to finish enqueuing errors.
+        await Task.Delay(300, token);
+
+        return OutputQueue;
     }
 
     /// <summary>
@@ -175,6 +172,15 @@ internal abstract class SubprocessLanguage : IDisposable
     }
 
     /// <summary>
+    /// Writes code to the StandardInput of the process
+    /// </summary>
+    protected void WriteToProcess(string code)
+    {
+        Process.StandardInput.WriteLine(code);
+        Process.StandardInput.Flush();
+    }
+
+    /// <summary>
     /// Internal function to handle the standard output of the process.
     /// </summary>
     private void HandleStandardError(object sender, DataReceivedEventArgs e)
@@ -185,7 +191,9 @@ internal abstract class SubprocessLanguage : IDisposable
             return;
         }
         // Pressing CTRL+C in Shell Copilot during python code execution will propogate the command to 
-        // the python process and cause a KeyboardInterrupt exception. This is caught and handled here.
+        // the python process and cause a KeyboardInterrupt exception. The KeyboardInterrupt will stop 
+        // code execution and print the exception to stderr. Then we will never encounter the end of exeuction
+        // marker, "##end_of_execution##" so DoneExecutionEvent is set here instead.
         if (DetectKeyBoardInterrupt(line))
         {
             OutputQueue.Enqueue(new OutputData(OutputType.Interrupt, line));

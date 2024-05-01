@@ -82,31 +82,40 @@ internal class TaskCompletionChat
         ref string previousCode, 
         InternalChatResultsPacket packet)
     {
+        // Ends automated chat when user cancels during API call or during chat completion streaming.
         if (packet.wasResponseCancelled)
         {
             chatCompleted = true;
         }
-        else if (packet.wasCodeGiven && !packet.didNotCallTool)
+        // If there was code given in the response or in a function call enter this block. Otherwise, end the chat.
+        else if (packet.wasCodeGiven)
         {
+            // When AI corrects code, sometimes it tries the samething again. This automated prompt helps it get unstuck.
+            // If the code is different, we can send a different response.
             if(packet.Code.Equals(previousCode) && !string.IsNullOrEmpty(previousCode))
             {
                 input = prompts["SameError"];
             }
-            else if (packet.wasToolSupported && packet.languageSupported)
+            else
             {
+                // If user did not run the code, the chat is done. This is to give the user a chance to provide more guidance
+                // between steps
                 if (packet.didUserRun)
                 {
+                    // If there was an error in the code for function calling model ask the AI to check ToolResponseMessage.
+                    // For text based models, the error is appended to the user message.
                     if (packet.wasThereAnError)
                     {
                         if (_isFunctionCallingModel)
                         {
-                            input = prompts["Error"];
+                            input = prompts["ErrorFunctionsBased"];
                         }
                         else
                         {
-                            input = prompts["Error"] + packet.toolResponse;
+                            input = prompts["ErrorTextBaed"] + packet.toolResponse;
                         }
                     }
+                    // Output is handled similiarly to errors.
                     else
                     {
                         if (_isFunctionCallingModel)
@@ -125,33 +134,12 @@ internal class TaskCompletionChat
                     chatCompleted = true;
                 }
             }
-            else
-            {
-                input = packet.toolResponse + prompts["Force"];
-            }
         }
         else
         {
-            if (packet.isTaskComplete)
-            {
-                chatCompleted = true;
-            }
-            else if (packet.isTaskImpossible)
-            {
-                chatCompleted = true;
-            }
-            else if (packet.isMoreInformationNeeded)
-            {
-                chatCompleted = true;
-            }
-            else if(packet.isNoTaskPresent)
-            {
-                chatCompleted = true;
-            }
-            else
-            {
-                chatCompleted = true;
-            }
+            // If there is no code to run and no tool requests, then the task is done.
+            // Different end scenarios can be added here, such as saving the code to a file, saving the chat history, etc.
+            chatCompleted = true;
         }
     }
 }

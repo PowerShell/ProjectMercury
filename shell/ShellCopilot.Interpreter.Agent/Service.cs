@@ -19,7 +19,7 @@ internal class ChatService
     private Settings _settings;
     private OpenAIClient _client;
     private List<ChatRequestMessage> _chatHistory;
-    private CodeExecutionService _executionService;
+    private readonly CodeExecutionService _executionService;
 
     internal ChatService(bool isInteractive, string historyRoot, Settings settings, CodeExecutionService executionService)
     {
@@ -289,31 +289,22 @@ internal class ChatService
         // those settings (see the URL below). We can use default values when not defined.
         // https://github.com/microsoft/semantic-kernel/blob/main/samples/skills/FunSkill/Joke/config.json
         
-        ChatCompletionsOptions _chatOptions;
+        ChatCompletionsOptions chatOptions;
 
         // Determine if the gpt model is a function calling model
         bool isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.ModelName);
 
-        if (isFunctionCallingModel)
+        chatOptions = new()
         {
-            _chatOptions = new()
-            {
-                DeploymentName = _settings.Deployment ?? _settings.ModelName,
-                ChoiceCount = 1,
-                Temperature = (float)0.0,
-                MaxTokens = MaxResponseToken,
-                Tools = { Tools.RunCode },
-            };
-        }
-        else
+            DeploymentName = _settings.Deployment ?? _settings.ModelName,
+            ChoiceCount = 1,
+            Temperature = (float)0.0,
+            MaxTokens = MaxResponseToken,
+        };
+        
+        if(isFunctionCallingModel)
         {
-            _chatOptions = new()
-            {
-                DeploymentName = _settings.Deployment ?? _settings.ModelName,
-                ChoiceCount = 1,
-                Temperature = (float)0.0,
-                MaxTokens = MaxResponseToken,
-            };
+            chatOptions.Tools.Add(Tools.RunCode);
         }
 
         List<ChatRequestMessage> history = _isInteractive ? _chatHistory : new List<ChatRequestMessage>();
@@ -422,10 +413,10 @@ Here are conversations between a human and you
         ReduceChatHistoryAsNeeded(history, input);
         foreach (ChatRequestMessage message in history)
         {
-            _chatOptions.Messages.Add(message);
+            chatOptions.Messages.Add(message);
         }
 
-        return _chatOptions;
+        return chatOptions;
     }
 
     public async Task<Response<ChatCompletions>> GetChatCompletionsAsync(ChatRequestMessage input, CancellationToken cancellationToken = default)

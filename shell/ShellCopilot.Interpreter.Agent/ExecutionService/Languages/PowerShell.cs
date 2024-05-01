@@ -42,10 +42,4 @@ catch {{
 ";
         return try_catch_code;
     }
-
-    protected override void WriteToProcess(string code)
-    {
-        Process.StandardInput.WriteLine(code);
-        Process.StandardInput.Flush();
-    }
 }

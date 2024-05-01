@@ -33,9 +33,9 @@ public class CodeExecutionService
 
         try
         {
-            // Create a copy of the OutputQueue to ensure that further additions to the queue
-            // do not affect enumeration operations.
-            var outputQueue = new Queue<OutputData>(await langObj.Run(code, token));
+            // outputQueue may be modified during enumeration. If an InvalidOperationException is thrown
+            // a different solution than a delay may be needed.
+            var outputQueue = await langObj.Run(code, token);
 
             foreach (OutputData outputItem in outputQueue)
             {
