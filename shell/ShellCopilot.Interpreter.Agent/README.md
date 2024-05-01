@@ -96,8 +96,14 @@ a. Example of the `interpreter.agent.json` file:
 - Can execute the code generated in a sandboxed persistent environment
 - Attempts to correct any errors it encounters when running that code
 - Aware of past commands it ran in a session
-- Auto-execution feature 
+- Auto-execution feature
+>```
+> "AutoExecution" : true
+>```
 - Error hiding, can hide errors ran in the code but continue to correct behind the scenes
+>```
+> "DisplayErrors" : false
+>```
 
 ## Architecture/Flow
 

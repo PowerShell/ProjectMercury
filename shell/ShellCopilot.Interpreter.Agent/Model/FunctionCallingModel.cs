@@ -108,10 +108,13 @@ internal class FunctionCallingModel : BaseModel
 
             // Add the tool calls in the assistant message.
             assistantHistoryMessage.ToolCalls.Add(toolCall);
+        }
 
-            // Add it to the history
-            ChatService.AddResponseToHistory(assistantHistoryMessage);
+        // Add it to the history
+        ChatService.AddResponseToHistory(assistantHistoryMessage);
 
+        foreach (ChatCompletionsFunctionToolCall toolCall in assistantHistoryMessage.ToolCalls.Cast<ChatCompletionsFunctionToolCall>())
+        {
             string arguments = toolCall.Arguments;
 
             // Extract the language and code from the arguments
@@ -171,10 +174,10 @@ internal class FunctionCallingModel : BaseModel
             catch (OperationCanceledException)
             {
                 toolMessage = "User chose not to run code.";
-                ChatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, indexIdPair.Value));
+                ChatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, toolCall.Id));
                 return new InternalChatResultsPacket(responseContent, toolMessage, language, code);
             }
-            ChatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, indexIdPair.Value));
+            ChatService.AddResponseToHistory(new ChatRequestToolMessage(toolMessage, toolCall.Id));
         }
 
         // Clear the tool call data.

@@ -7,7 +7,7 @@ namespace ShellCopilot.Interpreter.Agent;
 /// <summary>
 /// The base model class for LLMs. Implementations are FunctionCallingModel and TextBasedModels.
 /// </summary>
-public abstract class BaseModel
+internal abstract class BaseModel
 {
     internal ChatService ChatService;
     internal IHost Host;
@@ -23,7 +23,7 @@ public abstract class BaseModel
     /// <returns></returns>
     protected abstract Task<InternalChatResultsPacket> HandleFunctionCall(string responseContent, CancellationToken token);
 
-    internal BaseModel(
+    protected BaseModel(
         bool autoExecution, 
         bool displayErrors, 
         ChatService chatService, 
@@ -37,10 +37,10 @@ public abstract class BaseModel
         DisplayErrors = displayErrors;
     }
 
-    public async Task<InternalChatResultsPacket> SmartChat(string input, RenderingStyle _renderingStyle, CancellationToken token)
+    public async Task<InternalChatResultsPacket> SmartChat(string input, RenderingStyle renderingStyle, CancellationToken token)
     {
         string responseContent = null;
-        if (_renderingStyle is RenderingStyle.FullResponsePreferred)
+        if (renderingStyle is RenderingStyle.FullResponsePreferred)
         {
             // TODO: Add a way to handle the response if it is a tool call
             // TODO: Test FullResponsePreferred
@@ -77,8 +77,6 @@ public abstract class BaseModel
                 using var streamingRender = Host.NewStreamRender(token);
                 try
                 {
-                    // Cannot pass in `cancellationToken` to `GetChoicesStreaming()` and `GetMessageStreaming()` methods.
-                    // Doing so will result in an exception in Azure.Open
                     await foreach (StreamingChatCompletionsUpdate chatUpdate in response)
                     {
                         RenderStreamingChat(streamingRender, chatUpdate);
@@ -87,7 +85,7 @@ public abstract class BaseModel
                 }
                 catch (OperationCanceledException)
                 {
-                    // Ignore the cancellation exception.
+                    return new InternalChatResultsPacket("AI response cancelled.", "Tool was not called.");
                 }
             }
             else
@@ -111,6 +109,5 @@ public abstract class BaseModel
             streamingRender.Refresh(chatUpdate.ContentUpdate);
         }
     }
-
 }
 

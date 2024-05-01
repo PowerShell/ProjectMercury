@@ -42,20 +42,12 @@ internal class TaskCompletionChat
             model = new TextBasedModel(_autoExecution, _displayErrors, _chatService, _executionService, host);
         }
 	}
-
-    /// <summary>
-    /// Shortcut to clean all code processes.
-    /// </summary>
-    internal void CleanUpProcesses()
-    {
-        _executionService.Terminate();
-    }
     
     /// <summary>
     /// This method contains the while loop that manages the automated chat session.
     /// All AI responses and code exeuction results are reduced to boolean values that determine the next automated user response.
     /// </summary>
-    public async Task<bool> StartTask(string input, RenderingStyle _renderingStyle, CancellationToken token)
+    public async Task<bool> StartTask(string input, RenderingStyle renderingStyle, CancellationToken token)
     {
         bool chatCompleted = false;
         string previousCode = "";
@@ -68,7 +60,7 @@ internal class TaskCompletionChat
             }
             try
             {
-                InternalChatResultsPacket packet = await model.SmartChat(input, _renderingStyle, token);
+                InternalChatResultsPacket packet = await model.SmartChat(input, renderingStyle, token);
 
                 AutomatedUserResponses(ref input, ref chatCompleted, ref previousCode, packet);
             }
