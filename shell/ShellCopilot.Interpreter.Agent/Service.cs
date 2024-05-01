@@ -157,19 +157,33 @@ internal class ChatService
         foreach (ChatRequestMessage message in messages)
         {      
             tokenNumber += tokensPerMessage;
-            tokenNumber += tokensPerName;
             tokenNumber += encoding.Encode(message.Role.ToString()).Count;
 
             switch (message)
             {
                 case ChatRequestSystemMessage systemMessage:
                     tokenNumber += encoding.Encode(systemMessage.Content).Count;
+                    if(systemMessage.Name is not null)
+                    {
+                        tokenNumber += tokensPerName;
+                        tokenNumber += encoding.Encode(systemMessage.Name).Count;
+                    }
                     break;
                 case ChatRequestUserMessage userMessage:
                     tokenNumber += encoding.Encode(userMessage.Content).Count;
+                    if(userMessage.Name is not null)
+                    {
+                        tokenNumber += tokensPerName;
+                        tokenNumber += encoding.Encode(userMessage.Name).Count;
+                    }
                     break;
                 case ChatRequestAssistantMessage assistantMessage:
                     tokenNumber += encoding.Encode(assistantMessage.Content).Count;
+                    if(assistantMessage.Name is not null)
+                    {
+                        tokenNumber += tokensPerName;
+                        tokenNumber += encoding.Encode(assistantMessage.Name).Count;
+                    }
                     if (assistantMessage.ToolCalls is not null)
                     {
                         // Count tokens for the tool call's properties
