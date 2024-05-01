@@ -125,11 +125,11 @@ c. To use OpenAI as the AI completion service, ignore the `Endpoint` and `Deploy
 > "DisplayErrors" : false
 >```
 
-## Architecture/Flow
+## Architecture
 
 <img src="./assets/Interpreter-Agent-Architecture.png" alt="Interpreter-Agent" width="500"/>
 
-### Diagram Description
+### Architecture Description
 1. The agent is initialized using the `interpreter.agent.json` file.
 2. The user enters a task in natual language.
 3. TaskCompletionChat is the main loop of the program, the API request is sent here.
@@ -139,6 +139,21 @@ c. To use OpenAI as the AI completion service, ignore the `Endpoint` and `Deploy
 7. Code output is displayed, collected, and returned to the GPT.				
 8. If GPT detects any errors in the code, it will attempt to correct them and re-rerun code.
 9. The main loop will continue until task is complete or GPT requires more information. 
+
+### Flow
+
+<img src="./assets/InterpreterAgentFlowChart.png" alt="Interpreter-Agent" width="500"/>
+
+### Flow Description
+1. The user enters a task in natural language.
+2. The task is sent to the GPT model.
+3. The GPT model generates a response to complete the task.
+4. Response is scanned for presence of code.
+5. If there is no code, end the main-loop. 
+4. If there is code, it is executed in a sandboxed environment.
+5. The output of the code is returned to the GPT model.
+6. The GPT model corrects any errors in the code.	
+7. Repeat steps 3-6 until task is complete.
 
 ## Known limitations
 - A.I generated code still can product incorrect code and responses
