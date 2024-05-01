@@ -6,6 +6,7 @@ using Azure.AI.OpenAI;
 using SharpToken;
 
 namespace ShellCopilot.Interpreter.Agent;
+
 internal class ChatService
 {
     // TODO: Maybe expose this to our model registration?
