@@ -466,7 +466,7 @@ Here are conversations between a human and you
 }
 
 /// <summary>
-/// Unused method. Need to rework for saving chat history.
+/// Unused method, WIP, not working as expected yet. Need to rework for saving chat history.
 /// </summary>
 public class ChatRequestMessageConverter : JsonConverter<ChatRequestMessage>
 {
