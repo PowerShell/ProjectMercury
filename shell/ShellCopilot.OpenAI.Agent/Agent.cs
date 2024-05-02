@@ -76,11 +76,20 @@ public sealed class OpenAIAgent : ILLMAgent
         _watcher.Created += OnSettingFileChange;
     }
 
-    /// <inheritdoc/>
-    public IEnumerable<CommandBase> GetCommands()
+    public void RefreshChat()
     {
-        return null;
+        // Reset the history so the subsequent chat can start fresh.
+        _chatService.ChatHistory.Clear();
     }
+
+    /// <inheritdoc/>
+    public IEnumerable<CommandBase> GetCommands() => null;
+
+    /// <inheritdoc/>
+    public bool CanAcceptFeedback(UserAction action) => false;
+
+    /// <inheritdoc/>
+    public void OnUserAction(UserActionPayload actionPayload) {}
 
     /// <inheritdoc/>
     public async Task<bool> Chat(string input, IShell shell)

@@ -5,33 +5,54 @@ namespace ShellCopilot.Abstraction;
 /// </summary>
 public class ShellWrapper
 {
+    string _version;
+    string _description;
+
     /// <summary>
-    /// Name of the application to run from command line, e.g. 'az copilot'
+    /// Name of the application to run from command line, e.g. 'az copilot'. Required key.
+    /// It's used to setup the configuration folder of Shell Copilot.
     /// </summary>
     public string Name { set; get; }
 
     /// <summary>
-    /// Banner text to use.
+    /// Banner text to be displayed at the startup of Shell Copilot. Required key.
     /// </summary>
     public string Banner { set; get; }
 
     /// <summary>
-    /// Version to show.
+    /// Version to be displayed at the startup of Shell Copilot. Optional key.
+    /// The version of Shell Copilot will be used if this key is not specified.
     /// </summary>
-    public string Version { set; get; }
+    public string Version
+    {
+        // Normalize the empty string to be null.
+        set => _version = string.IsNullOrEmpty(value) ? null : value;
+        get => _version;
+    }
 
     /// <summary>
-    /// The prompt text to use.
+    /// The description to be displayed at the startup of Shell Copilot. Optional key.
+    /// The default description of the chosen agent will be used if this key is not specified.
+    /// </summary>
+    public string Description
+    {
+        // Normalize the empty string to be null.
+        set => _description = string.IsNullOrEmpty(value) ? null : value;
+        get => _description;
+    }
+
+    /// <summary>
+    /// The prompt text to use. Required key.
     /// </summary>
     public string Prompt { set; get; }
 
     /// <summary>
-    /// The default agent to use, which should be available along with Shell Copilot.
+    /// The default agent to use, which should be available along with Shell Copilot. Required key.
     /// </summary>
     public string Agent { set; get; }
 
     /// <summary>
-    /// Context information that can be passed into the agent.
+    /// Context information that can be passed into the agent. Optional key.
     /// </summary>
     public Dictionary<string, string> Context { set; get; }
 }
@@ -85,6 +106,21 @@ public interface ILLMAgent : IDisposable
     string Description { get; }
 
     /// <summary>
+    /// Gets the company or vendor of this agent.
+    /// </summary>
+    string Company => null;
+
+    /// <summary>
+    /// Gets some sample queries.
+    /// </summary>
+    List<string> SampleQueries => null;
+
+    /// <summary>
+    /// Gets URL links for legal terms, such as "Terms of use", "Privacy statement".
+    /// </summary>
+    Dictionary<string, string> LegalLinks => null;
+
+    /// <summary>
     /// Properties of the agent to be displayed to user.
     /// </summary>
     Dictionary<string, string> AgentInfo => null;
@@ -101,6 +137,12 @@ public interface ILLMAgent : IDisposable
     void Initialize(AgentConfig config);
 
     /// <summary>
+    /// Refresh the current chat by starting a new chat session.
+    /// An agent can reset chat states in this method.
+    /// </summary>
+    void RefreshChat();
+
+    /// <summary>
     /// Initiates a chat with the AI, using the provided input and shell.
     /// </summary>
     /// <param name="input">The query message for the AI.</param>
@@ -113,6 +155,19 @@ public interface ILLMAgent : IDisposable
     /// </summary>
     /// <returns>An enumerable collection of <see cref="CommandBase"/> objects representing the available commands.</returns>
     IEnumerable<CommandBase> GetCommands();
+
+    /// <summary>
+    /// Gets a value indicating whether the agent accepts a specific user action feedback.
+    /// </summary>
+    /// <param name="action">The user action.</param>
+    bool CanAcceptFeedback(UserAction action);
+
+    /// <summary>
+    /// A user action was taken against the last response from this agent.
+    /// </summary>
+    /// <param name="action">Type of the action.</param>
+    /// <param name="actionPayload"></param>
+    void OnUserAction(UserActionPayload actionPayload);
 }
 
 public interface IOrchestrator : ILLMAgent

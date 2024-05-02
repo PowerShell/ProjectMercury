@@ -22,7 +22,7 @@ jobs:
         dotnet-version: 8.0.x
     - name: Build
       shell: pwsh
-      run: ./build.ps1
+      run: ./build.ps1 -Verbose
 
   build-windows:
 
@@ -36,7 +36,7 @@ jobs:
         dotnet-version: 8.0.x
     - name: Build
       shell: pwsh
-      run: ./build.ps1
+      run: ./build.ps1 -Verbose
 
   build-macos:
 
@@ -50,4 +50,4 @@ jobs:
         dotnet-version: 8.0.x
     - name: Build
       shell: pwsh
-      run: ./build.ps1
+      run: ./build.ps1 -Verbose
