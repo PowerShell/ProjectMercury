@@ -142,13 +142,11 @@ internal abstract class SubprocessLanguage : IDisposable
             return OutputQueue;
         }
 
-        // TODO: This is done inorder to keep the method an async method for the purposes of running it with
-        // the host method RunWithSpinnerAsync
-        await Task.Run(() => DoneExeuctionEvent.Wait(token), token);
+        DoneExeuctionEvent.Wait(token);
 
         // This is an effort to resolve the race condition between stderr and stdout with the Python Process.
-        // Sometimes stdout prints ##end_of_execution_## before stderr can fully enqueue all errors.
-        // The above scenario will modify the OutputQueue during enumeration in CodeExeuctionService.
+        // Sometimes stdout receives "##end_of_execution_##" before stderr can fully enqueue all errors.
+        // The above scenario will modify the OutputQueue during enumeration in "CodeExeuctionService".
         // The 300ms delay should be sufficient to allow stderr to finish enqueuing errors.
         await Task.Delay(300, token);
 
