@@ -112,7 +112,7 @@ internal class TaskCompletionChat
                         }
                         else
                         {
-                            input = prompts["ErrorTextBaed"] + packet.toolResponse;
+                            input = prompts["ErrorTextBased"] + packet.toolResponse;
                         }
                     }
                     // Output is handled similiarly to errors.
