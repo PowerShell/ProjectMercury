@@ -36,7 +36,7 @@ public sealed class PropertyElement<T> : IRenderElement<T>
             throw new ArgumentException($"The passed-in property is not retrieved from the target type '{type.FullName}'.", nameof(property));
         }
 
-        if (!_propertyInfo.CanRead)
+        if (!property.CanRead)
         {
             throw new ArgumentException($"The property '{property.Name}' is write-only.", nameof(property));
         }
