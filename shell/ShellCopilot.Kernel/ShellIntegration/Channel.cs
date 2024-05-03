@@ -15,16 +15,18 @@ internal class Channel : IDisposable
     private readonly ManualResetEvent _connSetupWaitHandler;
     private readonly CancellableReadKey _readkeyProxy;
     private readonly Queue<string> _queries;
+    private readonly Shell _shell;
 
     private bool _setupSuccess;
     private bool _disposed;
     private Exception _exception;
     private Thread _serverThread;
 
-    internal Channel(string pipeName)
+    internal Channel(string pipeName, Shell shell)
     {
         ArgumentException.ThrowIfNullOrEmpty(pipeName);
 
+        _shell = shell;
         _aishPipeName = new StringBuilder(MaxNamedPipeNameSize)
             .Append(Utils.AppName.Replace(' ', '_'))
             .Append('.')
@@ -101,13 +103,33 @@ internal class Channel : IDisposable
 
     private void OnPostQuery(PostQueryMessage message)
     {
+        bool sendQuery = true;
+        string agent = string.IsNullOrWhiteSpace(message.Agent) ? null : message.Agent.Trim();
         string query = message.Context is null
             ? message.Query
             : $"{message.Query}\n\n# Context for the query:\n{message.Context}";
 
+        if (agent is not null)
+        {
+            // Wait for Shell to finish initialization.
+            _shell.InitEventHandler.WaitOne();
+            // When agent is specified, we send query only if the agent exists.
+            sendQuery = _shell.Agents.Any(a => agent.Equals(a.Impl.Name, StringComparison.OrdinalIgnoreCase));
+        }
+
         lock (this)
         {
-            _queries.Enqueue(query);
+            if (agent is not null)
+            {
+                // Always try switching the agent when it's specified and let it error out when it doesn't exist.
+                _queries.Enqueue($"/agent use {agent}");
+            }
+
+            if (sendQuery)
+            {
+                _queries.Enqueue(query);
+            }
+
             _readkeyProxy.CancellationSource.Cancel();
         }
     }

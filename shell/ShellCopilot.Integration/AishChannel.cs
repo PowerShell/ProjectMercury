@@ -176,56 +176,39 @@ public class AishChannel : IDisposable
         }
 
         string codeToInsert;
-        List<string> codeForPrediction = null;
         List<string> codeBlocks = postCodeMessage.CodeBlocks;
+        List<PredictionCandidate> predictionCandidates = null;
 
-        if (codeBlocks.Count > 1)
+        if (codeBlocks.Count is 1)
         {
-            bool allOneLiners = true;
-            foreach (string code in codeBlocks)
-            {
-                if (code.Contains('\n'))
-                {
-                    allOneLiners = false;
-                    break;
-                }
-            }
-
-            if (allOneLiners)
-            {
-                codeToInsert = codeBlocks[0];
-                codeForPrediction = codeBlocks;
-            }
-            else
-            {
-                // Use LF as line ending to be consistent with the response from LLM.
-                StringBuilder sb = new(capacity: 50);
-                for (int i = 0; i < codeBlocks.Count; i++)
-                {
-                    if (i > 0)
-                    {
-                        sb.Append('\n');
-                    }
-
-                    sb.Append(codeBlocks[i]).Append('\n');
-                }
-
-                codeToInsert = sb.ToString();
-            }
+            codeToInsert = codeBlocks[0];
+        }
+        else if (AishPredictor.TryProcessForPrediction(codeBlocks, out predictionCandidates))
+        {
+            codeToInsert = predictionCandidates[0].Code;
         }
         else
         {
-            codeToInsert = codeBlocks[0];
+            // Use LF as line ending to be consistent with the response from LLM.
+            StringBuilder sb = new(capacity: 50);
+            for (int i = 0; i < codeBlocks.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append('\n');
+                }
+
+                sb.Append(codeBlocks[i]).Append('\n');
+            }
+
+            codeToInsert = sb.ToString();
         }
 
         if (Console.TreatControlCAsInput)
         {
             PSRLRevertLine();
             PSRLInsert(codeToInsert);
-            if (codeForPrediction is not null)
-            {
-                _predictor.SetCandidates(codeForPrediction);
-            }
+            _predictor.SetCandidates(predictionCandidates);
         }
     }
 

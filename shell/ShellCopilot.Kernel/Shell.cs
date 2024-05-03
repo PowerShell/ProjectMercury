@@ -53,6 +53,11 @@ internal sealed class Shell : IShell
     internal Channel Channel { get; }
 
     /// <summary>
+    /// Gets the event handler that will be set when initialization is done.
+    /// </summary>
+    internal ManualResetEvent InitEventHandler { get; }
+
+    /// <summary>
     /// Gets the agent list.
     /// </summary>
     internal List<LLMAgent> Agents => _agents;
@@ -86,7 +91,8 @@ internal sealed class Shell : IShell
         // Create the channel if the args is specified.
         // The channel object starts the connection initialization on a background thread,
         // to run in parallel with the rest of the Shell initialization.
-        Channel = args.Channel is null ? null : new Channel(args.Channel);
+        InitEventHandler = new ManualResetEvent(false);
+        Channel = args.Channel is null ? null : new Channel(args.Channel, this);
 
         _agents = [];
         _setting = new Setting();
@@ -109,6 +115,7 @@ internal sealed class Shell : IShell
 
         LoadAvailableAgents();
         Console.CancelKeyPress += OnCancelKeyPress;
+        InitEventHandler.Set();
 
         if (interactive)
         {
@@ -550,7 +557,7 @@ internal sealed class Shell : IShell
                     if (input is not null)
                     {
                         // Write out the remote query, in the same style as user typing.
-                        Host.Markup($"\nRemote Query Received:\n");
+                        Host.Markup($"\n>> Remote Query Received:\n");
                         Host.MarkupLine($"[teal]{input}[/]");
                     }
                     else

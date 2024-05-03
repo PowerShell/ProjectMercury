@@ -11,8 +11,9 @@ public class InvokeAishCommand : PSCmdlet
     [Parameter(Position = 0, Mandatory = true)]
     public string Query { get; set; }
 
-    // // TODO: allow user to choose the agent to work with.
-    // public string Agent { get; set; }
+    [Parameter]
+    [ValidateNotNullOrEmpty]
+    public string Agent { get; set; }
 
     [Parameter(ParameterSetName = "Default", Position = 1, Mandatory = false, ValueFromPipeline = true)]
     public PSObject Context { get; set; }
@@ -54,6 +55,6 @@ public class InvokeAishCommand : PSCmdlet
         }
 
         string context = results?.Count > 0 ? results[0] : null;
-        AishChannel.Singleton.PostQuery(new PostQueryMessage(Query, context));
+        AishChannel.Singleton.PostQuery(new PostQueryMessage(Query, context, Agent));
     }
 }

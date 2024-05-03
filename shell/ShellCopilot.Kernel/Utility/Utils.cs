@@ -195,8 +195,11 @@ internal static class Utils
 
     internal static void SetDefaultKeyHandlers()
     {
+        string[] englishNumbers = ["One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+        string[] ordinalNumbers = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"];
+
         PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+d,Ctrl+c" },
+            ["Ctrl+d,Ctrl+c"],
             (key, arg) =>
             {
                 PSConsoleReadLine.RevertLine();
@@ -206,104 +209,50 @@ internal static class Utils
             "CopyCodeAll",
             "Copy all the code snippets from the last response to clipboard.");
 
-        PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+1" },
-            (key, arg) =>
-            {
-                PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy 1");
-                PSConsoleReadLine.AcceptLine();
-            },
-            "CopyCodeOne",
-            "Copy the 1st code snippet from the last response to clipboard.");
+        // Setup hot keys for copying a specific code snippet.
+        for (int i = 1; i < 10; i++)
+        {
+            PSConsoleReadLine.SetKeyHandler(
+                [$"Ctrl+{i}"],
+                CopyCodeSnippet,
+                $"CopyCode{englishNumbers[i-1]}",
+                $"Copy the {ordinalNumbers[i-1]} code snippet from the last response to clipboard.");
+        }
 
         PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+2" },
+            ["Ctrl+d,Ctrl+d"],
             (key, arg) =>
             {
                 PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy 2");
+                PSConsoleReadLine.Insert("/code post");
                 PSConsoleReadLine.AcceptLine();
             },
-            "CopyCodeTwo",
-            "Copy the 2nd code snippet from the last response to clipboard.");
+            "PostCodeAll",
+            "Post all the code snippets from the last response to the connected PowerShell session.");
 
-        PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+3" },
-            (key, arg) =>
-            {
-                PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy 3");
-                PSConsoleReadLine.AcceptLine();
-            },
-            "CopyCodeThree",
-            "Copy the 3rd code snippet from the last response to clipboard.");
+        // Setup hot keys for posting a specific code snippet.
+        for (int i = 1; i < 10; i++)
+        {
+            PSConsoleReadLine.SetKeyHandler(
+                [$"Ctrl+d,{i}"],
+                PostCodeSnippet,
+                $"PostCode{englishNumbers[i-1]}",
+                $"Post the {ordinalNumbers[i-1]} code snippet from the last response to the connected PowerShell session.");
+        }
 
-        PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+4" },
-            (key, arg) =>
-            {
-                PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy 4");
-                PSConsoleReadLine.AcceptLine();
-            },
-            "CopyCodeFour",
-            "Copy the 4th code snippet from the last response to clipboard.");
+        static void CopyCodeSnippet(ConsoleKeyInfo? key, object arg)
+        {
+            PSConsoleReadLine.RevertLine();
+            PSConsoleReadLine.Insert($"/code copy {key?.KeyChar}");
+            PSConsoleReadLine.AcceptLine();
+        }
 
-        PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+5" },
-            (key, arg) =>
-            {
-                PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy 5");
-                PSConsoleReadLine.AcceptLine();
-            },
-            "CopyCodeFive",
-            "Copy the 5th code snippet from the last response to clipboard.");
-
-        PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+6" },
-            (key, arg) =>
-            {
-                PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy 6");
-                PSConsoleReadLine.AcceptLine();
-            },
-            "CopyCodeSix",
-            "Copy the 6th code snippet from the last response to clipboard.");
-
-        PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+7" },
-            (key, arg) =>
-            {
-                PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy 7");
-                PSConsoleReadLine.AcceptLine();
-            },
-            "CopyCodeSeven",
-            "Copy the 7th code snippet from the last response to clipboard.");
-
-        PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+8" },
-            (key, arg) =>
-            {
-                PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy 8");
-                PSConsoleReadLine.AcceptLine();
-            },
-            "CopyCodeEight",
-            "Copy the 8th code snippet from the last response to clipboard.");
-
-        PSConsoleReadLine.SetKeyHandler(
-            new[] { "Ctrl+9" },
-            (key, arg) =>
-            {
-                PSConsoleReadLine.RevertLine();
-                PSConsoleReadLine.Insert("/code copy 9");
-                PSConsoleReadLine.AcceptLine();
-            },
-            "CopyCodeNine",
-            "Copy the 9th code snippet from the last response to clipboard.");
+        static void PostCodeSnippet(ConsoleKeyInfo? key, object arg)
+        {
+            PSConsoleReadLine.RevertLine();
+            PSConsoleReadLine.Insert($"/code post {key?.KeyChar}");
+            PSConsoleReadLine.AcceptLine();
+        }
     }
 
     private static void CreateFolderWithRightPermission(string dirPath)

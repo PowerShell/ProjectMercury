@@ -157,6 +157,7 @@ public sealed class AzCLIAgent : ILLMAgent
                         _text.AppendLine($"{i+1}. {action.Reason}")
                             .AppendLine()
                             .AppendLine("```sh")
+                            .AppendLine($"# {action.Reason}")
                             .AppendLine(action.Example)
                             .AppendLine("```")
                             .AppendLine();

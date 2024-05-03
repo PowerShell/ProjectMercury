@@ -64,14 +64,20 @@ public sealed class PostQueryMessage : PipeMessage
     public string Context { get; }
 
     /// <summary>
+    /// Gets the agent to use for the query.
+    /// </summary>
+    public string Agent { get; }
+
+    /// <summary>
     /// Creates an instance of <see cref="PostQueryMessage"/>.
     /// </summary>
-    public PostQueryMessage(string query, string context)
+    public PostQueryMessage(string query, string context, string agent)
         : base(MessageType.PostQuery)
     {
         ArgumentException.ThrowIfNullOrEmpty(query);
         Query = query;
         Context = context;
+        Agent = agent;
     }
 }
 

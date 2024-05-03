@@ -35,7 +35,7 @@ public sealed class AishErrorFeedback : IFeedbackProvider
         if (channel.CheckConnection(blocking: false, out _))
         {
             string query = CreateQueryForError(context.CommandLine, context.LastError, channel);
-            PostQueryMessage message = new(query, context: null);
+            PostQueryMessage message = new(query, context: null, agent: null);
             channel.PostQuery(message);
 
             return new FeedbackItem(header: "Check the sidecar for suggestions from AI.", actions: null);

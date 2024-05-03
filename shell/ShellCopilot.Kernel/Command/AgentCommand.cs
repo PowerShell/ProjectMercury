@@ -121,12 +121,12 @@ internal sealed class AgentCommand : CommandBase
 
     private static LLMAgent FindAgent(string name, Shell shell)
     {
-        return shell.Agents.FirstOrDefault(a => string.Equals(name, a.Impl.Name));
+        return shell.Agents.FirstOrDefault(a => string.Equals(name, a.Impl.Name, StringComparison.OrdinalIgnoreCase));
     }
 
     private static void AgentNotFound(string name, Shell shell)
     {
-        string availableAgentNames = string.Join(',', shell.Agents.Select(AgentName));
+        string availableAgentNames = string.Join(", ", shell.Agents.Select(AgentName));
         shell.Host.WriteErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}");
     }
 

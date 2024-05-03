@@ -10,6 +10,10 @@ namespace ShellCopilot.Integration;
 public class ResolveErrorCommand : PSCmdlet
 {
     [Parameter]
+    [ValidateNotNullOrEmpty]
+    public string Agent { get; set; }
+
+    [Parameter]
     public SwitchParameter IncludeOutputFromClipboard { get; set; }
 
     protected override void EndProcessing()
@@ -87,7 +91,7 @@ public class ResolveErrorCommand : PSCmdlet
             context = r?.Count > 0 ? r[0] : null;
         }
 
-        channel.PostQuery(new PostQueryMessage(query, context));
+        channel.PostQuery(new PostQueryMessage(query, context, Agent));
     }
 
     private bool UseClipboardForCommandOutput(int lastExitCode)
