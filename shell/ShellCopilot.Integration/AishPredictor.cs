@@ -11,12 +11,14 @@ public sealed class AishPredictor : ICommandPredictor
     private readonly Guid _guid;
 
     private int _invalidationCount;
+    private bool _checkExecutionResult;
     private List<PredictionCandidate> _candidates;
 
     internal AishPredictor()
     {
         _guid = new Guid(GUID);
         _invalidationCount = -1;
+        _checkExecutionResult = false;
         _candidates = null;
         SubsystemManager.RegisterSubsystem(SubsystemKind.CommandPredictor, this);
     }
@@ -33,7 +35,8 @@ public sealed class AishPredictor : ICommandPredictor
     {
         return feedback switch
         {
-            PredictorFeedbackKind.CommandLineAccepted => true,
+            PredictorFeedbackKind.CommandLineAccepted or
+            PredictorFeedbackKind.CommandLineExecuted => true,
             _ => false,
         };
     }
@@ -98,35 +101,25 @@ public sealed class AishPredictor : ICommandPredictor
                     }
                 }
 
+                // Update the candidate list if we do have candidate items that can match the input.
                 if (longestMatchIndex >= 0)
                 {
-                    // Update the candidate list if we do have candidate items that can match the input.
+                    // We invalidate all items prior to the first longest match.
+                    _candidates.RemoveRange(0, longestMatchIndex);
+
+                    // When there are multiple longest matches, we keep the first longest match item in the candidate list.
+                    // When there is only one longest match, whether to keep it depends on the command execution result.
                     if (longestItems is 1)
                     {
                         // The longest match is likely what the user has accepted, altered arguments, and then ran.
-                        // In this case we will remove this item and all its prior items from our candidate list.
-                        // Even if the execution fails, it's more convenient for the user to edit based on the history entry at this point.
-                        _candidates.RemoveRange(0, longestMatchIndex + 1);
-                    }
-                    else
-                    {
-                        // When there are multiple longest matches, we invalidate all items prior to the first longest match,
-                        // but keep the first longest match item in the candidate list.
-                        _candidates.RemoveRange(0, longestMatchIndex);
+                        // In this case, we want to remove this item if the execution of the command is successful,
+                        // but will keep it if the execution fails. This is because when execution fails, the user
+                        // will re-run the command, which may cause us to incorrectly invalidate the next candidate.
+                        _checkExecutionResult = true;
                     }
 
-                    if (_candidates.Count is 0)
-                    {
-                        // Reset the fields.
-                        _invalidationCount = -1;
-                        _candidates = null;
-                    }
-                    else
-                    {
-                        // Update the invalidation count according to the current size of the candidate list.
-                        _invalidationCount = Math.Min(_candidates.Count * 2, MaxRoundsToInvalidate);
-                    }
-
+                    // Update the invalidation count according to the current size of the candidate list.
+                    _invalidationCount = Math.Min(_candidates.Count * 2, MaxRoundsToInvalidate);
                     return;
                 }
             }
@@ -136,6 +129,33 @@ public sealed class AishPredictor : ICommandPredictor
             if (_invalidationCount is -1)
             {
                 _candidates = null;
+            }
+        }
+    }
+
+    public void OnCommandLineExecuted(PredictionClient client, string commandLine, bool success)
+    {
+        if (_checkExecutionResult)
+        {
+            // The command line is believed to be a match of the first candidate item in the list.
+            // Now we check its execution result to decide whether to remove the item from the list.
+            _checkExecutionResult = false;
+            if (!success)
+            {
+                // The execution failed, so we keep the candidate item in the list.
+                return;
+            }
+
+            // The execution was successful, so we remove the candidate item from the list.
+            lock (this)
+            {
+                _candidates.RemoveAt(0);
+                if (_candidates.Count is 0)
+                {
+                    // Reset the fields.
+                    _invalidationCount = -1;
+                    _candidates = null;
+                }
             }
         }
     }
