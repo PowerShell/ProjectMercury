@@ -22,7 +22,7 @@ internal class AzCLIChatService : IDisposable
     internal AzCLIChatService()
     {
         _client = new HttpClient();
-        _scopes = ["api://62009369-df36-4df2-b7d7-b3e784b3ed55/"];
+        _scopes = ["https://management.core.windows.net/"];
         _chatHistory = [];
         _accessToken = null;
         _correlationID = null;
