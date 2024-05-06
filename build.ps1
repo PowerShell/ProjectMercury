@@ -41,9 +41,12 @@ $pkg_dir = Join-Path $shell_dir "ShellCopilot.Abstraction"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
 $az_agent_dir = Join-Path $shell_dir "ShellCopilot.Azure.Agent"
 $interpreter_agent_dir = Join-Path $shell_dir "ShellCopilot.Interpreter.Agent"
+$module_dir = Join-Path $shell_dir "ShellCopilot.Integration"
 
+$config = $Configuration.ToLower()
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
-$app_out_dir = Join-Path $PSScriptRoot "out" $Configuration.ToLower()
+$app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
+$module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "Aish"
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.OpenAI.Agent"
 $az_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Azure.Agent"
 $interpreter_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Interpreter.Agent"
@@ -88,6 +91,12 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter') {
     Write-Host "`n[Build the Interpreter agent ...]`n" -ForegroundColor Green
     $interpreter_csproj = GetProjectFile $interpreter_agent_dir
     dotnet publish $interpreter_csproj -c $Configuration -o $interpreter_out_dir
+}
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "`n[Build the Aish module ...]`n" -ForegroundColor Green
+    $aish_module_csproj = GetProjectFile $module_dir
+    dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
 }
 
 if ($LASTEXITCODE -eq 0) {

@@ -569,9 +569,8 @@ public sealed class CopilotServerPipe : PipeCommon
     /// Starts to receive and process messages sent from client.
     /// </summary>
     /// <param name="timeout">The number of milliseconds to wait for a client to connect to the server.</param>
-    /// <param name="callback">A callback to invoke when connection succeeds or fails.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    public async Task StartProcessingAsync(int timeout, Action<Exception> callback, CancellationToken cancellationToken)
+    public async Task StartProcessingAsync(int timeout, CancellationToken cancellationToken)
     {
         if (timeout <= 0 && timeout != Timeout.Infinite)
         {
@@ -589,16 +588,16 @@ public sealed class CopilotServerPipe : PipeCommon
             }
 
             await _server.WaitForConnectionAsync(tokenForConnection);
-            callback(null);
+            InvokeOnConnectedOrFailed(exception: null);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            if (ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+            if (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
             {
-                ex = new TimeoutException("Could not receive connection from a client within the specified timeout period.");
+                exception = new TimeoutException("Could not receive connection from a client within the specified timeout period.");
             }
 
-            callback(ex);
+            InvokeOnConnectedOrFailed(exception);
             return;
         }
 
@@ -645,10 +644,33 @@ public sealed class CopilotServerPipe : PipeCommon
         }
     }
 
+    private void InvokeOnConnectedOrFailed(Exception exception)
+    {
+        if (OnConnectedOrFailed is null)
+        {
+            // Log: event handler not set.
+            return;
+        }
+
+        try
+        {
+            OnConnectedOrFailed(exception);
+        }
+        catch (Exception)
+        {
+            // Log: exception when invoking 'OnConnectedOrFailed'
+        }
+    }
+
     /// <summary>
     /// Event for handling the <see cref="MessageType.PostQuery"/> message.
     /// </summary>
     public event Action<PostQueryMessage> OnPostQuery;
+
+    /// <summary>
+    /// Event to be triggered when connection to the server pipe succeeds or fails.
+    /// </summary>
+    public event Action<Exception> OnConnectedOrFailed;
 }
 
 /// <summary>

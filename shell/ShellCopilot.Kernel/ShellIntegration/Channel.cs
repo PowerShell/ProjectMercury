@@ -38,6 +38,7 @@ internal class Channel : IDisposable
         _clientPipe = new CopilotClientPipe(pipeName);
         _serverPipe = new CopilotServerPipe(_aishPipeName);
         _serverPipe.OnPostQuery += OnPostQuery;
+        _serverPipe.OnConnectedOrFailed += OnConnectedOrFailed;
         _connSetupWaitHandler = new ManualResetEvent(false);
 
         // Initialize the connection on a background thread.
@@ -67,24 +68,7 @@ internal class Channel : IDisposable
 
     private async void ServerThreadProc()
     {
-        await _serverPipe.StartProcessingAsync(ConnectionTimeout, ServerConnectionCallback, CancellationToken.None);
-    }
-
-    private void ServerConnectionCallback(Exception exception)
-    {
-        if (exception is null)
-        {
-            _setupSuccess = true;
-        }
-        else if (_exception is null)
-        {
-            // _exception may already be set because '_clientPipe.AskConnection' failed.
-            // We don't want to overwrite the true exception with a timeout exception in that case.
-            _setupSuccess = false;
-            _exception = exception;
-        }
-
-        _connSetupWaitHandler.Set();
+        await _serverPipe.StartProcessingAsync(ConnectionTimeout, CancellationToken.None);
     }
 
     private void ThrowIfNotConnected()
@@ -108,6 +92,23 @@ internal class Channel : IDisposable
             _queries.Enqueue(message);
             _readkeyProxy.CancellationSource.Cancel();
         }
+    }
+
+    private void OnConnectedOrFailed(Exception exception)
+    {
+        if (exception is null)
+        {
+            _setupSuccess = true;
+        }
+        else if (_exception is null)
+        {
+            // _exception may already be set because '_clientPipe.AskConnection' failed.
+            // We don't want to overwrite the true exception with a timeout exception in that case.
+            _setupSuccess = false;
+            _exception = exception;
+        }
+
+        _connSetupWaitHandler.Set();
     }
 
     internal bool TryDequeueQuery(out string query)
@@ -221,6 +222,7 @@ internal class Channel : IDisposable
         _clientPipe.Dispose();
         _serverPipe.Dispose();
         _serverPipe.OnPostQuery -= OnPostQuery;
+        _serverPipe.OnConnectedOrFailed -= OnConnectedOrFailed;
         _connSetupWaitHandler.Dispose();
         _disposed = true;
 
