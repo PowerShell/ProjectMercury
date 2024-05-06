@@ -487,7 +487,7 @@ internal sealed class Shell : IShell
 
         lock (Channel)
         {
-            if (Channel.Queries.TryDequeue(out string remoteQuery))
+            if (Channel.TryDequeueQuery(out string remoteQuery))
             {
                 return remoteQuery;
             }

@@ -14,7 +14,7 @@ internal class Channel : IDisposable
     private readonly CopilotServerPipe _serverPipe;
     private readonly ManualResetEvent _connSetupWaitHandler;
     private readonly CancellableReadKey _readkeyProxy;
-    private readonly Queue<string> _queries;
+    private readonly Queue<PostQueryMessage> _queries;
     private readonly Shell _shell;
 
     private bool _setupSuccess;
@@ -45,7 +45,7 @@ internal class Channel : IDisposable
         // We need to cancel the readline call when a query arrives from the command-line shell,
         // so we need to override the 'ReadKey' with a cancellable read-key method.
         _readkeyProxy = new CancellableReadKey();
-        _queries = new Queue<string>();
+        _queries = new Queue<PostQueryMessage>();
     }
 
     private async void InitializeConnection()
@@ -103,38 +103,68 @@ internal class Channel : IDisposable
 
     private void OnPostQuery(PostQueryMessage message)
     {
-        bool sendQuery = true;
-        string agent = string.IsNullOrWhiteSpace(message.Agent) ? null : message.Agent.Trim();
-        string query = message.Context is null
-            ? message.Query
-            : $"{message.Query}\n\n# Context for the query:\n{message.Context}";
-
-        if (agent is not null)
-        {
-            // Wait for Shell to finish initialization.
-            _shell.InitEventHandler.WaitOne();
-            // When agent is specified, we send query only if the agent exists.
-            sendQuery = _shell.Agents.Any(a => agent.Equals(a.Impl.Name, StringComparison.OrdinalIgnoreCase));
-        }
-
         lock (this)
         {
-            if (agent is not null)
-            {
-                // Always try switching the agent when it's specified and let it error out when it doesn't exist.
-                _queries.Enqueue($"/agent use {agent}");
-            }
-
-            if (sendQuery)
-            {
-                _queries.Enqueue(query);
-            }
-
+            _queries.Enqueue(message);
             _readkeyProxy.CancellationSource.Cancel();
         }
     }
 
-    internal Queue<string> Queries => _queries;
+    internal bool TryDequeueQuery(out string query)
+    {
+        if (_queries.TryPeek(out PostQueryMessage message))
+        {
+            bool needSwitchingAgent = false;
+            string agent = string.IsNullOrWhiteSpace(message.Agent) ? null : message.Agent.Trim();
+
+            if (agent is not null)
+            {
+                // Wait for Shell to finish initialization.
+                _shell.InitEventHandler.WaitOne();
+                if (!agent.Equals(_shell.ActiveAgent?.Impl.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    needSwitchingAgent = true;
+                }
+            }
+
+            if (needSwitchingAgent)
+            {
+                // Try switching the agent, and unset the 'Ágent' property for the message.
+                query = $"/agent use {agent}";
+                message.Agent = null;
+
+                // When agent is specified, we send query only if the agent exists.
+                bool agentExists = false;
+                foreach (var a in _shell.Agents)
+                {
+                    if (agent.Equals(a.Impl.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        agentExists = true;
+                        break;
+                    }
+                }
+
+                if (!agentExists)
+                {
+                    // The specified agent doesn't exist, so we will just let `/agent use` to fail
+                    // and not going to send the actual query.
+                    _queries.Dequeue();
+                }
+            }
+            else
+            {
+                _queries.Dequeue();
+                query = message.Context is null
+                    ? message.Query
+                    : $"{message.Query}\n\n# Context for the query:\n{message.Context}";
+            }
+
+            return true;
+        }
+
+        query = null;
+        return false;
+    }
 
     internal bool Connected => CheckConnection(blocking: true, out _);
 
@@ -164,7 +194,7 @@ internal class Channel : IDisposable
     }
 
     /// <summary>
-    /// Post code blocks to the shell.
+    /// Post code blocks to the connected command-line shell.
     /// </summary>
     internal void PostCode(PostCodeMessage message)
     {

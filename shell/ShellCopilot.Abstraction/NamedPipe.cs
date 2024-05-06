@@ -61,12 +61,12 @@ public sealed class PostQueryMessage : PipeMessage
     /// <summary>
     /// Gets the context information.
     /// </summary>
-    public string Context { get; }
+    public string Context { get; set; }
 
     /// <summary>
     /// Gets the agent to use for the query.
     /// </summary>
-    public string Agent { get; }
+    public string Agent { get; set; }
 
     /// <summary>
     /// Creates an instance of <see cref="PostQueryMessage"/>.
