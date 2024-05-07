@@ -10,6 +10,8 @@ public class Bash : ILanguage
     public string CssClassName => "bash";
     public string FirstLinePattern => null;
 
+    internal const string BashCommentScope = "Bash Comment";
+
     public IList<LanguageRule> Rules =>
         new List<LanguageRule>
         {
@@ -17,7 +19,7 @@ public class Bash : ILanguage
                 @"(\#.*?)\r?$",
                 new Dictionary<int, string>
                 {
-                    {1, ScopeName.Comment}
+                    {1, BashCommentScope}
                 }),
 
             // match the first word of a line in a multi-line string as the command name.

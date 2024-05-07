@@ -11,8 +11,9 @@ internal sealed class CodeCommand : CommandBase
     {
         var copy = new Command("copy", "Copy the code snippet from the last response to clipboard.");
         var save = new Command("save", "Save the code snippet from the last response to a file.");
+        var post = new Command("post", "Post the code snippet from the last response to the connected command-line shell.");
 
-        var nth = new Argument<int>("n", () => -1, "The n-th (starts from 1) code block to copy.");
+        var nth = new Argument<int>("n", () => -1, "The n-th (starts from 1) code block to copy or post.");
         nth.AddValidator(result => {
             int value = result.GetValueForArgument(nth);
             if (value is not -1 && value < 1)
@@ -21,6 +22,7 @@ internal sealed class CodeCommand : CommandBase
             }
         });
         copy.AddArgument(nth);
+        post.AddArgument(nth);
 
         var append = new Option<bool>("--append", "Append to the end of the file.");
         var file = new Argument<FileInfo>("file", "The file path to save the code to.");
@@ -29,9 +31,11 @@ internal sealed class CodeCommand : CommandBase
 
         AddCommand(copy);
         AddCommand(save);
+        AddCommand(post);
 
         copy.SetHandler(CopyAction, nth);
         save.SetHandler(SaveAction, file, append);
+        post.SetHandler(PostAction, nth);
     }
 
     private static string GetCodeText(Shell shell, int index)
@@ -106,6 +110,48 @@ internal sealed class CodeCommand : CommandBase
 
             host.MarkupLine("[cyan]Code snippet saved to the file.[/]");
             shell.OnUserAction(new CodePayload(UserAction.CodeSave, code));
+        }
+        catch (Exception e)
+        {
+            host.WriteErrorLine(e.Message);
+        }
+    }
+
+    private void PostAction(int nth)
+    {
+        var shell = (Shell)Shell;
+        var host = shell.Host;
+
+        int index = nth > 0 ? nth - 1 : nth;
+        List<string> codeToPost = null;
+        List<CodeBlock> allCode = shell.GetCodeBlockFromLastResponse();
+
+        if (allCode is not null && allCode.Count > 0)
+        {
+            if (index is -1)
+            {
+                codeToPost = new(capacity: allCode.Count);
+                foreach (CodeBlock item in allCode)
+                {
+                    codeToPost.Add(item.Code);
+                }
+            }
+            else if (index < allCode.Count)
+            {
+                codeToPost = [allCode[index].Code];
+            }
+        }
+
+        if (codeToPost is null)
+        {
+            host.MarkupLine("[olive]No code snippet available to post.[/]");
+            return;
+        }
+
+        try
+        {
+            shell.Channel.PostCode(new PostCodeMessage(codeToPost));
+            host.MarkupLine("[cyan]Code snippet was successfully posted.[/]");
         }
         catch (Exception e)
         {

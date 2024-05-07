@@ -48,6 +48,16 @@ internal sealed class Shell : IShell
     internal CommandRunner CommandRunner { get; }
 
     /// <summary>
+    /// Gets the channel to the command-line shell.
+    /// </summary>
+    internal Channel Channel { get; }
+
+    /// <summary>
+    /// Gets the event handler that will be set when initialization is done.
+    /// </summary>
+    internal ManualResetEvent InitEventHandler { get; }
+
+    /// <summary>
     /// Gets the agent list.
     /// </summary>
     internal List<LLMAgent> Agents => _agents;
@@ -72,11 +82,17 @@ internal sealed class Shell : IShell
     /// <summary>
     /// Creates an instance of <see cref="Shell"/>.
     /// </summary>
-    internal Shell(bool interactive, ShellWrapper wrapper)
+    internal Shell(bool interactive, ShellArgs args)
     {
         _isInteractive = interactive;
-        _wrapper = wrapper;
-        _prompt = wrapper?.Prompt ?? Utils.DefaultPrompt;
+        _wrapper = args.ShellWrapper;
+        _prompt = _wrapper?.Prompt ?? Utils.DefaultPrompt;
+
+        // Create the channel if the args is specified.
+        // The channel object starts the connection initialization on a background thread,
+        // to run in parallel with the rest of the Shell initialization.
+        InitEventHandler = new ManualResetEvent(false);
+        Channel = args.Channel is null ? null : new Channel(args.Channel, this);
 
         _agents = [];
         _setting = new Setting();
@@ -99,6 +115,7 @@ internal sealed class Shell : IShell
 
         LoadAvailableAgents();
         Console.CancelKeyPress += OnCancelKeyPress;
+        InitEventHandler.Set();
 
         if (interactive)
         {
@@ -460,10 +477,30 @@ internal sealed class Shell : IShell
         return confirmed ? copiedText : null;
     }
 
-    private async Task<string> ReadUserInput(int count)
+    private string GetOneRemoteQuery(out CancellationToken readlineCancelToken)
+    {
+        readlineCancelToken = CancellationToken.None;
+        if (Channel is null)
+        {
+            return null;
+        }
+
+        lock (Channel)
+        {
+            if (Channel.TryDequeueQuery(out string remoteQuery))
+            {
+                return remoteQuery;
+            }
+
+            readlineCancelToken = Channel.ReadLineCancellationToken;
+            return null;
+        }
+    }
+
+    private async Task<string> ReadUserInput(int count, CancellationToken cancellationToken)
     {
         Host.Markup($"[bold green]{_prompt}[/]:{count}> ");
-        string input = PSConsoleReadLine.ReadLine();
+        string input = PSConsoleReadLine.ReadLine(cancellationToken);
 
         if (string.IsNullOrEmpty(input))
         {
@@ -516,10 +553,20 @@ internal sealed class Shell : IShell
                 }
                 else
                 {
-                    input = await ReadUserInput(count);
-                    if (input is null)
+                    input = GetOneRemoteQuery(out CancellationToken readlineCancelToken);
+                    if (input is not null)
                     {
-                        continue;
+                        // Write out the remote query, in the same style as user typing.
+                        Host.Markup($"\n>> Remote Query Received:\n");
+                        Host.MarkupLine($"[teal]{input}[/]");
+                    }
+                    else
+                    {
+                        input = await ReadUserInput(count, readlineCancelToken);
+                        if (input is null)
+                        {
+                            continue;
+                        }
                     }
                 }
 

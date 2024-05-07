@@ -253,6 +253,12 @@ public static class ColorExtensionMethods
                 Foreground = "\x1b[92m",
                 ReferenceName = "powershellVariable"
             });
+        styles.Add(
+            new Style(Bash.BashCommentScope)
+            {
+                Foreground = "\x1b[90m",
+                ReferenceName = "bashComment"
+            });
 
         return styles;
     }
