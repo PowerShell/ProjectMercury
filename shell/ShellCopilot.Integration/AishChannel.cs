@@ -18,7 +18,6 @@ public class AishChannel : IDisposable
     private readonly MethodInfo _psrlInsert, _psrlRevertLine, _psrlAcceptLine;
     private readonly ManualResetEvent _connSetupWaitHandler;
     private readonly AishPredictor _predictor;
-    private readonly AishErrorFeedback _feedback;
 
     private ShellClientPipe _clientPipe;
     private ShellServerPipe _serverPipe;
@@ -45,7 +44,6 @@ public class AishChannel : IDisposable
         _psrlAcceptLine = _psrlType.GetMethod("AcceptLine", bindingFlags);
 
         _predictor = new AishPredictor();
-        // _feedback = new AishErrorFeedback();
     }
 
     public static AishChannel CreateSingleton(Runspace runspace, Type psConsoleReadLineType)
@@ -125,7 +123,6 @@ public class AishChannel : IDisposable
         Reset();
         _connSetupWaitHandler.Dispose();
         _predictor.Unregister();
-        //_feedback.Unregister();
         GC.SuppressFinalize(this);
     }
 

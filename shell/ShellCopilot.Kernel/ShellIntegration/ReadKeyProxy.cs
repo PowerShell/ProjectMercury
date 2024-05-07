@@ -4,7 +4,10 @@ using Microsoft.PowerShell;
 namespace ShellCopilot.Kernel;
 
 /// <summary>
-/// When 
+/// When a channel is established between PowerShell and AISH, we need to be able to
+/// cancel a 'ReadLine' operation when a request comes in from the PowerShell side,
+/// and to do so, we need to override the 'ReadKey' proxy method used by 'PSReadLine'
+/// with our implementation.
 /// </summary>
 internal class CancellableReadKey
 {
