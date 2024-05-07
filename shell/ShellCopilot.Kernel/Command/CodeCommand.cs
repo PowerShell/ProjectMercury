@@ -7,7 +7,7 @@ namespace ShellCopilot.Kernel.Commands;
 internal sealed class CodeCommand : CommandBase
 {
     public CodeCommand()
-        : base("code", "Copy or save the code snippet from the last response.")
+        : base("code", "Command to interact with the code generated.")
     {
         var copy = new Command("copy", "Copy the code snippet from the last response to clipboard.");
         var save = new Command("save", "Save the code snippet from the last response to a file.");

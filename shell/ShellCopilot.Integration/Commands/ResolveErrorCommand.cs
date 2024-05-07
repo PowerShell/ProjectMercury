@@ -101,7 +101,7 @@ public class ResolveErrorCommand : PSCmdlet
             return true;
         }
 
-        string query = "The last failed command is a native command that didn not produce an ErrorRecord object.\nPlease \x1b[93mcopy its output and then press 'y'\x1b[0m to allow using the output as context information.";
+        string query = "The last failed command is a native command that did not produce an ErrorRecord object.\nPlease \x1b[93mcopy its output and then press 'y'\x1b[0m to allow using the output as context information.";
         return ShouldContinue(query, caption: "Include output from the clipboard");
     }
 
