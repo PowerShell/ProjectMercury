@@ -1,6 +1,6 @@
-# PowerAISH 
+# PowerShell Copilot 
 
-**PowerAISH** was the one of the first prototype we created. It is a PowerShell module that
+**PowerShell Copilot** was the one of the first prototype we created. It is a PowerShell module that
 allows you to also have an interactive chat session with an LLM. It has slightly different UX/UI
 than AISH and is specific to PowerShell.
 
