@@ -1,11 +1,11 @@
-## Shell Copilot Architecture
+## AISH Architecture
 
-<img src="./assets/shell-copilot-overall-arch.png" alt="shell-copilot" width="500"/>
+<img src="./assets/AISH-overall-arch.png" alt="AISH" width="500"/>
 
-### ShellCopilot.Abstraction
+### AISH.Abstraction
 
 This project will be released as a NuGet package.
-It contains all the interfaces for defining an agent plugin that interacts with Shell Copilot.
+It contains all the interfaces for defining an agent plugin that interacts with AISH.
 
 This abstraction layer includes:
 
@@ -25,9 +25,9 @@ An agent can do whatever it wants targeting an arbitrary AI backend and render t
 
 An agent plugin is responsible to manage its own chat history.
 
-### ShellCopilot.Kernel
+### AISH.Kernel
 
-This is the implementation of Shell Copilot. It consists of the following components:
+This is the implementation of AISH. It consists of the following components:
 
 - ReadLine
 - Renders (mardown render, stream render, paging render)
@@ -39,8 +39,8 @@ This is the implementation of Shell Copilot. It consists of the following compon
 - Shell integration (deep integration with the command-line shell. **not-yet-started**)
 - Configuration (colors, key bindings, and etc. **not-yet-started**)
 
-### ShellCopilot.App
+### AISH.App
 
-This is a thin wrapper over `ShellCopilot.Kernel` to create an EXE.
-The initial idea is to make `ShellCopilot.Kernel` a library, so it can be used/hosted by other applications.
-We can easily merge this into `ShellCopilot.Kernel` if this idea no longer make sense.
+This is a thin wrapper over `AISH.Kernel` to create an EXE.
+The initial idea is to make `AISH.Kernel` a library, so it can be used/hosted by other applications.
+We can easily merge this into `AISH.Kernel` if this idea no longer make sense.

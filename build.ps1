@@ -36,20 +36,20 @@ $RID = $Runtime ?? (dotnet --info |
 Write-Verbose "RID: $RID"
 
 $shell_dir = Join-Path $PSScriptRoot "shell"
-$app_dir = Join-Path $shell_dir "ShellCopilot.App"
-$pkg_dir = Join-Path $shell_dir "ShellCopilot.Abstraction"
-$open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
-$az_agent_dir = Join-Path $shell_dir "ShellCopilot.Azure.Agent"
-$interpreter_agent_dir = Join-Path $shell_dir "ShellCopilot.Interpreter.Agent"
-$module_dir = Join-Path $shell_dir "ShellCopilot.Integration"
+$app_dir = Join-Path $shell_dir "AISH.App"
+$pkg_dir = Join-Path $shell_dir "AISH.Abstraction"
+$open_ai_agent_dir = Join-Path $shell_dir "AISH.OpenAI.Agent"
+$az_agent_dir = Join-Path $shell_dir "AISH.Azure.Agent"
+$interpreter_agent_dir = Join-Path $shell_dir "AISH.Interpreter.Agent"
+$module_dir = Join-Path $shell_dir "AISH.Integration"
 
 $config = $Configuration.ToLower()
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
 $module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "Aish"
-$open_ai_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.OpenAI.Agent"
-$az_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Azure.Agent"
-$interpreter_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Interpreter.Agent"
+$open_ai_out_dir = Join-Path $app_out_dir "agents" "AISH.OpenAI.Agent"
+$az_out_dir = Join-Path $app_out_dir "agents" "AISH.Azure.Agent"
+$interpreter_out_dir = Join-Path $app_out_dir "agents" "AISH.Interpreter.Agent"
 
 if ($Clean) {
     $out_path = Join-Path $PSScriptRoot "out"
@@ -64,7 +64,7 @@ if (-not (Test-Path $pkg_out_dir)) {
     New-Item $pkg_out_dir -ItemType Directory > $null
 }
 
-Write-Host "`n[Build Shell Copilot ...]`n" -ForegroundColor Green
+Write-Host "`n[Build AISH...]`n" -ForegroundColor Green
 $app_csproj = GetProjectFile $app_dir
 dotnet publish $app_csproj -c $Configuration -o $app_out_dir -r $RID --sc
 

@@ -4,7 +4,7 @@ This is a repository of various **AI** + **Sh**ell prototypes we have created to
 features. **AISH** is the latest and most finished prototype. It is a CLI tool that creates
 an interactive chat session with a registered Large Language Model. Currently we are in a **Private Preview** state and everything is subject to change.
 
-![GIF showing demo of AISH](./docs/media/ShellCopilotDemo.gif)
+![GIF showing demo of AISH](./docs/media/AISHDemo.gif)
 
 ## Installing and Using AISH
 
@@ -13,7 +13,7 @@ Some prerequisites for building AISH
 - [.NET SDK 8](https://dotnet.microsoft.com/en-us/download) is required to build the project.
 
 Here are the steps to install and use AISH.
-1. Clone this repository, `git clone https://github.com/PowerShell/ShellCopilot`;
+1. Clone this repository, `git clone https://github.com/PowerShell/AISH`;
 2. Run `./build.ps1` in the repository's root directory to build the project;
 3. After the build is complete, you can find the produced executable `aish` in the `out\debug` folder within the repository's root directory. You can add it to the `PATH` environment variable for easy access.
 
@@ -95,6 +95,6 @@ Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb
 
 ## Feedback
 
-We still in development and value any and all feedback! Please file an [issue in this repository](https://github.com/PowerShell/ShellCopilot/issues) for
+We still in development and value any and all feedback! Please file an [issue in this repository](https://github.com/PowerShell/AISH/issues) for
 any bugs, suggestions and feedback. Any additional feedback can be sent to
 stevenbucher@microsoft.com.

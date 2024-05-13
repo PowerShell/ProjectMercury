@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\shell.common.props" />
+
+  <PropertyGroup>
+    <AssemblyName>AISH.Kernel</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.47.0" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ReadLine\PSReadLine.csproj" />
+    <ProjectReference Include="..\Markdown.VT\Markdown.VT.csproj" />
+    <ProjectReference Include="..\AISH.Abstraction\AISH.Abstraction.csproj" />
+  </ItemGroup>
+
+</Project>
