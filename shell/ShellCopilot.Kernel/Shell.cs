@@ -10,6 +10,7 @@ internal sealed class Shell : IShell
 {
     private readonly bool _isInteractive;
     private readonly string _prompt;
+    private readonly string _version;
     private readonly List<LLMAgent> _agents;
     private readonly Stack<LLMAgent> _activeAgentStack;
     private readonly ShellWrapper _wrapper;
@@ -99,6 +100,7 @@ internal sealed class Shell : IShell
         _activeAgentStack = new Stack<LLMAgent>();
         _textToIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         _cancellationSource = new CancellationTokenSource();
+        _version = typeof(Shell).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
 
         Exit = false;
         Regenerate = false;
@@ -126,7 +128,7 @@ internal sealed class Shell : IShell
     internal void ShowBanner()
     {
         string banner = _wrapper?.Banner is null ? "Shell Copilot" : _wrapper.Banner;
-        string version = _wrapper?.Version is null ? "v0.1.0-preview.1" : _wrapper.Version;
+        string version = _wrapper?.Version is null ? _version : _wrapper.Version;
         Host.MarkupLine($"[bold]{banner.EscapeMarkup()}[/]")
             .MarkupLine($"[grey]{version.EscapeMarkup()}[/]")
             .WriteLine();
