@@ -31,9 +31,30 @@ internal sealed class AgentCommand : CommandBase
         config.AddOption(editor);
         config.SetHandler(ConfigAgentAction, configAgent, editor);
 
-        AddCommand(use);
-        AddCommand(pop);
+        var list = new Command("list", "List all available agents.");
+        list.SetHandler(ListAgentAction);
+
         AddCommand(config);
+        AddCommand(list);
+        AddCommand(pop);
+        AddCommand(use);
+    }
+
+    private void ListAgentAction()
+    {
+        var shell = (Shell)Shell;
+        var host = shell.Host;
+
+        var active = shell.ActiveAgent;
+        var list = shell.Agents;
+
+        var elements = new IRenderElement<LLMAgent>[]
+        {
+            new CustomElement<LLMAgent>("Name", c => c == active ? $"{c.Impl.Name} (active)" : c.Impl.Name),
+            new CustomElement<LLMAgent>("Description", c => c.Impl.Description),
+        };
+
+        host.RenderTable(list, elements);
     }
 
     private void UseAgentAction(string name)
