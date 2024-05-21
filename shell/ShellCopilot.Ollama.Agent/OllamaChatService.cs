@@ -9,7 +9,7 @@ namespace ShellCopilot.Ollama.Agent;
 
 internal class OllamaChatService : IDisposable
 {
-    internal const string Endpoint = "https://azclitools-copilot-dogfood.azure-api.net/shell/azcli/copilot";
+    internal const string Endpoint = "http://localhost:11434/api/generate";
 
     private readonly HttpClient _client;
     private readonly string[] _scopes;
@@ -46,13 +46,21 @@ internal class OllamaChatService : IDisposable
             prompt = input,
             stream = false
         };
+
+        // string jsonPayload = @"{
+        //     ""model"": ""phi3"",
+        //     ""prompt"": ""How do I create a resource group with azure cli?"",
+        //     ""stream"": false
+        // }";
+        
         var json = JsonSerializer.Serialize(requestData);
 
-        var content = new StringContent(json, Encoding.UTF8);
-        var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = content };
+        var data = new StringContent(json, Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = data };
 
         return request;
     }
+
 
     internal async Task<OllamaResponse> GetChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken)
     {

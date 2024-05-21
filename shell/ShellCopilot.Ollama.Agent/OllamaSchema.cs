@@ -18,9 +18,18 @@ internal class Action
 
 internal class ResponseData
 {
-    public string Scenario { get; set; }
-    public string Description { get; set; }
-    public List<Action> CommandSet { get; set; }
+    public string model { get; set; }
+    public string created_at { get; set; }
+    public string response { get; set; }
+    public bool done { get; set; }
+    public string done_reason { get; set; }
+    public int[] context { get; set; }
+    public string total_duration { get; set; }
+    public long load_duration { get; set; }
+    public int prompt_eval_count { get; set; }
+    public int prompt_eval_duration { get; set; }
+    public int eval_count { get; set; }
+    public long eval_duration { get; set; }
 }
 
 internal class OllamaResponse
@@ -28,5 +37,5 @@ internal class OllamaResponse
     public int Status { get; set; }
     public string Error { get; set; }
     public string Api_version { get; set; }
-    public List<ResponseData> Data { get; set; }
+    public ResponseData Data { get; set; }
 }

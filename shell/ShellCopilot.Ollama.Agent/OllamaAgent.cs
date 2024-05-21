@@ -19,7 +19,7 @@ public sealed class OllamaAgent : ILLMAgent
     private readonly Stopwatch _watch = new();
 
     private OllamaChatService _chatService;
-    private StringBuilder _text;
+    private StringBuilder _text; // Text to be rendered at the end
 
     public void Dispose()
     {
@@ -54,8 +54,8 @@ public sealed class OllamaAgent : ILLMAgent
         _watch.Restart();
         var startTime = DateTime.Now;
 
-        IHost host = shell.Host;
-        CancellationToken token = shell.CancellationToken;
+        IHost host = shell.Host; // Get the shell host
+        CancellationToken token = shell.CancellationToken; // get the cancelation token
 
         try
         {
@@ -66,48 +66,34 @@ public sealed class OllamaAgent : ILLMAgent
 
             if (ollama_Response is not null)
             {
-                if (ollama_Response.Error is not null)
-                {
-                    host.WriteErrorLine(ollama_Response.Error);
-                    return true;
-                }
+                _text.AppendLine("Data: ").AppendLine(ollama_Response.Data.response);
 
-                if (ollama_Response.Data.Count is 0)
-                {
-                    host.WriteErrorLine("Sorry, no response received.");
-                    return true;
-                }
 
-                var data = ollama_Response.Data[0];
+                // if (ollama_Response.Error is not null)
+                // {
+                //     host.WriteErrorLine(ollama_Response.Error);
+                //     return true;
+                // }
 
-                if (data.CommandSet.Count > 0)
-                {
-                    _text.AppendLine("Action step(s):").AppendLine();
+                // _text.AppendLine("Data: ").AppendLine(ollama_Response);
 
-                    for (int i = 0; i < data.CommandSet.Count; i++)
-                    {
-                        Action action = data.CommandSet[i];
-                        _text.AppendLine($"{i+1}. {action.Reason}")
-                            .AppendLine()
-                            .AppendLine("```sh")
-                            .AppendLine($"# {action.Reason}")
-                            .AppendLine(action.Example)
-                            .AppendLine("```")
-                            .AppendLine();
-                    }
+                
+                // var data = ollama_Response.Data;
 
-                    _text.AppendLine("Make sure to replace the placeholder values with your specific details.");
-                }
+                // _text.AppendLine("Data: ").AppendLine(data.response);
 
-                host.RenderFullResponse(_text.ToString());
+                // host.RenderFullResponse(_text.ToString());
 
-                // Measure time spent
-                _watch.Stop();
+                // // Measure time spent
+                // _watch.Stop();
 
             }
         }
         catch (Exception e)
         {
+            _text.AppendLine(e.ToString());
+
+            host.RenderFullResponse(_text.ToString());
             
             return false;
         }
