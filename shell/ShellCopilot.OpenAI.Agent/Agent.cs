@@ -13,15 +13,18 @@ public sealed class OpenAIAgent : ILLMAgent
     public string SettingFile { private set; get; }
 
     private const string SettingFileName = "openai.agent.json";
-    private bool _isInteractive;
     private bool _refreshSettings;
     private bool _isDisposed;
     private string _configRoot;
     private string _historyRoot;
-    private RenderingStyle _renderingStyle;
     private Settings _settings;
     private FileSystemWatcher _watcher;
     private ChatService _chatService;
+
+    /// <summary>
+    /// Gets the settings.
+    /// </summary>
+    internal Settings Settings => _settings;
 
     /// <inheritdoc/>
     public void Dispose()
@@ -39,14 +42,6 @@ public sealed class OpenAIAgent : ILLMAgent
     /// <inheritdoc/>
     public void Initialize(AgentConfig config)
     {
-        // while (!System.Diagnostics.Debugger.IsAttached)
-        // {
-        //     System.Threading.Thread.Sleep(200);
-        // }
-        // System.Diagnostics.Debugger.Break();
-
-        _isInteractive = config.IsInteractive;
-        _renderingStyle = config.RenderingStyle;
         _configRoot = config.ConfigurationRoot;
 
         SettingFile = Path.Combine(_configRoot, SettingFileName);
@@ -59,15 +54,9 @@ public sealed class OpenAIAgent : ILLMAgent
         Directory.CreateDirectory(_historyRoot);
 
         _settings = ReadSettings();
-        _chatService = new ChatService(_isInteractive, _historyRoot, _settings);
+        _chatService = new ChatService(_historyRoot, _settings);
 
-        Description = "An agent leverages GPTs that target OpenAI backends. Currently not ready to server queries.";
-        GPT active = _settings.Active;
-        if (active is not null)
-        {
-            Description = $"Active GTP: {active.Name}. {active.Description}";
-        }
-
+        UpdateDescription();
         _watcher = new FileSystemWatcher(_configRoot, SettingFileName)
         {
             NotifyFilter = NotifyFilters.LastWrite,
@@ -83,7 +72,7 @@ public sealed class OpenAIAgent : ILLMAgent
     }
 
     /// <inheritdoc/>
-    public IEnumerable<CommandBase> GetCommands() => null;
+    public IEnumerable<CommandBase> GetCommands() => [new GPTCommand(this)];
 
     /// <inheritdoc/>
     public bool CanAcceptFeedback(UserAction action) => false;
@@ -112,58 +101,32 @@ public sealed class OpenAIAgent : ILLMAgent
         }
 
         string responseContent = null;
-        if (_renderingStyle is RenderingStyle.FullResponsePreferred)
+        StreamingResponse<StreamingChatCompletionsUpdate> response = await host.RunWithSpinnerAsync(
+            () => _chatService.GetStreamingChatResponseAsync(input, token)
+        ).ConfigureAwait(false);
+
+        if (response is not null)
         {
-            Task<ChatChoice> func_non_streaming() => _chatService.GetChatResponseAsync(input, token);
-            ChatChoice choice = await host.RunWithSpinnerAsync(func_non_streaming).ConfigureAwait(false);
+            using var streamingRender = host.NewStreamRender(token);
 
-            if (choice is not null)
+            try
             {
-                responseContent = choice.Message.Content;
-                host.RenderFullResponse(responseContent);
-
-                string warning = GetWarningBasedOnFinishReason(choice.FinishReason);
-                if (warning is not null)
+                await foreach (StreamingChatCompletionsUpdate chatUpdate in response)
                 {
-                    host.MarkupWarningLine(warning);
-                    host.WriteLine();
-                }
-            }
-        }
-        else
-        {
-            Task<StreamingChatCompletions> func_streaming() => _chatService.GetStreamingChatResponseAsync(input, token);
-            StreamingChatCompletions response = await host.RunWithSpinnerAsync(func_streaming).ConfigureAwait(false);
-
-            if (response is not null)
-            {
-                using var streamingRender = host.NewStreamRender(token);
-
-                try
-                {
-                    // Cannot pass in `cancellationToken` to `GetChoicesStreaming()` and `GetMessageStreaming()` methods.
-                    // Doing so will result in an exception in Azure.OpenAI when we are cancelling the operation.
-                    // TODO: Use the latest preview version. The bug may have been fixed.
-                    await foreach (StreamingChatChoice choice in response.GetChoicesStreaming())
+                    if (string.IsNullOrEmpty(chatUpdate.ContentUpdate))
                     {
-                        await foreach (ChatMessage message in choice.GetMessageStreaming())
-                        {
-                            if (string.IsNullOrEmpty(message.Content))
-                            {
-                                continue;
-                            }
-
-                            streamingRender.Refresh(message.Content);
-                        }
+                        continue;
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    // Ignore the cancellation exception.
-                }
 
-                responseContent = streamingRender.AccumulatedContent;
+                    streamingRender.Refresh(chatUpdate.ContentUpdate);
+                }
             }
+            catch (OperationCanceledException)
+            {
+                // Ignore the cancellation exception.
+            }
+
+            responseContent = streamingRender.AccumulatedContent;
         }
 
         _chatService.AddResponseToHistory(responseContent);
@@ -171,7 +134,15 @@ public sealed class OpenAIAgent : ILLMAgent
         return checkPass;
     }
 
-    internal async Task<bool> SelfCheck(IHost host, CancellationToken token)
+    internal void UpdateDescription()
+    {
+        GPT active = _settings.Active;
+        Description = active is null
+            ? "An agent leverages GPTs that target OpenAI backends. Currently not ready to serve queries."
+            : $"Active GTP: {active.Name}. {active.Description}";
+    }
+
+    private async Task<bool> SelfCheck(IHost host, CancellationToken token)
     {
         bool checkPass = await _settings.SelfCheck(host, token);
 
@@ -190,21 +161,6 @@ public sealed class OpenAIAgent : ILLMAgent
         }
 
         return checkPass;
-    }
-
-    private static string GetWarningBasedOnFinishReason(CompletionsFinishReason reason)
-    {
-        if (reason.Equals(CompletionsFinishReason.TokenLimitReached))
-        {
-            return "The response was incomplete as the max token limit was exhausted.";
-        }
-
-        if (reason.Equals(CompletionsFinishReason.ContentFiltered))
-        {
-            return "The response was truncated as it was identified as potentially sensitive per content moderation policies.";
-        }
-
-        return null;
     }
 
     private Settings ReadSettings()

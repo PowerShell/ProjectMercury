@@ -1,6 +1,5 @@
 ﻿using System.CommandLine;
 using ShellCopilot.Abstraction;
-using Spectre.Console;
 
 namespace ShellCopilot.Kernel.Commands;
 
@@ -18,7 +17,7 @@ internal sealed class HelpCommand : CommandBase
         var host = shellImpl.Host;
 
         var commands = shellImpl.CommandRunner.Commands;
-        var list = commands.Values.OrderBy(c => c.Name).ToList();
+        var list = commands.Values.Order(new CommandComparer()).ToList();
 
         host.WriteLine();
         host.MarkupLine("[bold white]-[/] Type then press [bold olive underline]Enter[/] to chat with the chosen AI agent.");
@@ -27,10 +26,28 @@ internal sealed class HelpCommand : CommandBase
         var elements = new IRenderElement<CommandBase>[]
         {
             new CustomElement<CommandBase>("Name", c => $"/{c.Name}"),
-            new PropertyElement<CommandBase>(nameof(Description))
+            new PropertyElement<CommandBase>(nameof(Description)),
+            new CustomElement<CommandBase>("Source", c => c.Source),
         };
 
         shellImpl.Host.RenderTable(list, elements);
         host.MarkupLine($"Learn more at [link]https://aka.ms/CopilotforShell[/].\n");
+    }
+
+    private class CommandComparer : IComparer<CommandBase>
+    {
+        public int Compare(CommandBase x, CommandBase y)
+        {
+            if (x == y) return 0;
+            if (x is null) return -1;
+            if (y is null) return 1;
+
+            if (x.Source == y.Source) return string.Compare(x.Name, y.Name);
+            if (x.Source != CommandRunner.Core) return -1;
+            if (y.Source != CommandRunner.Core) return 1;
+
+            // Should be unreachable here.
+            throw new NotImplementedException();
+        }
     }
 }
