@@ -6,8 +6,7 @@ that can interact with users in a conversational manner where users can build or
 interact with different AI models or forms of assistance.
 
 Please be aware that this repository and its associated product are currently in an **alpha** state.
-There will likely be many experimental and significant changes to the code base and experience over
-time. We appreciate your feedback and patience as we continue to develop and refine our offering.
+There will likely be many experimental and significant changes to the code base and experience over time. We appreciate your feedback and patience as we continue to develop and refine our offering.
 
 ![GIF showing demo of AISH](./docs/media/ShellCopilotDemo.gif)
 
@@ -38,8 +37,8 @@ agents in this repo.
 - [`interpreter`](./shell/ShellCopilot.Interpreter.Agent/README.md)
 
 If you run `aish` you will get prompted to choose between these agents. Each agent has its own set
-of prerequisites and configuration.
-
+of prerequisites and configuration. Please refer to the READMEs in the respective agent folders for
+details.
 
 ## Using AISH
 
