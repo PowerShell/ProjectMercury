@@ -47,31 +47,10 @@ Prerequisites:
 
 ### OpenAI-GPT Agent
 
-This is a more generalized agent that users can bring their own instance of Azure OpenAI (or the public OpenAI) and a completely customizable system prompt.
-Right now, it is defaulted to an internal Azure OpenAI endpoint with a prompt to be an assistant for PowerShell commands. This is for internal private preview purposes only.
+This is a more generalized agent that users can bring their own instance of Azure OpenAI (or OpenAI) and a completely customizable system prompt.
+Right now, it is defaulted to an internal Azure OpenAI endpoint with a prompt to be an assistant for PowerShell commands.
 
 ## Getting an Azure OpenAI Endpoint Key
-
-All the configuration is already included by default and on the first run of this agent you will be prompted to include a API key to be able to use this endpoint.
-
-Guide for Signing Up For API Key
-1.  Navigate to <https://pscopilot.developer.azure-api.net>
-2.  Click `Sign Up` located on the top right corner of the page.
-3.  Sign up for a subscription by filling in the fields (email, password, first name, last name).
-4.  Verify the account (An email should have been sent from
-    <apimgmt-noreply@mail.windowsazure.com> to your email)
-5.  Click `Sign In` located on the top right corner of the page.
-6.  Enter the email and password used when signing up.
-7.  Click `Products` located on the top right corner of the page
-8.  In the field stating `Your new product subscription name`, Enter `Azure OpenAI Service API`.
-9.  Click `Subscribe` to be subscribed to the product.
-
-In order to view your subscription/API key,
-1.  Click `Profile` located on the top right corner of the page.
-2.  Your Key should be located under the `Subscriptions` section. Click on `Show` to view the
-    primary or secondary key.
-
-Once you have a key you can always edit your endpoint configuration by running `/agent config openai-gpt` within AISH. This opens up a JSON file with all the configuration options. 
 
 If you have separate Azure OpenAI endpoint you can use that instead of the one above. Read more at
 [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=ps).
@@ -92,6 +71,18 @@ you can add the following code to your `$PROFILE`:
 ```powershell
 Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb'--size 0.4 -p "<your-default-WT-profile-guid>" --title 'AISH' <full-path-to-aish.exe> }
 ```
+
+## Contributing
+
+Please see [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for more details.
+
+## Support
+
+For support, see our [Support Section](./docs/SUPPORT.md).
+
+## Code of Conduct
+
+For more information, see the [Code of Conduct FAQ](./docs/CODE_OF_CONDUCT.md) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 ## Feedback
 
