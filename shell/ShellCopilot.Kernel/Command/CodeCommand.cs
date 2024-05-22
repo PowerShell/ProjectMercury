@@ -84,7 +84,7 @@ internal sealed class CodeCommand : CommandBase
         }
 
         Clipboard.SetText(code);
-        host.MarkupLine("[cyan]Code snippet copied to clipboard.[/]");
+        host.WriteLine("Code copied to clipboard.");
         shell.OnUserAction(new CodePayload(UserAction.CodeCopy, code));
     }
 
@@ -108,7 +108,7 @@ internal sealed class CodeCommand : CommandBase
             writer.Write(code);
             writer.Flush();
 
-            host.MarkupLine("[cyan]Code snippet saved to the file.[/]");
+            host.WriteLine("Code saved to the file.");
             shell.OnUserAction(new CodePayload(UserAction.CodeSave, code));
         }
         catch (Exception e)
@@ -121,6 +121,12 @@ internal sealed class CodeCommand : CommandBase
     {
         var shell = (Shell)Shell;
         var host = shell.Host;
+
+        if (shell.Channel is null)
+        {
+            host.WriteErrorLine("Cannot post code because the bi-directional channel was not established.");
+            return;
+        }
 
         int index = nth > 0 ? nth - 1 : nth;
         List<string> codeToPost = null;
@@ -151,7 +157,8 @@ internal sealed class CodeCommand : CommandBase
         try
         {
             shell.Channel.PostCode(new PostCodeMessage(codeToPost));
-            host.MarkupLine("[cyan]Code snippet was successfully posted.[/]");
+            host.WriteLine("Code posted to the channel.");
+            shell.OnUserAction(new CodePayload(UserAction.CodePost, string.Join("\n\n", codeToPost)));
         }
         catch (Exception e)
         {
