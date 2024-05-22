@@ -84,7 +84,7 @@ internal sealed class CodeCommand : CommandBase
         }
 
         Clipboard.SetText(code);
-        host.WriteLine("Code copied.");
+        host.WriteLine("Code copied to clipboard.");
         shell.OnUserAction(new CodePayload(UserAction.CodeCopy, code));
     }
 
@@ -108,7 +108,7 @@ internal sealed class CodeCommand : CommandBase
             writer.Write(code);
             writer.Flush();
 
-            host.WriteLine("Code saved.");
+            host.WriteLine("Code saved to the file.");
             shell.OnUserAction(new CodePayload(UserAction.CodeSave, code));
         }
         catch (Exception e)
@@ -157,7 +157,7 @@ internal sealed class CodeCommand : CommandBase
         try
         {
             shell.Channel.PostCode(new PostCodeMessage(codeToPost));
-            host.WriteLine("Code posted.");
+            host.WriteLine("Code posted to the channel.");
             shell.OnUserAction(new CodePayload(UserAction.CodePost, string.Join("\n\n", codeToPost)));
         }
         catch (Exception e)
