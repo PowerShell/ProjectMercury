@@ -59,14 +59,14 @@ public sealed class OllamaAgent : ILLMAgent
 
         try
         {
-            OllamaResponse ollama_Response = await host.RunWithSpinnerAsync(
+            ResponseData ollama_Response = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
                 func: async context => await _chatService.GetChatResponseAsync(context, input, token)
             ).ConfigureAwait(false);
 
             if (ollama_Response is not null)
             {
-                _text.AppendLine("Data: ").AppendLine(ollama_Response.Data.response);
+                _text.AppendLine("Data: ").AppendLine(ollama_Response.response);
 
 
                 // if (ollama_Response.Error is not null)

@@ -62,7 +62,7 @@ internal class OllamaChatService : IDisposable
     }
 
 
-    internal async Task<OllamaResponse> GetChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken)
+    internal async Task<ResponseData> GetChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken)
     {
         try
         {
@@ -73,7 +73,7 @@ internal class OllamaChatService : IDisposable
 
             context?.Status("Receiving Payload ...");
             var content = await response.Content.ReadAsStreamAsync(cancellationToken);
-            return JsonSerializer.Deserialize<OllamaResponse>(content);
+            return JsonSerializer.Deserialize<ResponseData>(content);
         }
         catch (OperationCanceledException)
         {
