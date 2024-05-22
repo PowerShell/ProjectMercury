@@ -148,7 +148,7 @@ internal sealed class AgentCommand : CommandBase
     private static void AgentNotFound(string name, Shell shell)
     {
         string availableAgentNames = string.Join(", ", shell.Agents.Select(AgentName));
-        shell.Host.WriteErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}");
+        shell.Host.WriteErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}.");
     }
 
     private IEnumerable<string> AgentCompleter(CompletionContext context)

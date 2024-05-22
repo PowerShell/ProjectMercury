@@ -206,7 +206,6 @@ internal class ChatService
                     break;
                     // Add cases for other derived types as needed
             }
-
         }
 
         // Every reply is primed with <|start|>assistant<|message|>, which takes 3 tokens.
@@ -214,7 +213,7 @@ internal class ChatService
 
         return tokenNumber;
     }
-    
+
     internal string ReduceToolResponseContentTokens(string content)
     {
         ModelInfo modelDetail = _settings.ModelInfo;
