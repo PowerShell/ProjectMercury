@@ -21,10 +21,11 @@ Here are the steps to install and use AISH.
 
 ## Agent Concept
 
-AISH has a concept of different AI Agents, these can be thought of like modules that users can use to interact with different AI models. Right now there are three supported agents
+AISH has a concept of different AI Agents, these can be thought of like modules that users can use to interact with different AI models. Right now there are four supported agents.
 - `az-cli`
 - `az-ps`
 - `openai-gpt`
+- `interpreter`
 
 If you run `aish` you will get prompted to choose between the two.
 
@@ -50,7 +51,11 @@ Prerequisites:
 This is a more generalized agent that users can bring their own instance of Azure OpenAI (or OpenAI) and a completely customizable system prompt.
 Right now, it is defaulted to an internal Azure OpenAI endpoint with a prompt to be an assistant for PowerShell commands.
 
-## Getting an Azure OpenAI Endpoint Key
+### Interpreter Agent
+
+This agent utilizes the open interpreter that OpenAI endpoints provide, please see the [interpreter agent README](./shell/ShellCopilot.Interpreter.Agent/README.md) for more details.
+
+## Getting an Azure OpenAI Endpoint
 
 If you have separate Azure OpenAI endpoint you can use that instead of the one above. Read more at
 [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=ps).
