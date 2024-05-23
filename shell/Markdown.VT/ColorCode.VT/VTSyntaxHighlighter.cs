@@ -1,11 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-
 using ColorCode.Common;
 using ColorCode.Parsing;
 using ColorCode.Styling;
@@ -43,6 +40,7 @@ public class VTSyntaxHighlighter : CodeColorizerBase
         }
 
         Languages.Load(new Bash());
+        Languages.Load(new Json());
     }
 
     /// <summary>
