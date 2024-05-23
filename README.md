@@ -6,11 +6,12 @@ that can interact with users in a conversational manner where users can build or
 interact with different AI models or forms of assistance.
 
 Please be aware that this repository and its associated product are currently in an **alpha** state.
-There will likely be many experimental and significant changes to the code base and experience over time. We appreciate your feedback and patience as we continue to develop and refine our offering.
+There will likely be many experimental and significant changes to the code base and experience over
+time. We appreciate your feedback and patience as we continue to develop and refine our offering.
 
 ![GIF showing demo of AISH](./docs/media/ShellCopilotDemo.gif)
 
-## Installing and Using AISH
+## Installing AISH
 
 Some prerequisites for building AISH
 - Build script requires PowerShell v7.2 or newer versions. [PowerShell v7.4](https://learn.microsoft.com/powershell/scripting/install/installing-powershell?view=powershell-7.4) is recommended.

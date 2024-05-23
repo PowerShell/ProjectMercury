@@ -1,7 +1,8 @@
 # Support
 
-This project uses GitHub issues to track bugs and feature requets. Please search existing [issues][] before
-filing new issues to avoid duplicates. For new issues, file your bug or feature request as a [new issue][].
+This project uses GitHub issues to track bugs and feature requets. Please search existing
+[issues][] before filing new issues to avoid duplicates. For new issues, file your bug or feature
+request as a [new issue][].
 
 For other help and questions please see:
 
