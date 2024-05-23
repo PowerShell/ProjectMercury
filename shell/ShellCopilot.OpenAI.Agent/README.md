@@ -26,7 +26,7 @@ expert that you add prompting to it and another that is a Python expert with pro
 with it. GPTs and which active GPT are defined in the agent config file. 
 
 You can configure the agent by running `/agent config openai-gpt` to open up the configuration file
-in your default editor.
+in your default editor. The default sample config file contains the following:
 
 ```json
 {
@@ -67,3 +67,6 @@ in your default editor.
   "Active": "powershell-ai"
 }
 ```
+
+If you have added multiple GPTs, you can switch between them by running `/gpt use <GPT Name>`. To
+see which ones are available, you can run `/gpt list`.
