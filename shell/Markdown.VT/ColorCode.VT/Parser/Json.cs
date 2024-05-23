@@ -7,7 +7,7 @@ namespace ColorCode.VT;
 
 public class Json : ILanguage
 {
-    private const string Regex_String = @"""([^""\\]|\\.)*""";
+    private const string Regex_String = @"""(?:[^""\\]|\\.)*""";
     private const string Regex_Number = @"-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][-+]?[0-9]+)?";
 
     public string Id
