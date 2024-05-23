@@ -12,7 +12,7 @@ about the abstraction layer agents can implement and utilize see
 ## What are agents?
 
 Agents can be thought of as modules that implement the AISH Abstraction layer to talk to a specific
-large language model or provide some form of assistance when taking in natual language input into a
+large language model or provide some form of assistance when taking in natural language input into a
 shell prompt. Right now the different agents can be found in the `../shell` folder.
 
 ## What operating systems are supported?
@@ -23,6 +23,6 @@ all expected behaviors will work.
 ## How do I get a split pane experience in my Terminal?
 
 You can get this behavior by splitting your terminal of choice into two panes and then running
-`aish.exe` in the one of your choice. For example,Windows Terminal can be split by running
+`aish.exe` in the one of your choice. For example, Windows Terminal can be split by running
 `wt -w 0 sp`. Please refer to your terminal of choice's documentation on how to split the windows.
 
