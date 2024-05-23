@@ -35,32 +35,32 @@ public class Json : ILanguage
         get
         {
             return new List<LanguageRule>
-                    {
-                        new LanguageRule(
-                            $@"[,\{{]\s*({Regex_String})\s*:",
-                            new Dictionary<int, string>
-                                {
-                                    {1, ScopeName.JsonKey}
-                                }),
-                        new LanguageRule(
-                            Regex_String,
-                            new Dictionary<int, string>
-                                {
-                                    {0, ScopeName.JsonString}
-                                }),
-                        new LanguageRule(
-                            Regex_Number,
-                            new Dictionary<int, string>
-                                {
-                                    {0, ScopeName.JsonNumber}
-                                }),
-                        new LanguageRule(
-                            @"\b(true|false|null)\b",
-                            new Dictionary<int, string>
-                                {
-                                    {1, ScopeName.JsonConst}
-                                }),
-                    };
+                {
+                    new LanguageRule(
+                        $@"[,\{{]\s*({Regex_String})\s*:",
+                        new Dictionary<int, string>
+                            {
+                                {1, ScopeName.JsonKey}
+                            }),
+                    new LanguageRule(
+                        Regex_String,
+                        new Dictionary<int, string>
+                            {
+                                {0, ScopeName.JsonString}
+                            }),
+                    new LanguageRule(
+                        Regex_Number,
+                        new Dictionary<int, string>
+                            {
+                                {0, ScopeName.JsonNumber}
+                            }),
+                    new LanguageRule(
+                        @"\b(true|false|null)\b",
+                        new Dictionary<int, string>
+                            {
+                                {1, ScopeName.JsonConst}
+                            }),
+                };
         }
     }
 
