@@ -83,7 +83,10 @@ from the AI model. You can find all the available chats by running `/help` in th
   /retry     Regenerate a new response for the last query.
 ```
 
-Agents may implement their own commands so 
+Agents may implement their own commands so be sure to check `/help` while using an agent. Some
+commands like `/like` and `/dislike` are just bare bones commands and need to be implemented by the
+agent to be useful.
+
 ## Development
 
 To learn more about how to create an agent for yourself please see the
