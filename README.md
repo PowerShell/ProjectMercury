@@ -60,10 +60,6 @@ session, you can add the following code to your `$PROFILE`:
 Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb'--size 0.4 -p "<your-default-WT-profile-guid>" --title 'AISH' <full-path-to-aish.exe> }
 ```
 
-### Getting OpenAI/AzureOpenAI API Key
-
-The `interpreter` and `openai-gpt` agents require an API key to interact with the OpenAI API. You can
-
 ### `/` commands
 
 The base AISH offers a number of chat `/` commands that can be used to interact with the responses
