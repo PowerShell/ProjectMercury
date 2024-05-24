@@ -24,7 +24,7 @@ internal class ResponseData
     public bool done { get; set; }
     public string done_reason { get; set; }
     public int[] context { get; set; }
-    public string total_duration { get; set; }
+    public double total_duration { get; set; }
     public long load_duration { get; set; }
     public int prompt_eval_count { get; set; }
     public int prompt_eval_duration { get; set; }

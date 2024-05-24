@@ -67,7 +67,8 @@ internal class OllamaChatService : IDisposable
             response.EnsureSuccessStatusCode();
 
             context?.Status("Receiving Payload ...");
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            Console.Write(response.Content);
+            var content = await response.Content.ReadAsStreamAsync(cancellationToken);
             return JsonSerializer.Deserialize<ResponseData>(content);
         }
         catch (OperationCanceledException)
