@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Azure.Core;
 using Azure.Identity;
+
 using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Ollama.Agent;
@@ -47,12 +48,6 @@ internal class OllamaChatService : IDisposable
             stream = false
         };
 
-        // string jsonPayload = @"{
-        //     ""model"": ""phi3"",
-        //     ""prompt"": ""How do I create a resource group with azure cli?"",
-        //     ""stream"": false
-        // }";
-        
         var json = JsonSerializer.Serialize(requestData);
 
         var data = new StringContent(json, Encoding.UTF8, "application/json");
@@ -72,7 +67,7 @@ internal class OllamaChatService : IDisposable
             response.EnsureSuccessStatusCode();
 
             context?.Status("Receiving Payload ...");
-            var content = await response.Content.ReadAsStreamAsync(cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
             return JsonSerializer.Deserialize<ResponseData>(content);
         }
         catch (OperationCanceledException)
