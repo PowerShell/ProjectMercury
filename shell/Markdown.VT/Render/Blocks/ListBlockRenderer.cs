@@ -31,9 +31,16 @@ internal class ListBlockRenderer : VTObjectRenderer<ListBlock>
             index = value;
         }
 
-        foreach (ListItemBlock listItem in obj)
+        for (int i = 0; i < obj.Count; i++)
         {
+            var listItem = (ListItemBlock) obj[i];
             var prefix = obj.IsOrdered ? $"{index++}. " : Bullet;
+
+            if (i > 0)
+            {
+                // Separate list items with an empty line.
+                renderer.WriteLine();
+            }
 
             renderer.Write(prefix).WriteChildren(listItem);
         }

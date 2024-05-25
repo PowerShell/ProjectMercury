@@ -35,6 +35,7 @@ internal class CommandRunner
             new RefreshCommand(),
             new RetryCommand(),
             new HelpCommand(),
+            new RenderCommand(),
         };
 
         LoadCommands(buildin, Core);
