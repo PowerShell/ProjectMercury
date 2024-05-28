@@ -1,17 +1,20 @@
 # OpenAI Agent
 
-This is an agent to talk to OpenAI or your own deployment of Azure OpenAI.
+This agent talks to OpenAI or your own deployment of Azure OpenAI.
 
 ## Prerequisites
 
-### OpenAI 
-- [OpenAI API Key](https://platform.openai.com/api-keys)
+### OpenAI
+
+- [OpenAI API Key][03]
 
 ### Azure OpenAI Service
-- [Access to Azure OpenAI](https://aka.ms/oai/access?azure-portal=true)
-- [Create an Azure OpenAI deployment](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal)
 
-You will need the following information to use the agent
+- [Access to Azure OpenAI][01]
+- [Create an Azure OpenAI deployment][02]
+
+You will need the following information to use the agent:
+
 - Azure OpenAI Endpoint
 - Azure OpenAI Deployment Name
 - Azure OpenAI API Key
@@ -20,13 +23,12 @@ You will need the following information to use the agent
 
 ### GPTs
 
-GPTs are different registrations of deployments of models that may have different fields associated
-with the model. For example perhaps you want to have two different GPTs, one that is a PowerShell
-expert that you add prompting to it and another that is a Python expert with prompting associated
-with it. GPTs and which active GPT are defined in the agent config file. 
+A GPT is a registered instance of an LLM that's configured for a specific use case. For example, you
+might want to have two different GPTs: one that's a PowerShell expert and another that's a Python
+expert. GPTs are defined in the agent config file.
 
-You can configure the agent by running `/agent config openai-gpt` to open up the configuration file
-in your default editor. The default sample config file contains the following:
+To configure the agent, run `/agent config openai-gpt` to open up the configuration file in your
+default editor. The default sample config file contains the following:
 
 ```json
 {
@@ -68,5 +70,10 @@ in your default editor. The default sample config file contains the following:
 }
 ```
 
-If you have added multiple GPTs, you can switch between them by running `/gpt use <GPT Name>`. To
-see which ones are available, you can run `/gpt list`.
+If you have defined multiple GPTs, you can switch between them by running `/gpt use <GPT Name>`. To
+see a list of available GPTs, run `/gpt list`.
+
+<!-- link references -->
+[01]: https://aka.ms/oai/access?azure-portal=true
+[02]: https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal
+[03]: https://platform.openai.com/api-keys
