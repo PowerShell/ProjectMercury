@@ -4,25 +4,44 @@ This page provides help with common questions about the AISH platform.
 
 ## What is AISH?
 
-AISH is an AI Shell platform that creates a framework for developers to build their own AI Agents.
-AISH provides the user experience and deeper connection to PowerShell 7+ to agents. To see more
-about the abstraction layer agents can implement and utilize see
-[shell/README](../shell/README.md).
+**AISH** is an AI shell platform that provides a framework for developers to build their own AI
+Agents and assistance providers. **AISH** agents provide the user experience for the LLM and are
+deeply connected to PowerShell 7. For more about the architecture of **AISH**, see the
+[shell/README][01].
 
 ## What are agents?
 
-Agents can be thought of as modules that implement the AISH Abstraction layer to talk to a specific
-large language model or provide some form of assistance when taking in natural language input into a
-shell prompt. Right now the different agents can be found in the `../shell` folder.
+An agent is a library that implements the user interface that talks to a specific large language
+model or other assistance provider. Users can interact with these agents in a conversational manner,
+using natural language, to get the desired output or assistance. Currently, there are four supported
+agents in this repository.
+
+Agent README files:
+
+- [`az-cli` & `az-ps`][02]
+- [`openai-gpt`][04]
+- [`interpreter`][03]
+
+An assistance provider is an agent that provides user assistance without using a large language
+model or AI engine.
 
 ## What operating systems are supported?
 
-We have tested AISH on Mac and Windows operating systems and may work on linux but cannot guarantee
-all expected behaviors will work.
+We have tested **AISH** on macOS and Windows operating systems. **AISH** may work on linux but we
+haven't tested it can't guarantee that all features will work as expected.
 
 ## How do I get a split pane experience in my Terminal?
 
-You can get this behavior by splitting your terminal of choice into two panes and then running
-`aish.exe` in the one of your choice. For example, Windows Terminal can be split by running
-`wt -w 0 sp`. Please refer to your terminal of choice's documentation on how to split the windows.
+The ability to run `aish` in a split pane depends on the capabilities of your terminal. For example,
+Windows Terminal can be split by running the following command: `wt -w 0 sp`. Refer to the
+documentation for your terminal application to see if it supports this feature.
 
+> [!NOTE]
+> Information the user should notice even if skimmingNot all terminal applications support this
+> feature.
+
+<!-- link references -->
+[01]: ../shell/README.md
+[02]: ./shell/ShellCopilot.Azure.Agent/README.md
+[03]: ./shell/ShellCopilot.Interpreter.Agent/README.md
+[04]: ./shell/ShellCopilot.OpenAI.Agent/README.md

@@ -1,69 +1,75 @@
-# AISH
+# Welcome to the AISH repository
 
-Welcome to the AISH repository! **AISH** is our latest CLI tool that creates an interactive chat
-shell session with large language models. It is designed to be a platform for creating AI agents
-that can interact with users in a conversational manner where users can build or use *agents* to
-interact with different AI models or forms of assistance.
+**AISH** is our latest CLI tool that provides an interactive shell session to chat with large
+language models. Users can use _agents_ to interact with different AI models, or other assistance
+providers, in a conversational manner. **AISH** also provides a framework for creating AI agents.
 
-Please be aware that this repository and its associated product are currently in an **alpha** state.
-There will likely be many experimental and significant changes to the code base and experience over
-time. We appreciate your feedback and patience as we continue to develop and refine our offering.
+This project is currently in an **alpha** state. Expect many significant changes to the code as we
+experiment and refine the user experiences of this tool. We appreciate your feedback and patience as
+we continue our development.
 
-![GIF showing demo of AISH](./docs/media/ShellCopilotDemo.gif)
+![GIF showing demo of AISH][04]
 
 ## Installing AISH
 
 Some prerequisites for building AISH
-- Build script requires PowerShell v7.2 or newer versions. [PowerShell v7.4](https://learn.microsoft.com/powershell/scripting/install/installing-powershell?view=powershell-7.4) is recommended.
-- [.NET SDK 8](https://dotnet.microsoft.com/en-us/download) is required to build the project.
+
+- Build script requires PowerShell v7.2 or newer versions
+- [PowerShell v7.4][11] is recommended
+- [.NET SDK 8][09] is required to build the project
 
 Here are the steps to install and use AISH.
 
-1. Clone this repository, `git clone https://github.com/PowerShell/AISH`;
-2. Run `./build.ps1` in the repository's root directory to build the project;
-3. After the build is complete, you can find the produced executable `aish` in the `out\debug`
-   folder within the repository's root directory. You can add it to the `PATH` environment variable
-   for easy access. The full path will be copied to your clipboard after successful build.
+1. Clone this repository, `git clone https://github.com/PowerShell/AISH`
+1. Run `./build.ps1` in the repository's root directory to build the project
+1. After the build is complete, you can find the produced executable `aish` in the `out\debug`
+   folder within the repository's root directory. You can add the location to the `PATH` environment
+   variable for easy access. The full path is copied to your clipboard after successful build.
 
-> Note: Depending on your OS directory paths may be `\` on Windows or `/` on Mac.
+## AI Agents
 
-## Agent Concept
+AISH provides a framework for creating and registering multiple AI Agents. The agents are libraries
+that you use to interact with different AI models or assistance providers. Currently, there are four
+supported agents in this repository.
 
-AISH has a concept of different AI Agents, these can be thought of like modules that users can use
-to interact with different AI models or forms of assistance. Right now there are four supported
-agents in this repo.
-- [`az-cli`](./shell/ShellCopilot.Azure.Agent/README.md)
-- [`az-ps`](./shell/ShellCopilot.Azure.Agent/README.md)
-- [`openai-gpt`](./shell/ShellCopilot.OpenAI.Agent/README.md)
-- [`interpreter`](./shell/ShellCopilot.Interpreter.Agent/README.md)
+Agent README files:
 
-If you run `aish` you will get prompted to choose between these agents. Please refer to the READMEs
-in the respective agent folders for details.
+- [`az-cli` & `az-ps`][06]
+- [`openai-gpt`][08]
+- [`interpreter`][07]
 
-## Using AISH
+When you run `aish`, you are prompted to choose an agent. For more details about each agent, see the
+README in the each agent folder.
 
-To start a chat session with the LLM, simply run `aish` and it will open up a new session in your
-current window. You will get prompted for which agent you would like to use. Once you select an
-agent you can begin your conversation.
+## How to use AISH
 
-We suggest using a split pane approach with the terminal of choice. Windows Terminal
-offers an easy pane option by running:
+To start a chat session with the LLM, run `aish`, which starts a new session in your current window.
+Choose the agent you would like to use. Once you select an agent you can begin your conversation.
+
+We suggest using a split pane approach with the terminal of choice. In Windows Terminal, use the
+following command to start `aish` in a new split pane:
 
 ```shell
 wt -w 0 sp aish
 ```
 
-If you use Windows Terminal and would like to tie this command to a key like `F3` in your PowerShell
-session, you can add the following code to your `$PROFILE`:
+You can bind this command to a key like `F3` in your PowerShell session. Add the following code to
+your `$PROFILE` script:
 
 ```powershell
-Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb'--size 0.4 -p "<your-default-WT-profile-guid>" --title 'AISH' <full-path-to-aish.exe> }
+$PSReadLineSplat = @{
+    Chord = 'F3'
+    ScriptBlock = {
+        wt -w 0 sp --tabColor '#345beb'--size 0.4 -p $env:WT_PROFILE_ID --title 'AISH' <full-path-to-aish.exe>
+    }
+}
+Set-PSReadLineKeyHandler @PSReadLineSplat
 ```
 
 ### `/` commands
 
-The base AISH offers a number of chat `/` commands that can be used to interact with the responses
-from the AI model. You can find all the available chats by running `/help` in the chat session.
+By default, `aish` provides a base set of chat `/` commands used to interact with the responses from
+the AI model. To get a list of commands, use the `/help` command in the chat session.
 
 ```
   Name       Description
@@ -79,30 +85,40 @@ from the AI model. You can find all the available chats by running `/help` in th
   /retry     Regenerate a new response for the last query.
 ```
 
-Agents may implement their own commands so be sure to check `/help` while using an agent. Some
-commands like `/like` and `/dislike` are just bare bones commands and need to be implemented by the
-agent to be useful.
+Also, agents can implement their own commands. Some commands, such as `/like` and `/dislike`, are
+base commands that need to be implemented by the agent to be useful.
 
-## Development
+## Agent development
 
-To learn more about how to create an agent for yourself please see the
-[Creating an Agent Docs](./docs/development/CreatingAnAgent.md).
+To learn more about how to create an agent for yourself please see, [Creating an Agent][03].
 
-## Contributing
+## Contributing to the project
 
-Please see [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for more details.
+Please see [CONTRIBUTING.md][02] for more details.
 
 ## Support
 
-For support, see our [Support Section](./docs/SUPPORT.md).
+For support, see our [Support][05] statement.
 
 ## Code of Conduct
 
-For more information, see the [Code of Conduct FAQ](./docs/CODE_OF_CONDUCT.md) or contact
-[opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+The project follows the Microsoft Open Source Code of Conduct. For more information, see the
+[Code of Conduct FAQ][01].
 
 ## Feedback
 
-We still in development and value any and all feedback! Please file an
-[issue in this repository](https://github.com/PowerShell/AISH/issues) for any bugs,
-suggestions and feedback. 
+We're still in development and value your feedback! Please file [issues][10] in this repository for
+bugs, suggestions, or feedback.
+
+<!-- link references -->
+[01]: ./docs/CODE_OF_CONDUCT.md
+[02]: ./docs/CONTRIBUTING.md
+[03]: ./docs/development/CreatingAnAgent.md
+[04]: ./docs/media/ShellCopilotDemo.gif
+[05]: ./docs/SUPPORT.md
+[06]: ./shell/ShellCopilot.Azure.Agent/README.md
+[07]: ./shell/ShellCopilot.Interpreter.Agent/README.md
+[08]: ./shell/ShellCopilot.OpenAI.Agent/README.md
+[09]: https://dotnet.microsoft.com/en-us/download
+[10]: https://github.com/PowerShell/AISH/issues
+[11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
