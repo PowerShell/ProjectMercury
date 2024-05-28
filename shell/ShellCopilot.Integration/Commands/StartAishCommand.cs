@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Text.Json;
 using System.Management.Automation;
+using Microsoft.PowerShell.Commands;
 
 namespace ShellCopilot.Integration;
 
@@ -10,6 +12,11 @@ public class StartAishCommand : PSCmdlet
     [Parameter]
     [ValidateNotNullOrEmpty]
     public string Path { get; set; }
+
+    /// <summary>
+    /// Cached GUID for the default profile of Windows Terminal.
+    /// </summary>
+    private static string s_wtDefaultProfileGuid;
 
     protected override void BeginProcessing()
     {
@@ -50,6 +57,28 @@ public class StartAishCommand : PSCmdlet
                 ErrorCategory.NotInstalled,
                 targetObject: null));
         }
+
+        if (s_wtDefaultProfileGuid is null)
+        {
+            s_wtDefaultProfileGuid = string.Empty;
+            string settingFile = System.IO.Path.Combine(
+                Environment.GetEnvironmentVariable("LOCALAPPDATA"),
+                "Packages",
+                "Microsoft.WindowsTerminal_*",
+                "LocalState",
+                "settings.json");
+
+            var matchingFiles = SessionState.Path.GetResolvedProviderPathFromProviderPath(settingFile, FileSystemProvider.ProviderName);
+            if (matchingFiles.Count > 0)
+            {
+                using var stream = File.OpenRead(matchingFiles[0]);
+                var jsonDoc = JsonDocument.Parse(stream);
+                if (jsonDoc.RootElement.TryGetProperty("defaultProfile", out JsonElement value))
+                {
+                    s_wtDefaultProfileGuid = value.GetString();
+                }
+            }
+        }
     }
 
     protected override void EndProcessing()
@@ -64,7 +93,7 @@ public class StartAishCommand : PSCmdlet
                 "--tabColor",
                 "#345beb",
                 "-p",
-                "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+                s_wtDefaultProfileGuid,
                 "-s",
                 "0.4",
                 "--title",

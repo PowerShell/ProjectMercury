@@ -31,9 +31,30 @@ internal sealed class AgentCommand : CommandBase
         config.AddOption(editor);
         config.SetHandler(ConfigAgentAction, configAgent, editor);
 
-        AddCommand(use);
-        AddCommand(pop);
+        var list = new Command("list", "List all available agents.");
+        list.SetHandler(ListAgentAction);
+
         AddCommand(config);
+        AddCommand(list);
+        AddCommand(pop);
+        AddCommand(use);
+    }
+
+    private void ListAgentAction()
+    {
+        var shell = (Shell)Shell;
+        var host = shell.Host;
+
+        var active = shell.ActiveAgent;
+        var list = shell.Agents;
+
+        var elements = new IRenderElement<LLMAgent>[]
+        {
+            new CustomElement<LLMAgent>("Name", c => c == active ? $"{c.Impl.Name} (active)" : c.Impl.Name),
+            new CustomElement<LLMAgent>("Description", c => c.Impl.Description),
+        };
+
+        host.RenderTable(list, elements);
     }
 
     private void UseAgentAction(string name)
@@ -127,7 +148,7 @@ internal sealed class AgentCommand : CommandBase
     private static void AgentNotFound(string name, Shell shell)
     {
         string availableAgentNames = string.Join(", ", shell.Agents.Select(AgentName));
-        shell.Host.WriteErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}");
+        shell.Host.WriteErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}.");
     }
 
     private IEnumerable<string> AgentCompleter(CompletionContext context)

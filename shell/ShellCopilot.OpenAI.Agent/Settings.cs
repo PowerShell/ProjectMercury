@@ -20,7 +20,7 @@ internal class Settings
     {
         _dirty = false;
         _active = null;
-        _gpts = configData.GPTs ?? new List<GPT>();
+        _gpts = configData.GPTs ?? [];
         _gptDict = new Dictionary<string, GPT>(StringComparer.OrdinalIgnoreCase);
 
         var dups = new HashSet<string>();
@@ -93,9 +93,13 @@ internal class Settings
     internal GPT GetGPTByName(string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
-        return _gptDict.TryGetValue(name, out GPT gpt)
-            ? gpt
-            : throw new InvalidOperationException($"A GPT instance with the name '{name}' doesn't exist.");
+
+        if (_gptDict.TryGetValue(name, out GPT gpt))
+        {
+            return gpt;
+        }
+
+        throw new InvalidOperationException($"A GPT instance with the name '{name}' doesn't exist.");
     }
 
     internal void UseGPT(string name)
@@ -103,16 +107,21 @@ internal class Settings
         _active = GetGPTByName(name);
     }
 
+    internal void UseGPT(GPT gpt)
+    {
+        _active = gpt;
+    }
+
     internal void ListAllGPTs(IHost host)
     {
         host.RenderTable(
             GPTs,
-            new IRenderElement<GPT>[] {
+            [
                 new PropertyElement<GPT>(nameof(GPT.Name)),
                 new CustomElement<GPT>(label: "Active", m => m.Name == Active.Name ? "true" : string.Empty),
                 new PropertyElement<GPT>(nameof(GPT.Description)),
                 new CustomElement<GPT>(label: "Key", m => m.Key is null ? "[red]missing[/]" : "[green]saved[/]"),
-            });
+            ]);
     }
 
     internal void ShowOneGPT(IHost host, string name)
@@ -120,15 +129,14 @@ internal class Settings
         var gpt = GetGPTByName(name);
         host.RenderList(
             gpt,
-            new[]
-            {
+            [
                 new PropertyElement<GPT>(nameof(GPT.Name)),
                 new PropertyElement<GPT>(nameof(GPT.Description)),
                 new PropertyElement<GPT>(nameof(GPT.Endpoint)),
                 new PropertyElement<GPT>(nameof(GPT.Deployment)),
                 new PropertyElement<GPT>(nameof(GPT.ModelName)),
                 new PropertyElement<GPT>(nameof(GPT.SystemPrompt)),
-            });
+            ]);
     }
 
     internal ConfigData ToConfigData()

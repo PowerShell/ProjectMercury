@@ -34,7 +34,10 @@ public class CodeBlockRenderer : VTObjectRenderer<CodeBlock>
     protected override void Write(VTRenderer renderer, CodeBlock obj)
     {
         renderer.WriteLine();
-        renderer.PushIndentAndUpdateWidth(VTRenderer.DefaultIndent);
+        renderer.PushIndentAndUpdateWidth(
+            obj.Column > 0
+                ? new string(' ', obj.Column)
+                : VTRenderer.DefaultIndent);
 
         string langId = null;
         ILanguage language = null;

@@ -38,6 +38,10 @@ public sealed class VTRenderer : TextRendererBase<VTRenderer>
         _indentWidth = new List<int>();
         EscapeSequences = new VT100EscapeSequences(optionInfo);
 
+        // For all the renderers, some write out an extra line at the beginning to separate from the already
+        // rendered components. However, none of them write out extra line at the end of the rendering, and
+        // we should keep it that way because that makes it more predictable when we need to change the layout
+        // of the rendering for any renderers.
         // Default block renderers
         ObjectRenderers.Add(new CodeBlockRenderer());
         ObjectRenderers.Add(new ListBlockRenderer());

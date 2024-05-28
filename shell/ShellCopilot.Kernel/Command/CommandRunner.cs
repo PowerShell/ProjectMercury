@@ -6,7 +6,7 @@ namespace ShellCopilot.Kernel.Commands;
 
 internal class CommandRunner
 {
-    private const string Core = "Core";
+    internal const string Core = "Core";
 
     private readonly Shell _shell;
     private readonly Dictionary<string, CommandBase> _commands;
@@ -35,6 +35,7 @@ internal class CommandRunner
             new RefreshCommand(),
             new RetryCommand(),
             new HelpCommand(),
+            new RenderCommand(),
         };
 
         LoadCommands(buildin, Core);

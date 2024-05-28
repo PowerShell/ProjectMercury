@@ -13,9 +13,9 @@ public enum UserAction
     CodeSave,
 
     /// <summary>
-    /// Code was inserted to the command-line shell by user.
+    /// Code was posted to the command-line shell by user.
     /// </summary>
-    CodeInsert,
+    CodePost,
 
     /// <summary>
     /// User ran the 'like' command.
@@ -97,9 +97,4 @@ public sealed class RetryPayload : UserActionPayload
         ArgumentException.ThrowIfNullOrEmpty(lastQuery);
         LastQuery = lastQuery;
     }
-}
-
-public sealed class RefreshPayload : UserActionPayload
-{
-    public RefreshPayload() : base(UserAction.Refresh) { }
 }

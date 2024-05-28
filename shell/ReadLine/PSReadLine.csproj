@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\shell.common.props" />
 
+  <!-- Ported form PSReadLine 2.3.1.0 -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <AssemblyName>ReadLine</AssemblyName>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
-    <AssemblyVersion>2.3.1.0</AssemblyVersion>
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
   </PropertyGroup>
 

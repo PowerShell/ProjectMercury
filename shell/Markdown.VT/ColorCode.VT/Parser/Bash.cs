@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 using ColorCode.Common;
 
 namespace ColorCode.VT;

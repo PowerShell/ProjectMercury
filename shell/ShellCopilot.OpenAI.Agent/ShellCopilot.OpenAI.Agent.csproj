@@ -16,10 +16,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.6" />
-    <PackageReference Include="Azure.Core" Version="1.34.0" />
-    <PackageReference Include="SharpToken" Version="1.2.2" />
-    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-beta.10">
+    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.17" />
+    <PackageReference Include="Azure.Core" Version="1.39.0" />
+    <PackageReference Include="SharpToken" Version="2.0.3" />
+    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-alpha.11">
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
