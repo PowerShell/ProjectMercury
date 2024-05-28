@@ -12,11 +12,9 @@ public sealed class OllamaAgent : ILLMAgent
     public string Description => "This is an AI assistant that utilizes Ollama";
     public string Company => "Microsoft";
     public List<string> SampleQueries => [
-        "What color is the sky"
+        "How do I list files in a directory?"
     ];
     public Dictionary<string, string> LegalLinks { private set; get; } = null;
-
-    private readonly Stopwatch _watch = new();
 
     private OllamaChatService _chatService;
     private StringBuilder _text; // Text to be rendered at the end
@@ -50,10 +48,6 @@ public sealed class OllamaAgent : ILLMAgent
 
     public async Task<bool> Chat(string input, IShell shell)
     {
-        // Measure time spent
-        _watch.Restart();
-        var startTime = DateTime.Now;
-
         IHost host = shell.Host; // Get the shell host
         CancellationToken token = shell.CancellationToken; // get the cancelation token
 
@@ -67,26 +61,7 @@ public sealed class OllamaAgent : ILLMAgent
             if (ollama_Response is not null)
             {
                 _text.AppendLine("Data: ").AppendLine(ollama_Response.response);
-
-
-                // if (ollama_Response.Error is not null)
-                // {
-                //     host.WriteErrorLine(ollama_Response.Error);
-                //     return true;
-                // }
-
-                // _text.AppendLine("Data: ").AppendLine(ollama_Response);
-
-                
-                // var data = ollama_Response.Data;
-
-                // _text.AppendLine("Data: ").AppendLine(data.response);
-
-                // host.RenderFullResponse(_text.ToString());
-
-                // // Measure time spent
-                // _watch.Stop();
-
+                host.RenderFullResponse(_text.ToString());
             }
         }
         catch (Exception e)
@@ -97,11 +72,7 @@ public sealed class OllamaAgent : ILLMAgent
             
             return false;
         }
-        finally
-        {
-            // Stop the watch in case of early return or exception.
-            _watch.Stop();
-        }
+       
 
         return true;
     }
