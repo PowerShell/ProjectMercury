@@ -15,7 +15,7 @@ Before creating an issue, please do the following:
 
 1. **Search for existing issues.** To avoid duplicates, please check to see if someone else has
    reported the same issue.
-1. **Check if the issue has been fixed.** Try to reproduce the issue using the latest `main` branch
+2. **Check if the issue has been fixed.** Try to reproduce the issue using the latest `main` branch
    to see if it has already been addressed.
 
 If you've determined that your issue is unique and current, you can proceed to create a new issue.
