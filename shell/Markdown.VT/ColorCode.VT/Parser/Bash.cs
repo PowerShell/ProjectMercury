@@ -18,7 +18,7 @@ public class Bash : ILanguage
         new List<LanguageRule>
         {
             new LanguageRule(
-                @"(\#.*?)\r?$",
+                @"(#.*?)\r?$",
                 new Dictionary<int, string>
                 {
                     {1, BashCommentScope}
@@ -34,30 +34,30 @@ public class Bash : ILanguage
 
             // match options like '-word'
             new LanguageRule(
-                @"\s+-\w+",
+                @"\s(-\w+)",
                 new Dictionary<int, string>
-                    {
-                        {0, ScopeName.PowerShellParameter}
-                    }
-                ),
+                {
+                    {1, ScopeName.PowerShellParameter}
+                }),
 
-            // match options like '--word', '--word-word', '--word-word-word' and etc.
+            // match options like '--word', '--word-word', and '--word-word-word', but not '--word-' or '--word-word-'.
+            // Also match potential value for the option that is specified in the form of '--word=value', but we don't
+            // capture the value part because it should be rendered as plain text, and our real purpose is to not let
+            // the value part to be matched by other rules.
             new LanguageRule(
-                @"\s+--(?:\w+-?)+",
+                @"\s(--(?:\w+-)*\w+)(?:=(?:\w+-)*\w+)?",
                 new Dictionary<int, string>
-                    {
-                        {0, ScopeName.PowerShellParameter}
-                    }
-                ),
+                {
+                    {1, ScopeName.PowerShellParameter}
+                }),
 
             // match variable like '$word', '$digit', '$word_word' and etc.
             new LanguageRule(
-                @"\$(?:[\d\w]+_?)+",
+                @"\$\w+",
                 new Dictionary<int, string>
-                    {
-                        {0, ScopeName.PowerShellVariable}
-                    }
-                ),
+                {
+                    {0, ScopeName.PowerShellVariable}
+                }),
         };
 
     public bool HasAlias(string lang)
