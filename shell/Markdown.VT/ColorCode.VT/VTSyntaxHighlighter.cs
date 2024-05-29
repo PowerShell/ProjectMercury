@@ -41,6 +41,7 @@ public class VTSyntaxHighlighter : CodeColorizerBase
 
         Languages.Load(new Bash());
         Languages.Load(new Json());
+        Languages.Load(new PowerShell());
     }
 
     /// <summary>
