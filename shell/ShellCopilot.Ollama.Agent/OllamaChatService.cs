@@ -10,11 +10,16 @@ namespace ShellCopilot.Ollama.Agent;
 
 internal class OllamaChatService : IDisposable
 {
+    // Ollama endpoint
     internal const string Endpoint = "http://localhost:11434/api/generate";
 
     private readonly HttpClient _client;
     private readonly string[] _scopes;
+
+    // Access token if endpoint needs authentication
     private AccessToken? _accessToken;
+
+    // optional correlation ID for distinguishing different sessions
     private string _correlationID;
 
     internal string CorrelationID => _correlationID;
@@ -22,7 +27,7 @@ internal class OllamaChatService : IDisposable
     internal OllamaChatService()
     {
         _client = new HttpClient();
-        _scopes = ["https://management.core.windows.net/"];
+        _scopes = null;
         _accessToken = null;
         _correlationID = null;
     }
@@ -41,6 +46,7 @@ internal class OllamaChatService : IDisposable
 
     private HttpRequestMessage PrepareForChat(string input)
     {
+        // Main data to send to the endpoint
         var requestData = new Query
         {
             model = "phi3",

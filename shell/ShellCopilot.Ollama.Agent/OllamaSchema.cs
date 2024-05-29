@@ -1,5 +1,6 @@
 namespace ShellCopilot.Ollama.Agent;
 
+// Query class for the data to send to the endpoint
 internal class Query
 {
     public string prompt { get; set; }
@@ -8,14 +9,7 @@ internal class Query
     public bool stream { get; set; }
 }
 
-internal class Action
-{
-    public string Command { get; set; }
-    public string Reason { get; set; }
-    public string Example { get; set; }
-    public List<string> Arguments { get; set; }
-}
-
+// Response data schema
 internal class ResponseData
 {
     public string model { get; set; }
