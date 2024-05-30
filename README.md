@@ -86,7 +86,7 @@ the AI model. To get a list of commands, use the `/help` command in the chat ses
 ```
 
 Also, agents can implement their own commands. Some commands, such as `/like` and `/dislike`, are
-base commands that need to be implemented by the agent to be useful.
+commands that sends feedback to the agents. It is up to the agents to consume the feedback.
 
 ## Agent development
 
