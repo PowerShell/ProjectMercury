@@ -22,7 +22,7 @@ Here are the steps to install and use AISH.
 
 1. Clone this repository, `git clone https://github.com/PowerShell/AISH`
 2. Run `./build.ps1` in the repository's root directory to build the project
-3. After the build is complete, you can find the produced executable `aish` in the `out\debug`
+3. After the build is complete, you can find the produced executable `aish` in the `out\debug\app`
    folder within the repository's root directory. You can add the location to the `PATH` environment
    variable for easy access. The full path is copied to your clipboard after successful build.
 
