@@ -13,11 +13,12 @@ deeply connected to PowerShell 7. For more about the architecture, see the
 
 An agent is a library that implements the user interface that talks to a specific language
 model or other assistance provider. Users can interact with these agents in a conversational manner,
-using natural language, to get the desired output or assistance. Currently, these are the supported
-agents:
+using natural language, to get the desired output or assistance. Currently, there are four supported
+agents in this repository.
 
 Agent README files:
 
+- [`az-cli` & `az-ps`][05]
 - [`openai-gpt`][04]
 - [`ollama`][02]
 - [`interpreter`][03]
@@ -44,3 +45,4 @@ documentation for your terminal application to see if it supports this feature.
 [02]: ../shell/agents/AIShell.Ollama.Agent/README.md
 [03]: ../shell/agents/AIShell.Interpreter.Agent/README.md
 [04]: ../shell/agents/AIShell.OpenAI.Agent/README.md
+[05]: ../shell/agents/ShellCopilot.Azure.Agent/README.md
