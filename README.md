@@ -1,100 +1,124 @@
-# AISH
+# Welcome to the AISH repository
 
-This is a repository of various **AI** + **Sh**ell prototypes we have created to test out experiences and
-features. **AISH** is the latest and most finished prototype. It is a CLI tool that creates
-an interactive chat session with a registered Large Language Model. Currently we are in a **Private Preview** state and everything is subject to change.
+**AISH** is our latest CLI tool that provides an interactive shell session to chat with large
+language models. Users can use _agents_ to interact with different AI models, or other assistance
+providers, in a conversational manner. **AISH** also provides a framework for creating AI agents.
 
-![GIF showing demo of AISH](./docs/media/ShellCopilotDemo.gif)
+This project is currently in an **alpha** state. Expect many significant changes to the code as we
+experiment and refine the user experiences of this tool. We appreciate your feedback and patience as
+we continue our development.
 
-## Installing and Using AISH
+![GIF showing demo of AISH][04]
+
+## Installing AISH
 
 Some prerequisites for building AISH
-- Build script requires PowerShell v7.2 or newer versions. [PowerShell v7.4](https://learn.microsoft.com/powershell/scripting/install/installing-powershell?view=powershell-7.4) is recommended.
-- [.NET SDK 8](https://dotnet.microsoft.com/en-us/download) is required to build the project.
+
+- Build script requires PowerShell v7.2 or newer versions
+- [PowerShell v7.4][11] is recommended
+- [.NET SDK 8][09] is required to build the project
 
 Here are the steps to install and use AISH.
-1. Clone this repository, `git clone https://github.com/PowerShell/ShellCopilot`;
-2. Run `./build.ps1` in the repository's root directory to build the project;
-3. After the build is complete, you can find the produced executable `aish` in the `out\debug` folder within the repository's root directory. You can add it to the `PATH` environment variable for easy access.
 
-> Note: Depending on your OS directory paths may be `\` on Windows or `/` on Mac.
+1. Clone this repository, `git clone https://github.com/PowerShell/AISH`
+2. Run `./build.ps1` in the repository's root directory to build the project
+3. After the build is complete, you can find the produced executable `aish` in the `out\debug\app`
+   folder within the repository's root directory. You can add the location to the `PATH` environment
+   variable for easy access. The full path is copied to your clipboard after successful build.
 
-## Agent Concept
+## AI Agents
 
-AISH has a concept of different AI Agents, these can be thought of like modules that users can use to interact with different AI models. Right now there are three supported agents
-- `az-cli`
-- `az-ps`
-- `openai-gpt`
+AISH provides a framework for creating and registering multiple AI Agents. The agents are libraries
+that you use to interact with different AI models or assistance providers. Currently, there are four
+supported agents in this repository.
 
-If you run `aish` you will get prompted to choose between the two.
+Agent README files:
 
-### Az-CLI Agent
+- [`az-cli` & `az-ps`][06]
+- [`openai-gpt`][08]
+- [`interpreter`][07]
 
-This agent is for talking specifically to an Az CLI endpoint tailored to helping users with Azure CLI questions.
+When you run `aish`, you are prompted to choose an agent. For more details about each agent, see the
+README in the each agent folder.
 
-Prerequisites:
-- Have [Azure CLI installed](https://learn.microsoft.com/cli/azure/install-azure-cli)
-- Login with an Azure account within the Microsoft tenant with `az login` command
+## How to use AISH
 
-### Az-PS Agent
+To start a chat session with the LLM, run `aish`, which starts a new session in your current window.
+Choose the agent you would like to use. Once you select an agent you can begin your conversation.
 
-This agent is for talking specifically to an Az PowerShell endpoint tailored to helping users with Azure PowerShell questions.
-
-Prerequisites:
-- Have [Azure PowerShell installed](https://learn.microsoft.com/powershell/azure/install-azure-powershell)
-- Login with an Azure account within the Microsoft tenant with `Connect-AzAccount` command
-
-
-### OpenAI-GPT Agent
-
-This is a more generalized agent that users can bring their own instance of Azure OpenAI (or the public OpenAI) and a completely customizable system prompt.
-Right now, it is defaulted to an internal Azure OpenAI endpoint with a prompt to be an assistant for PowerShell commands. This is for internal private preview purposes only.
-
-## Getting an Azure OpenAI Endpoint Key
-
-All the configuration is already included by default and on the first run of this agent you will be prompted to include a API key to be able to use this endpoint.
-
-Guide for Signing Up For API Key
-1.  Navigate to <https://pscopilot.developer.azure-api.net>
-2.  Click `Sign Up` located on the top right corner of the page.
-3.  Sign up for a subscription by filling in the fields (email, password, first name, last name).
-4.  Verify the account (An email should have been sent from
-    <apimgmt-noreply@mail.windowsazure.com> to your email)
-5.  Click `Sign In` located on the top right corner of the page.
-6.  Enter the email and password used when signing up.
-7.  Click `Products` located on the top right corner of the page
-8.  In the field stating `Your new product subscription name`, Enter `Azure OpenAI Service API`.
-9.  Click `Subscribe` to be subscribed to the product.
-
-In order to view your subscription/API key,
-1.  Click `Profile` located on the top right corner of the page.
-2.  Your Key should be located under the `Subscriptions` section. Click on `Show` to view the
-    primary or secondary key.
-
-Once you have a key you can always edit your endpoint configuration by running `/agent config openai-gpt` within AISH. This opens up a JSON file with all the configuration options. 
-
-If you have separate Azure OpenAI endpoint you can use that instead of the one above. Read more at
-[Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=ps).
-
-## Using AISH
-
-To start a chat session with the LLM, simply run `aish` and it will open up a new session in your current window.
-We suggest using a split pane approach with the terminal of choice.
-Windows Terminal offers an easy pane option by running:
+We suggest using a split pane approach with the terminal of choice. In Windows Terminal, use the
+following command to start `aish` in a new split pane:
 
 ```shell
 wt -w 0 sp aish
 ```
 
-If you use Windows Terminal and would like to tie this command to a key like `F3` in your PowerShell session,
-you can add the following code to your `$PROFILE`:
+You can bind this command to a key like `F3` in your PowerShell session. Add the following code to
+your `$PROFILE` script:
 
 ```powershell
-Set-PSReadLineKeyHandler -Chord F3 -ScriptBlock { wt -w 0 sp --tabColor '#345beb'--size 0.4 -p "<your-default-WT-profile-guid>" --title 'AISH' <full-path-to-aish.exe> }
+$PSReadLineSplat = @{
+    Chord = 'F3'
+    ScriptBlock = {
+        wt -w 0 sp --tabColor '#345beb'--size 0.4 -p $env:WT_PROFILE_ID --title 'AISH' <full-path-to-aish.exe>
+    }
+}
+Set-PSReadLineKeyHandler @PSReadLineSplat
 ```
+
+### `/` commands
+
+By default, `aish` provides a base set of chat `/` commands used to interact with the responses from
+the AI model. To get a list of commands, use the `/help` command in the chat session.
+
+```
+  Name       Description
+────────────────────────────────────────────────────────────
+  /agent     Command for agent management.
+  /cls       Clear the screen.
+  /code      Command to interact with the code generated.
+  /dislike   Dislike the last response and send feedback.
+  /exit      Exit the interactive session.
+  /help      Show all available commands.
+  /like      Like the last response and send feedback.
+  /refresh   Refresh the chat session.
+  /retry     Regenerate a new response for the last query.
+```
+
+Also, agents can implement their own commands. Some commands, such as `/like` and `/dislike`, are
+commands that sends feedback to the agents. It is up to the agents to consume the feedback.
+
+## Agent development
+
+To learn more about how to create an agent for yourself please see, [Creating an Agent][03].
+
+## Contributing to the project
+
+Please see [CONTRIBUTING.md][02] for more details.
+
+## Support
+
+For support, see our [Support][05] statement.
+
+## Code of Conduct
+
+The project follows the Microsoft Open Source Code of Conduct. For more information, see the
+[Code of Conduct FAQ][01].
 
 ## Feedback
 
-We still in development and value any and all feedback! Please file an [issue in this repository](https://github.com/PowerShell/ShellCopilot/issues) for
-any bugs, suggestions and feedback. Any additional feedback can be sent to
-stevenbucher@microsoft.com.
+We're still in development and value your feedback! Please file [issues][10] in this repository for
+bugs, suggestions, or feedback.
+
+<!-- link references -->
+[01]: ./docs/CODE_OF_CONDUCT.md
+[02]: ./docs/CONTRIBUTING.md
+[03]: ./docs/development/CreatingAnAgent.md
+[04]: ./docs/media/ShellCopilotDemo.gif
+[05]: ./docs/SUPPORT.md
+[06]: ./shell/ShellCopilot.Azure.Agent/README.md
+[07]: ./shell/ShellCopilot.Interpreter.Agent/README.md
+[08]: ./shell/ShellCopilot.OpenAI.Agent/README.md
+[09]: https://dotnet.microsoft.com/en-us/download
+[10]: https://github.com/PowerShell/AISH/issues
+[11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
