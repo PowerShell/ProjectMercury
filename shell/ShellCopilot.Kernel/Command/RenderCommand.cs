@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 using System.CommandLine;
 using ShellCopilot.Abstraction;
 
@@ -24,20 +25,36 @@ internal sealed class RenderCommand : CommandBase
         try
         {
             using FileStream stream = file.OpenRead();
-            using StreamReader reader = new(stream, Encoding.Default);
-            string text = reader.ReadToEnd();
 
             if (streaming)
             {
                 using var streamingRender = host.NewStreamRender(CancellationToken.None);
-                string[] words = text.Split(' ');
-                foreach (string word in words)
+                string ext = Path.GetExtension(file.Name);
+
+                if (string.Equals(ext, ".json", StringComparison.OrdinalIgnoreCase))
                 {
-                    streamingRender.Refresh(word + " ");
+                    // Handle JSON file specially as we assume it contains all chunks stored in a string array.
+                    string[] words = JsonSerializer.Deserialize<string[]>(stream);
+                    foreach (string word in words)
+                    {
+                        streamingRender.Refresh(word);
+                    }
+                }
+                else
+                {
+                    using StreamReader reader = new(stream, Encoding.Default);
+                    string text = reader.ReadToEnd();
+                    string[] words = text.Split(' ');
+                    foreach (string word in words)
+                    {
+                        streamingRender.Refresh(word + " ");
+                    }
                 }
             }
             else
             {
+                using StreamReader reader = new(stream, Encoding.Default);
+                string text = reader.ReadToEnd();
                 host.RenderFullResponse(text);
             }
         }
