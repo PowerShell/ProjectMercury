@@ -29,7 +29,7 @@ Here are the steps to install and use AISH.
 ## AI Agents
 
 AISH provides a framework for creating and registering multiple AI Agents. The agents are libraries
-that you use to interact with different AI models or assistance providers. Currently, theses are the
+that you use to interact with different AI models or assistance providers. Currently, these are the
 supported agents:
 
 Agent README files:
