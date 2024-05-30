@@ -39,6 +39,7 @@ these are the supported agents:
 
 Agent README files:
 
+- [`az-cli` & `az-ps`][12]
 - [`openai-gpt`][08]
 - [`ollama`][06]
 - [`interpreter`][07]
@@ -154,3 +155,4 @@ bugs, suggestions, or feedback.
 [09]: https://dotnet.microsoft.com/en-us/download
 [10]: https://github.com/PowerShell/ProjectMercury/issues
 [11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
+[12]: ./shell/agents/ShellCopilot.Azure.Agent/README.md

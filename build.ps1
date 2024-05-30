@@ -14,7 +14,7 @@ param (
     [string] $Runtime = [NullString]::Value,
 
     [Parameter()]
-    [ValidateSet('openai-gpt', 'interpreter', 'ollama')]
+    [ValidateSet('openai-gpt', 'az-agent', 'interpreter', 'ollama')]
     [string[]] $AgentToInclude,
 
     [Parameter()]
@@ -28,7 +28,7 @@ function GetProjectFile($dir)
 
 $ErrorActionPreference = 'Stop'
 
-$AgentToInclude ??= @('openai-gpt', 'interpreter', 'ollama')
+$AgentToInclude ??= @('openai-gpt', 'az-agent', 'interpreter', 'ollama')
 $RID = $Runtime ?? (dotnet --info |
     Select-String '^\s*RID:\s+(\w+-\w+)$' |
     Select-Object -First 1 |
@@ -43,6 +43,7 @@ $pkg_dir = Join-Path $shell_dir "AIShell.Abstraction"
 $module_dir = Join-Path $shell_dir "AIShell.Integration"
 
 $open_ai_agent_dir = Join-Path $agent_dir "AIShell.OpenAI.Agent"
+$az_agent_dir = Join-Path $agent_dir "ShellCopilot.Azure.Agent"
 $interpreter_agent_dir = Join-Path $agent_dir "AIShell.Interpreter.Agent"
 $ollama_agent_dir = Join-Path $agent_dir "AIShell.Ollama.Agent"
 
@@ -52,6 +53,7 @@ $app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
 $module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "AIShell"
 
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
+$az_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Azure.Agent"
 $interpreter_out_dir = Join-Path $app_out_dir "agents" "AIShell.Interpreter.Agent"
 $ollama_out_dir =  Join-Path $app_out_dir "agents" "AIShell.Ollama.Agent"
 
@@ -83,6 +85,12 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'openai-gpt') {
     Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
     $open_ai_csproj = GetProjectFile $open_ai_agent_dir
     dotnet publish $open_ai_csproj -c $Configuration -o $open_ai_out_dir
+}
+
+if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {
+    Write-Host "`n[Build the Azure agents ...]`n" -ForegroundColor Green
+    $az_csproj = GetProjectFile $az_agent_dir
+    dotnet publish $az_csproj -c $Configuration -o $az_out_dir
 }
 
 if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter') {
