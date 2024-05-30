@@ -77,6 +77,7 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'openai-gpt') {
     Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
     $open_ai_csproj = GetProjectFile $open_ai_agent_dir
     dotnet publish $open_ai_csproj -c $Configuration -o $open_ai_out_dir
+}
 
 if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter') {
     Write-Host "`n[Build the Interpreter agent ...]`n" -ForegroundColor Green
