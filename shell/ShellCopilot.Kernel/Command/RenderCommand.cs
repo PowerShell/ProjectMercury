@@ -33,6 +33,7 @@ internal sealed class RenderCommand : CommandBase
 
                 if (string.Equals(ext, ".json", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Handle JSON file specially as we assume it contains all chunks stored in a string array.
                     string[] words = JsonSerializer.Deserialize<string[]>(stream);
                     foreach (string word in words)
                     {
