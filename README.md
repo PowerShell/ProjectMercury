@@ -29,12 +29,11 @@ Here are the steps to install and use AISH.
 ## AI Agents
 
 AISH provides a framework for creating and registering multiple AI Agents. The agents are libraries
-that you use to interact with different AI models or assistance providers. Currently, there are four
-supported agents in this repository.
+that you use to interact with different AI models or assistance providers. Currently, these are the
+supported agents:
 
 Agent README files:
 
-- [`az-cli` & `az-ps`][06]
 - [`openai-gpt`][08]
 - [`interpreter`][07]
 
@@ -116,7 +115,6 @@ bugs, suggestions, or feedback.
 [03]: ./docs/development/CreatingAnAgent.md
 [04]: ./docs/media/ShellCopilotDemo.gif
 [05]: ./docs/SUPPORT.md
-[06]: ./shell/ShellCopilot.Azure.Agent/README.md
 [07]: ./shell/ShellCopilot.Interpreter.Agent/README.md
 [08]: ./shell/ShellCopilot.OpenAI.Agent/README.md
 [09]: https://dotnet.microsoft.com/en-us/download
