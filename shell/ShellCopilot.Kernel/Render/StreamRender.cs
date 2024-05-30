@@ -200,11 +200,12 @@ internal sealed partial class FancyStreamRender : IStreamRender
 
     /// <summary>
     /// The regular expression for matching ANSI escape sequences, which consists of the followings in the same order:
+    ///  - erase from the current cursor position (inclusive) to the end of the line: ESC[K
     ///  - graphics regex: graphics/color mode ESC[1;2;...m
     ///  - csi regex: CSI escape sequences
     ///  - hyperlink regex: hyperlink escape sequences. Note: '.*?' makes '.*' do non-greedy match.
     /// </summary>
-    [GeneratedRegex(@"(\x1b\[\d+(;\d+)*m)|(\x1b\[\?\d+[hl])|(\x1b\]8;;.*?\x1b\\)", RegexOptions.Compiled)]
+    [GeneratedRegex(@"(\x1b\[K)|(\x1b\[\d+(;\d+)*m)|(\x1b\[\?\d+[hl])|(\x1b\]8;;.*?\x1b\\)", RegexOptions.Compiled)]
     private static partial Regex CreateAnsiRegex();
 
     private static string GetPlainText(string text)
