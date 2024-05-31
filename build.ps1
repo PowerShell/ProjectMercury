@@ -87,7 +87,7 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter') {
     dotnet publish $interpreter_csproj -c $Configuration -o $interpreter_out_dir
 }
 
-if ($LASTEXITCODE -eq 0) {
+if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'ollama') {
     Write-Host "`n[Build the Ollama agent ...]`n" -ForegroundColor Green
     $ollama_csproj = GetProjectFile $ollama_agent_dir
     dotnet publish $ollama_csproj -c $Configuration -o $ollama_out_dir
