@@ -147,26 +147,6 @@ internal class Settings
             Active = Active.Name,
         };
     }
-
-    internal string Export(string name, string outFile, bool ignoreApiKey)
-    {
-        IList<GPT> gpts = name is null ? GPTs : new[] { GetGPTByName(name) };
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-            TypeInfoResolver = new GPTContractResolver(ignoreApiKey)
-        };
-
-        if (outFile is null)
-        {
-            return JsonSerializer.Serialize(gpts, options);
-        }
-
-        using var stream = File.Open(outFile, FileMode.Create, FileAccess.Write, FileShare.None);
-        JsonSerializer.Serialize(stream, gpts, options);
-        return null;
-    }
 }
 
 internal class ConfigData
@@ -174,3 +154,16 @@ internal class ConfigData
     public List<GPT> GPTs { get; set; }
     public string Active { get; set; }
 }
+
+/// <summary>
+/// Use source generation to serialize and deserialize the setting file.
+/// Both metadata-based and serialization-optimization modes are used to gain the best performance.
+/// </summary>
+[JsonSourceGenerationOptions(
+    WriteIndented = true,
+    AllowTrailingCommas = true,
+    PropertyNameCaseInsensitive = true,
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    UseStringEnumConverter = true)]
+[JsonSerializable(typeof(ConfigData))]
+internal partial class SourceGenerationContext : JsonSerializerContext { }
