@@ -1,6 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Azure.AI.OpenAI;
 using ShellCopilot.Abstraction;
 
@@ -51,7 +50,10 @@ public sealed class OpenAIAgent : ILLMAgent
         }
 
         _historyRoot = Path.Combine(_configRoot, "history");
-        Directory.CreateDirectory(_historyRoot);
+        if (!Directory.Exists(_historyRoot))
+        {
+            Directory.CreateDirectory(_historyRoot);
+        }
 
         _settings = ReadSettings();
         _chatService = new ChatService(_historyRoot, _settings);
@@ -169,14 +171,7 @@ public sealed class OpenAIAgent : ILLMAgent
         if (File.Exists(SettingFile))
         {
             using var stream = new FileStream(SettingFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var options = new JsonSerializerOptions
-            {
-                AllowTrailingCommas = true,
-                PropertyNameCaseInsensitive = true,
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-            };
-            var data = JsonSerializer.Deserialize<ConfigData>(stream, options);
+            var data = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ConfigData);
             settings = new Settings(data);
         }
 
@@ -186,13 +181,7 @@ public sealed class OpenAIAgent : ILLMAgent
     private void SaveSettings(Settings config)
     {
         using var stream = new FileStream(SettingFile, FileMode.Create, FileAccess.Write, FileShare.None);
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-        };
-
-        JsonSerializer.Serialize(stream, config.ToConfigData(), options);
+        JsonSerializer.Serialize(stream, config.ToConfigData(), SourceGenerationContext.Default.ConfigData);
     }
 
     private void OnSettingFileChange(object sender, FileSystemEventArgs e)
