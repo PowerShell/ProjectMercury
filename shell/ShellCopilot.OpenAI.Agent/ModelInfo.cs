@@ -30,7 +30,7 @@ internal class ModelInfo
             ["gpt-35-turbo"]  = new(tokenLimit: 16_385),
         };
 
-        // The first call to 'GptEncoding.GetEncoding' is very slow, taking about 2 seconds.
+        // The first call to 'GptEncoding.GetEncoding' is very slow, taking about 2 seconds on my machine.
         // We don't immediately need the encodings at the startup, so by getting the values in tasks,
         // we don't block the startup and the values will be ready when we really need them.
         s_encodingMap = new(StringComparer.OrdinalIgnoreCase)
