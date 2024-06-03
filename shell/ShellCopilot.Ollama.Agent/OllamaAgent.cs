@@ -23,11 +23,12 @@ public sealed class OllamaAgent : ILLMAgent
     ];
 
     // These are any legal/additional information links you want to provide at start up
-    public Dictionary<string, string> LegalLinks { private set; get; } = null;
+    public Dictionary<string, string> LegalLinks { private set; get; }
     
     private OllamaChatService _chatService;
 
-    private StringBuilder _text; // Text to be rendered at the end
+    // Text to be rendered at the end.
+    private StringBuilder _text; 
 
     public void Dispose()
     {
@@ -46,6 +47,7 @@ public sealed class OllamaAgent : ILLMAgent
 
     }
 
+    // 
     public IEnumerable<CommandBase> GetCommands() => null;
 
     public string SettingFile { private set; get; } = null;
@@ -54,28 +56,31 @@ public sealed class OllamaAgent : ILLMAgent
 
     public bool CanAcceptFeedback(UserAction action) => false;
     
-    public void OnUserAction(UserActionPayload actionPayload){}
+    public void OnUserAction(UserActionPayload actionPayload) {}
 
     // Main chat functions
     public async Task<bool> Chat(string input, IShell shell)
     {
-        IHost host = shell.Host; // Get the shell host
-        CancellationToken token = shell.CancellationToken; // get the cancelation token
+        // Get the shell host
+        IHost host = shell.Host; 
+
+        // get the cancelation token
+        CancellationToken token = shell.CancellationToken; 
 
         try
         {
-            ResponseData ollama_Response = await host.RunWithSpinnerAsync(
+            ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
                 func: async context => await _chatService.GetChatResponseAsync(context, input, token)
             ).ConfigureAwait(false);
 
-            if (ollama_Response is not null)
+            if (ollamaResponse is not null)
             {
-                _text.AppendLine(ollama_Response.response);
-                host.RenderFullResponse(_text.ToString()); // render the content
+                // render the content
+                host.RenderFullResponse(ollamaResponse.response); 
             }
         }
-        catch (Exception e)
+        catch (OperationCanceledException e)
         {
             _text.AppendLine(e.ToString());
 

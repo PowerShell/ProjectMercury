@@ -1,8 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Azure.Core;
-using Azure.Identity;
 
 using ShellCopilot.Abstraction;
 
@@ -15,14 +13,6 @@ internal class OllamaChatService : IDisposable
 
     private readonly HttpClient _client;
     private readonly string[] _scopes;
-
-    // Access token if endpoint needs authentication
-    private AccessToken? _accessToken;
-
-    // optional correlation ID for distinguishing different sessions
-    private string _correlationID;
-
-    internal string CorrelationID => _correlationID;
 
     internal OllamaChatService()
     {
@@ -38,11 +28,6 @@ internal class OllamaChatService : IDisposable
         _client.Dispose();
     }
 
-    private string NewCorrelationID()
-    {
-        _correlationID = Guid.NewGuid().ToString();
-        return _correlationID;
-    }
 
     private HttpRequestMessage PrepareForChat(string input)
     {
@@ -51,7 +36,7 @@ internal class OllamaChatService : IDisposable
         {
             model = "phi3",
             prompt = input,
-            stream = false
+            stream = true
         };
 
         var json = JsonSerializer.Serialize(requestData);
@@ -67,7 +52,6 @@ internal class OllamaChatService : IDisposable
     {
         try
         {
-            context?.Status("Generating ...");
             HttpRequestMessage request = PrepareForChat(input);
             HttpResponseMessage response = await _client.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
