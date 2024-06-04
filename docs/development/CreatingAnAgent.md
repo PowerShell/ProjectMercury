@@ -194,7 +194,182 @@ public async Task<bool> Chat(string input, IShell shell)
 }
 
 ```
-### Step 5: Modify build script and test out the agent!
+### Step 5: Adding Utils and checks
+
+Before we start calling the ollama API, lets add a utility class to help us check that ollama is
+installed and running on the users computer. We will add two functions, one to check if the ollama
+CLI is installed and the other to check if the ollama API is running by checking if the port is open
+on local host.
+
+```csharp
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Net.Sockets;
+
+namespace ShellCopilot.Ollama.Agent;
+
+internal static class Utils
+{
+    public static bool IsCliToolInstalled(string toolName)
+    {
+        string shellCommand, shellArgument;
+        // Determine the shell command and arguments based on the OS
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            shellCommand = "cmd.exe";
+            shellArgument = "/c " + toolName + " --version";
+        }
+        else
+        {
+            shellCommand = "/bin/bash";
+            shellArgument = "-c \"" + toolName + " --version\"";
+        }
+
+        try
+        {
+            ProcessStartInfo procStartInfo = new ProcessStartInfo(shellCommand, shellArgument)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using (Process process = new Process())
+            {
+                process.StartInfo = procStartInfo;
+                process.Start();
+
+                // You can read the output or error if necessary for further processing
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                process.WaitForExit();
+
+                return process.ExitCode == 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+    }
+
+    public static bool IsPortResponding(int port)
+    {
+        using (TcpClient tcpClient = new TcpClient())
+        {
+            try
+            {
+                // Attempt to connect to the specified port on localhost
+                tcpClient.Connect("localhost", port);
+                return true;
+            }
+            catch (SocketException ex)
+            {
+                return false; 
+            }
+        }
+    }
+}
+```
+
+### Step 6: Creating a Chat Service
+
+Before we finish calling the ollama API, lets create a chat service to help us communicate with the
+API. A separate chat service class is not required but can be helpful to abstract the calls to the
+API. Lets create a new file called `OllamaChatService.cs` in the same folder as the agent.
+
+```csharp
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+using ShellCopilot.Abstraction;
+
+namespace ShellCopilot.Ollama.Agent;
+
+internal class OllamaChatService : IDisposable
+{
+    // Ollama endpoint
+    internal const string Endpoint = "http://localhost:11434/api/generate";
+
+    private readonly HttpClient _client;
+
+    internal OllamaChatService()
+    {
+        _client = new HttpClient();
+    }
+
+    public void Dispose()
+    {
+        _client.Dispose();
+    }
+
+
+    private HttpRequestMessage PrepareForChat(string input)
+    {
+        // Main data to send to the endpoint
+        var requestData = new Query
+        {
+            model = "phi3",
+            prompt = input,
+            stream = false
+        };
+
+        var json = JsonSerializer.Serialize(requestData);
+
+        var data = new StringContent(json, Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = data };
+
+        return request;
+    }
+
+
+    internal async Task<ResponseData> GetChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken)
+    {
+        try
+        {
+            HttpRequestMessage request = PrepareForChat(input);
+            HttpResponseMessage response = await _client.SendAsync(request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            context?.Status("Receiving Payload ...");
+            Console.Write(response.Content);
+            var content = await response.Content.ReadAsStreamAsync(cancellationToken);
+            return JsonSerializer.Deserialize<ResponseData>(content);
+        }
+        catch (OperationCanceledException)
+        {
+            // Operation was cancelled by user.
+        }
+        return null;
+    }
+}
+```
+
+### Step 7: Calling the chat service
+
+Now that we have the chat service, we can call the chat service in the `Chat` method of the agent.
+
+```csharp
+ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
+    status: "Thinking ...",
+    func: async context => await _chatService.GetChatResponseAsync(context, input, token)
+).ConfigureAwait(false);
+
+if (ollamaResponse is not null)
+{
+    // render the content
+    host.RenderFullResponse(ollamaResponse.response); 
+}
+
+```
+
+
+### Step 8: Full code
+
+To find the full working structure of the ollama agent, you can find it in the
+[`shell/ShellCopilot.Ollama.Agent`](../../shell/ShellCopilot.Ollama.Agent/) folder.
 
 ## Sharing your agent
 

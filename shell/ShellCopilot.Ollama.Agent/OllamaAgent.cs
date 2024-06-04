@@ -68,22 +68,29 @@ public sealed class OllamaAgent : ILLMAgent
 
         try
         {
-            if (Utils.IsCliToolInstalled("ollama") && Utils.isPortOpen(11434)){
-                host.RenderFullResponse("Please ensure you have done all the prerequistates before using this");
+            // Check that ollama is installed
+            if (!Utils.IsCliToolInstalled("ollama")){
+                host.RenderFullResponse("Please be sure ollama is installed and running a server, check all the prerequisites in the README of this agent.");
+                return false;
+            } 
+
+            // Check that server is running
+            if (!Utils.IsPortResponding(11434)){
+                host.RenderFullResponse("It seems you may not have the ollama server running please be sure to have `ollama serve` running and check the prerequisites in the README of this agent.");
                 return false;
             }
-            else {
-                ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
-                    status: "Thinking ...",
-                    func: async context => await _chatService.GetChatResponseAsync(context, input, token)
-                ).ConfigureAwait(false);
+            
+            ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
+                status: "Thinking ...",
+                func: async context => await _chatService.GetChatResponseAsync(context, input, token)
+            ).ConfigureAwait(false);
 
-                if (ollamaResponse is not null)
-                {
-                    // render the content
-                    host.RenderFullResponse(ollamaResponse.response); 
-                }
+            if (ollamaResponse is not null)
+            {
+                // render the content
+                host.RenderFullResponse(ollamaResponse.response); 
             }
+            
             
         }
         catch (OperationCanceledException e)
