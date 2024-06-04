@@ -1,79 +1,97 @@
 # OpenAI Agent
 
-This agent talks to OpenAI or your own deployment of Azure OpenAI.
+This agent is designed to provide a flexible and user-friendly platform for interacting with OpenAI services, either the public OpenAI service or a private deployment of the Azure OpenAI service, through one or more customly defined GPT instances.
+
+## GPT
+
+GPTs are configured in the agent's settings file, which is in JSON format.
+Each GPT configuration includes the name, description, the targeted OpenAI model, and the system prompt for interaction.
+This allows for the creation of distinct GPTs, each tailored to a specific domain or scenario,
+whose system prompts can be customized to suit these individual scenarios.
+Furthermore, you have the flexibility to select different OpenAI models for each GPT as required.
+
+## Command
+
+The command `/gpt` is provided to make it easy to manage the GPTs.
+
+- Run `/gpt use <gpt-name>` to switch to another GPT instance,
+  or run `/gpt use` to simply choose from the availalbe ones.
+- Run `/gpt list <gpt-name>` to view the details of a GPT definition,
+  or run `/gpt list` to list all availalbe GPTs.
+
+```shell
+aish:1> /gpt --help
+Description:
+  Command for GPT management within the 'openai-gpt' agent.
+
+Usage:
+  gpt [command] [options]
+
+Options:
+  -h, --help  Show help and usage information
+
+Commands:
+  list <GPT>  List a specific GPT, or all available GPTs.
+  use <GPT>   Specify a GPT to use, or choose one from the available GPTs.
+```
 
 ## Prerequisites
 
-### OpenAI
+- For OpenAI, you need the **Model Name** and **API Key** to use the agent.
+  - [OpenAI API Key][03]
+  - [OpenAI Model][04]
 
-- [OpenAI API Key][03]
-
-### Azure OpenAI Service
-
-- [Access to Azure OpenAI][01]
-- [Create an Azure OpenAI deployment][02]
-
-You will need the following information to use the agent:
-
-- Azure OpenAI Endpoint
-- Azure OpenAI Deployment Name
-- Azure OpenAI API Key
+- For Azure OpenAI Service, you need the **Endpoint**, **Deployment Name**, **Model Name**, and **API Key** to use the agent.
+  - [Access to Azure OpenAI][01]
+  - [Create an Azure OpenAI deployment][02]
 
 ## Configuration
 
-### GPTs
+To configure the agent, run `/agent config openai-gpt` to open up the setting file in your default editor,
+and then update the file based on the following example.
 
-A GPT is a registered instance of an LLM that's configured for a specific use case. For example, you
-might want to have two different GPTs: one that's a PowerShell expert and another that's a Python
-expert. GPTs are defined in the agent config file.
-
-To configure the agent, run `/agent config openai-gpt` to open up the configuration file in your
-default editor. The default sample config file contains the following:
-
-```json
+```jsonc
 {
   // Declare GPT instances.
   "GPTs": [
-    // To use Azure OpenAI as the AI completion service:
+    // To use the Azure OpenAI service:
     // - Set `Endpoint` to the endpoint of your Azure OpenAI service,
-    //   or the endpoint to the Azure API Management service if you are using it as a gateway.
+    //     or the endpoint to the Azure API Management service if you are using it as a gateway.
     // - Set `Deployment` to the deployment name of your Azure OpenAI service.
+    // - Set `ModelName` to the name of the model used for your deployment.
     // - Set `Key` to the access key of your Azure OpenAI service,
-    //   or the key of the Azure API Management service if you are using it as a gateway.
+    //     or the key of the Azure API Management service if you are using it as a gateway.
     {
-      "Name": "powershell-ai",
-      "Description": "A GPT instance with expertise in PowerShell scripting and command line utilities.",
-      "Endpoint": "<insert my Azure OpenAI endpoint>",
+      "Name": "ps-gpt4",
+      "Description": "A GPT instance with expertise in PowerShell scripting and command line utilities. Use gpt-4 running in Azure.",
+      "Endpoint": "<insert your Azure OpenAI endpoint>",
       "Deployment": "gpt4",
-      "ModelName": "gpt-4-0314",   // required field to infer properties of the service, such as token limit.
+      "ModelName": "gpt-4-0613",   // required field to infer properties of the service, such as token limit.
       "Key": "<insert your key>",
-      "SystemPrompt": "You are a helpful and friendly assistant with expertise in PowerShell scripting and command line.\nAssume user is using the operating system `osx` unless otherwise specified.\nPlease always respond in the markdown format and use the `code block` syntax to encapsulate any part in responses that is longer-format content such as code, YAML, JSON, and etc."
+      "SystemPrompt": "1. You are a helpful and friendly assistant with expertise in PowerShell scripting and command line.\n2. Assume user is using the operating system `Windows 11` unless otherwise specified.\n3. Use the `code block` syntax in markdown to encapsulate any part in responses that is code, YAML, JSON or XML, but not table.\n4. When encapsulating command line code, use '```powershell' if it's PowerShell command; use '```sh' if it's non-PowerShell CLI command.\n5. When generating CLI commands, never ever break a command into multiple lines. Instead, always list all parameters and arguments of the command on the same line.\n6. Please keep the response concise but to the point. Do not overexplain."
     },
 
-    // To use the public OpenAI as the AI completion service:
+    // To use the public OpenAI service:
     // - Ignore the `Endpoint` and `Deployment` keys.
+    // - Set `ModelName` to the name of the model to be used.
     // - Set `Key` to be the OpenAI access token.
     // For example:
-    /*
     {
-        "Name": "python-ai",
-        "Description": "A GPT instance that acts as an expert in python programming that can generate python code based on user's query.",
-        "ModelName": "gpt-4",
-        "Key": null,
-        "SystemPrompt": "example-system-prompt"
+        "Name": "ps-gpt4o",
+        "Description": "A GPT instance with expertise in PowerShell scripting and command line utilities. Use gpt-4o running in OpenAI.",
+        "ModelName": "gpt-4o",
+        "Key": "<insert your key>",
+        "SystemPrompt": "1. You are a helpful and friendly assistant with expertise in PowerShell scripting and command line.\n2. Assume user is using the operating system `Windows 11` unless otherwise specified.\n3. Use the `code block` syntax in markdown to encapsulate any part in responses that is code, YAML, JSON or XML, but not table.\n4. When encapsulating command line code, use '```powershell' if it's PowerShell command; use '```sh' if it's non-PowerShell CLI command.\n5. When generating CLI commands, never ever break a command into multiple lines. Instead, always list all parameters and arguments of the command on the same line.\n6. Please keep the response concise but to the point. Do not overexplain."
     }
-    */
   ],
 
-  // Specify the GPT instance to use for user query.
+  // Specify the active GPT instance to use for user query.
   "Active": "powershell-ai"
 }
 ```
-
-If you have defined multiple GPTs, you can switch between them by running `/gpt use <GPT Name>`. To
-see a list of available GPTs, run `/gpt list`.
 
 <!-- link references -->
 [01]: https://aka.ms/oai/access?azure-portal=true
 [02]: https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource?pivots=web-portal
 [03]: https://platform.openai.com/api-keys
+[04]: https://platform.openai.com/docs/models

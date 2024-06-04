@@ -21,7 +21,7 @@ internal sealed class GPTCommand : CommandBase
         use.AddArgument(useGPT);
         use.SetHandler(UseGPTAction, useGPT);
 
-        var list = new Command("list", "List all available GPTs.");
+        var list = new Command("list", "List a specific GPT, or all available GPTs.");
         var listGPT = new Argument<string>(
             name: "GPT",
             getDefaultValue: () => null,
@@ -36,9 +36,13 @@ internal sealed class GPTCommand : CommandBase
     private void ListGPTAction(string name)
     {
         IHost host = Shell.Host;
+
+        // Reload the setting file if needed.
+        _agnet.ReloadSettings();
+
         Settings setting = _agnet.Settings;
 
-        if (setting.GPTs.Count is 0)
+        if (setting is null || setting.GPTs.Count is 0)
         {
             host.WriteErrorLine("No GPT instance defined.");
             return;
@@ -63,10 +67,13 @@ internal sealed class GPTCommand : CommandBase
 
     private void UseGPTAction(string name)
     {
+        // Reload the setting file if needed.
+        _agnet.ReloadSettings();
+
         var setting = _agnet.Settings;
         var host = Shell.Host;
 
-        if (setting.GPTs.Count is 0)
+        if (setting is null || setting.GPTs.Count is 0)
         {
             host.WriteErrorLine("No GPT instance defined.");
             return;
@@ -95,6 +102,6 @@ internal sealed class GPTCommand : CommandBase
     }
 
     private static string GPTName(GPT gpt) => gpt.Name;
-    private IEnumerable<string> GPTNameCompleter(CompletionContext context) => _agnet.Settings.GPTs.Select(GPTName);
+    private IEnumerable<string> GPTNameCompleter(CompletionContext context) => _agnet.Settings?.GPTs.Select(GPTName) ?? [];
     private string GPTNamesAsString() => string.Join(", ", GPTNameCompleter(null));
 }

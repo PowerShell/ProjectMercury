@@ -39,7 +39,12 @@ internal class Settings
         }
 
         string active = configData.Active;
-        if (!string.IsNullOrEmpty(active) && !_gptDict.TryGetValue(active, out _active))
+        if (string.IsNullOrEmpty(active))
+        {
+            // Active GPT not specified, but there is only one GPT defined, then use it by default.
+            _active = _gpts.Count is 1 ? _gpts[0] : null;
+        }
+        else if (!_gptDict.TryGetValue(active, out _active))
         {
             string message = $"The active GPT '{active}' specified in the configuration doesn't exist.";
             throw new InvalidOperationException(message);
@@ -118,9 +123,8 @@ internal class Settings
             GPTs,
             [
                 new PropertyElement<GPT>(nameof(GPT.Name)),
-                new CustomElement<GPT>(label: "Active", m => m.Name == Active.Name ? "true" : string.Empty),
+                new CustomElement<GPT>(label: "Active", m => m.Name == Active?.Name ? "true" : string.Empty),
                 new PropertyElement<GPT>(nameof(GPT.Description)),
-                new CustomElement<GPT>(label: "Key", m => m.Key is null ? "[red]missing[/]" : "[green]saved[/]"),
             ]);
     }
 

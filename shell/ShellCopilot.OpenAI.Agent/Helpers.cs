@@ -18,8 +18,7 @@ internal static class Utils
     internal const string ApimAuthorizationHeader = "Ocp-Apim-Subscription-Key";
     internal const string ApimGatewayDomain = ".azure-api.net";
     internal const string AzureOpenAIDomain = ".openai.azure.com";
-    internal const string ShellCopilotEndpoint = "https://pscopilot.azure-api.net";
-    internal const string KeyApplicationHelpLink = "https://github.com/PowerShell/ShellCopilot#readme";
+    internal const string SettingHelpLink = "https://aka.ms/aish/openai#configuration";
 
     internal static readonly string OS;
 
