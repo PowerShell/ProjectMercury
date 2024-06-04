@@ -129,7 +129,7 @@ public sealed class OpenAIAgent : ILLMAgent
 
     internal void UpdateDescription()
     {
-        const string DefaultDescription = "This agent is designed to provide a flexible platform for interacting with OpenAI services (Azure OpenAI or the public OpenAI) through one or more customly defined GPT instances.\n";
+        const string DefaultDescription = "This agent is designed to provide a flexible platform for interacting with OpenAI services (Azure OpenAI or the public OpenAI) through one or more customly defined GPT instances. Learn more at https://aka.ms/aish/openai\n";
 
         if (_settings is null || _settings.GPTs.Count is 0)
         {
@@ -137,8 +137,8 @@ public sealed class OpenAIAgent : ILLMAgent
             {DefaultDescription}
             The agent is currently not ready to serve queries, because there is no GPT defined. Please follow the steps below to configure the setting file properly before using this agent:
               1. Run '/agent config' to open the setting file.
-              2. Define the GPT(s).
-                 See example at {Utils.SettingHelpLink}
+              2. Define the GPT(s). See the example at
+                 {Utils.SettingHelpLink}
               3. Save and close the setting file.
               4. Run '/refresh' to apply the new settings.
             """;
@@ -152,8 +152,8 @@ public sealed class OpenAIAgent : ILLMAgent
             {DefaultDescription}
             Multiple GPTs are defined but the active GPT is not specified. You will be prompted to choose from the available GPTs when sending the first query. Or, if you want to set the active GPT in configuration, please follow the steps below:
               1. Run '/agent config' to open the setting file.
-              2. Set the value for the 'Active' key.
-                 See example at {Utils.SettingHelpLink}
+              2. Set the 'Active' key. See the example at
+                 {Utils.SettingHelpLink}
               3. Save and close the setting file
               4. Run '/refresh' to apply the new settings.
             """;
@@ -184,6 +184,11 @@ public sealed class OpenAIAgent : ILLMAgent
 
     private async Task<bool> SelfCheck(IHost host, CancellationToken token)
     {
+        if (_settings is null)
+        {
+            return false;
+        }
+
         bool checkPass = await _settings.SelfCheck(host, token);
 
         if (_settings.Dirty)
