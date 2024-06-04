@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using Azure.AI.OpenAI;
 using ShellCopilot.Abstraction;
@@ -19,7 +18,6 @@ public sealed class OpenAIAgent : ILLMAgent
     private Settings _settings;
     private FileSystemWatcher _watcher;
     private ChatService _chatService;
-    private DateTime? _lastWriteTimeUtc;
 
     /// <summary>
     /// Gets the settings.
@@ -59,7 +57,7 @@ public sealed class OpenAIAgent : ILLMAgent
             NotifyFilter = NotifyFilters.LastWrite,
             EnableRaisingEvents = true,
         };
-        _watcher.Created += OnSettingFileChange;
+        _watcher.Changed += OnSettingFileChange;
     }
 
     public void RefreshChat()
@@ -85,10 +83,8 @@ public sealed class OpenAIAgent : ILLMAgent
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
 
-        if (_reloadSettings)
-        {
-            ReloadSettings();
-        }
+        // Reload the setting file if needed.
+        ReloadSettings();
 
         bool checkPass = await SelfCheck(host, token);
         if (!checkPass)
@@ -133,7 +129,7 @@ public sealed class OpenAIAgent : ILLMAgent
 
     internal void UpdateDescription()
     {
-        const string DefaultDescription = "This agent allows you to define and use one or more GPTs that target OpenAI services (Azure OpenAI or the public OpenAI). GPTs may use different models with different system prompt messages, which can be configured in the setting file.\n";
+        const string DefaultDescription = "This agent is designed to provide a flexible platform for interacting with OpenAI services (Azure OpenAI or the public OpenAI) through one or more customly defined GPT instances.\n";
 
         if (_settings is null || _settings.GPTs.Count is 0)
         {
@@ -141,7 +137,8 @@ public sealed class OpenAIAgent : ILLMAgent
             {DefaultDescription}
             The agent is currently not ready to serve queries, because there is no GPT defined. Please follow the steps below to configure the setting file properly before using this agent:
               1. Run '/agent config' to open the setting file.
-              2. Define the GPT(s) based on the example at {Utils.SettingHelpLink}
+              2. Define the GPT(s).
+                 See example at {Utils.SettingHelpLink}
               3. Save and close the setting file.
               4. Run '/refresh' to apply the new settings.
             """;
@@ -168,6 +165,23 @@ public sealed class OpenAIAgent : ILLMAgent
         Description = $"Active GTP: {active.Name}. {active.Description}";
     }
 
+    internal void ReloadSettings()
+    {
+        if (_reloadSettings)
+        {
+            _reloadSettings = false;
+            var settings = ReadSettings();
+            if (settings is null)
+            {
+                return;
+            }
+
+            _settings = settings;
+            _chatService.RefreshSettings(_settings);
+            UpdateDescription();
+        }
+    }
+
     private async Task<bool> SelfCheck(IHost host, CancellationToken token)
     {
         bool checkPass = await _settings.SelfCheck(host, token);
@@ -189,21 +203,6 @@ public sealed class OpenAIAgent : ILLMAgent
         return checkPass;
     }
 
-    private void ReloadSettings()
-    {
-        var settings = ReadSettings();
-        if (settings is null)
-        {
-            // Either the configuration file doesn't exist or it wasn't changed since the last read.
-            return;
-        }
-
-        _settings = settings;
-        _chatService.RefreshSettings(_settings);
-        _reloadSettings = false;
-        UpdateDescription();
-    }
-
     private Settings ReadSettings()
     {
         Settings settings = null;
@@ -211,20 +210,15 @@ public sealed class OpenAIAgent : ILLMAgent
 
         if (file.Exists)
         {
-            // Skip the reading if the configuration file was not updated since our last read.
-            if (_lastWriteTimeUtc is null || _lastWriteTimeUtc < file.LastWriteTimeUtc)
+            try
             {
-                try
-                {
-                    using var stream = file.OpenRead();
-                    var data = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ConfigData);
-                    settings = new Settings(data);
-                    _lastWriteTimeUtc = file.LastWriteTimeUtc;
-                }
-                catch (Exception e)
-                {
-                    throw new InvalidDataException($"Parsing settings from '{SettingFile}' failed with the following error: {e.Message}", e);
-                }
+                using var stream = file.OpenRead();
+                var data = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ConfigData);
+                settings = new Settings(data);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidDataException($"Parsing settings from '{SettingFile}' failed with the following error: {e.Message}", e);
             }
         }
 
@@ -235,7 +229,6 @@ public sealed class OpenAIAgent : ILLMAgent
     {
         using var stream = new FileStream(SettingFile, FileMode.Create, FileAccess.Write, FileShare.None);
         JsonSerializer.Serialize(stream, config.ToConfigData(), SourceGenerationContext.Default.ConfigData);
-        _lastWriteTimeUtc = File.GetLastWriteTimeUtc(SettingFile);
     }
 
     private void OnSettingFileChange(object sender, FileSystemEventArgs e)

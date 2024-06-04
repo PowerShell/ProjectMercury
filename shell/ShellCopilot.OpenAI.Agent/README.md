@@ -2,6 +2,8 @@
 
 This agent is designed to provide a flexible and user-friendly platform for interacting with OpenAI services, either the public OpenAI service or a private deployment of the Azure OpenAI service, through one or more customly defined GPT instances.
 
+## GPT
+
 GPTs are configured in the agent's settings file, which is in JSON format.
 Each GPT configuration includes the name, description, the targeted OpenAI model, and the system prompt for interaction.
 This allows for the creation of distinct GPTs, each tailored to a specific domain or scenario,

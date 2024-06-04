@@ -36,6 +36,10 @@ internal sealed class GPTCommand : CommandBase
     private void ListGPTAction(string name)
     {
         IHost host = Shell.Host;
+
+        // Reload the setting file if needed.
+        _agnet.ReloadSettings();
+
         Settings setting = _agnet.Settings;
 
         if (setting is null || setting.GPTs.Count is 0)
@@ -63,6 +67,9 @@ internal sealed class GPTCommand : CommandBase
 
     private void UseGPTAction(string name)
     {
+        // Reload the setting file if needed.
+        _agnet.ReloadSettings();
+
         var setting = _agnet.Settings;
         var host = Shell.Host;
 
