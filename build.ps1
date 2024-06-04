@@ -28,7 +28,7 @@ function GetProjectFile($dir)
 
 $ErrorActionPreference = 'Stop'
 
-$AgentToInclude ??= @('openai-gpt', 'interpreter')
+$AgentToInclude ??= @('openai-gpt', 'interpreter', 'ollama')
 $RID = $Runtime ?? (dotnet --info |
     Select-String '^\s*RID:\s+(\w+-\w+)$' |
     Select-Object -First 1 |

@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using Azure.Identity;
 using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Ollama.Agent;
@@ -12,7 +11,7 @@ public sealed class OllamaAgent : ILLMAgent
     public string Name => "ollama";
 
     // Description displayed on start up
-    public string Description => "This is an AI assistant that utilizes Ollama";
+    public string Description => "This is an AI assistant that utilizes Ollama"; // TODO prerequistates for running this agent
 
     // This is the company added to /like and /dislike verbage for who the telemetry helps.
     public string Company => "Microsoft";
@@ -64,21 +63,28 @@ public sealed class OllamaAgent : ILLMAgent
         // Get the shell host
         IHost host = shell.Host; 
 
-        // get the cancelation token
+        // get the cancellation token
         CancellationToken token = shell.CancellationToken; 
 
         try
         {
-            ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
-                status: "Thinking ...",
-                func: async context => await _chatService.GetChatResponseAsync(context, input, token)
-            ).ConfigureAwait(false);
-
-            if (ollamaResponse is not null)
-            {
-                // render the content
-                host.RenderFullResponse(ollamaResponse.response); 
+            if (Utils.IsCliToolInstalled("ollama") && Utils.isPortOpen(11434)){
+                host.RenderFullResponse("Please ensure you have done all the prerequistates before using this");
+                return false;
             }
+            else {
+                ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
+                    status: "Thinking ...",
+                    func: async context => await _chatService.GetChatResponseAsync(context, input, token)
+                ).ConfigureAwait(false);
+
+                if (ollamaResponse is not null)
+                {
+                    // render the content
+                    host.RenderFullResponse(ollamaResponse.response); 
+                }
+            }
+            
         }
         catch (OperationCanceledException e)
         {
@@ -91,4 +97,5 @@ public sealed class OllamaAgent : ILLMAgent
        
         return true;
     }
+    
 }

@@ -12,14 +12,10 @@ internal class OllamaChatService : IDisposable
     internal const string Endpoint = "http://localhost:11434/api/generate";
 
     private readonly HttpClient _client;
-    private readonly string[] _scopes;
 
     internal OllamaChatService()
     {
         _client = new HttpClient();
-        _scopes = null;
-        _accessToken = null;
-        _correlationID = null;
     }
 
 
@@ -36,7 +32,7 @@ internal class OllamaChatService : IDisposable
         {
             model = "phi3",
             prompt = input,
-            stream = true
+            stream = false
         };
 
         var json = JsonSerializer.Serialize(requestData);
