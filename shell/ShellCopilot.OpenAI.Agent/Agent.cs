@@ -12,13 +12,14 @@ public sealed class OpenAIAgent : ILLMAgent
     public string SettingFile { private set; get; }
 
     private const string SettingFileName = "openai.agent.json";
-    private bool _refreshSettings;
+    private bool _reloadSettings;
     private bool _isDisposed;
     private string _configRoot;
     private string _historyRoot;
     private Settings _settings;
     private FileSystemWatcher _watcher;
     private ChatService _chatService;
+    private DateTime? _lastWriteTimeUtc;
 
     /// <summary>
     /// Gets the settings.
@@ -42,19 +43,13 @@ public sealed class OpenAIAgent : ILLMAgent
     public void Initialize(AgentConfig config)
     {
         _configRoot = config.ConfigurationRoot;
-
-        SettingFile = Path.Combine(_configRoot, SettingFileName);
-        if (!File.Exists(SettingFile))
-        {
-            NewExampleSettingFile();
-        }
-
         _historyRoot = Path.Combine(_configRoot, "history");
         if (!Directory.Exists(_historyRoot))
         {
             Directory.CreateDirectory(_historyRoot);
         }
 
+        SettingFile = Path.Combine(_configRoot, SettingFileName);
         _settings = ReadSettings();
         _chatService = new ChatService(_historyRoot, _settings);
 
@@ -69,6 +64,8 @@ public sealed class OpenAIAgent : ILLMAgent
 
     public void RefreshChat()
     {
+        // Reload the setting file if needed.
+        ReloadSettings();
         // Reset the history so the subsequent chat can start fresh.
         _chatService.ChatHistory.Clear();
     }
@@ -88,11 +85,9 @@ public sealed class OpenAIAgent : ILLMAgent
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
 
-        if (_refreshSettings)
+        if (_reloadSettings)
         {
-            _settings = ReadSettings();
-            _chatService.RefreshSettings(_settings);
-            _refreshSettings = false;
+            ReloadSettings();
         }
 
         bool checkPass = await SelfCheck(host, token);
@@ -138,10 +133,39 @@ public sealed class OpenAIAgent : ILLMAgent
 
     internal void UpdateDescription()
     {
+        const string DefaultDescription = "This agent allows you to define and use one or more GPTs that target OpenAI services (Azure OpenAI or the public OpenAI). GPTs may use different models with different system prompt messages, which can be configured in the setting file.\n";
+
+        if (_settings is null || _settings.GPTs.Count is 0)
+        {
+            Description = $"""
+            {DefaultDescription}
+            The agent is currently not ready to serve queries, because there is no GPT defined. Please follow the steps below to configure the setting file properly before using this agent:
+              1. Run '/agent config' to open the setting file.
+              2. Define the GPT(s) based on the example at {Utils.SettingHelpLink}
+              3. Save and close the setting file.
+              4. Run '/refresh' to apply the new settings.
+            """;
+
+            return;
+        }
+
+        if (_settings.Active is null)
+        {
+            Description = $"""
+            {DefaultDescription}
+            Multiple GPTs are defined but the active GPT is not specified. You will be prompted to choose from the available GPTs when sending the first query. Or, if you want to set the active GPT in configuration, please follow the steps below:
+              1. Run '/agent config' to open the setting file.
+              2. Set the value for the 'Active' key.
+                 See example at {Utils.SettingHelpLink}
+              3. Save and close the setting file
+              4. Run '/refresh' to apply the new settings.
+            """;
+
+            return;
+        }
+
         GPT active = _settings.Active;
-        Description = active is null
-            ? "An agent leverages GPTs that target OpenAI backends. Currently not ready to serve queries."
-            : $"Active GTP: {active.Name}. {active.Description}";
+        Description = $"Active GTP: {active.Name}. {active.Description}";
     }
 
     private async Task<bool> SelfCheck(IHost host, CancellationToken token)
@@ -165,14 +189,43 @@ public sealed class OpenAIAgent : ILLMAgent
         return checkPass;
     }
 
+    private void ReloadSettings()
+    {
+        var settings = ReadSettings();
+        if (settings is null)
+        {
+            // Either the configuration file doesn't exist or it wasn't changed since the last read.
+            return;
+        }
+
+        _settings = settings;
+        _chatService.RefreshSettings(_settings);
+        _reloadSettings = false;
+        UpdateDescription();
+    }
+
     private Settings ReadSettings()
     {
         Settings settings = null;
-        if (File.Exists(SettingFile))
+        FileInfo file = new(SettingFile);
+
+        if (file.Exists)
         {
-            using var stream = new FileStream(SettingFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var data = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ConfigData);
-            settings = new Settings(data);
+            // Skip the reading if the configuration file was not updated since our last read.
+            if (_lastWriteTimeUtc is null || _lastWriteTimeUtc < file.LastWriteTimeUtc)
+            {
+                try
+                {
+                    using var stream = file.OpenRead();
+                    var data = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ConfigData);
+                    settings = new Settings(data);
+                    _lastWriteTimeUtc = file.LastWriteTimeUtc;
+                }
+                catch (Exception e)
+                {
+                    throw new InvalidDataException($"Parsing settings from '{SettingFile}' failed with the following error: {e.Message}", e);
+                }
+            }
         }
 
         return settings;
@@ -182,57 +235,14 @@ public sealed class OpenAIAgent : ILLMAgent
     {
         using var stream = new FileStream(SettingFile, FileMode.Create, FileAccess.Write, FileShare.None);
         JsonSerializer.Serialize(stream, config.ToConfigData(), SourceGenerationContext.Default.ConfigData);
+        _lastWriteTimeUtc = File.GetLastWriteTimeUtc(SettingFile);
     }
 
     private void OnSettingFileChange(object sender, FileSystemEventArgs e)
     {
         if (e.ChangeType is WatcherChangeTypes.Changed)
         {
-            _refreshSettings = true;
+            _reloadSettings = true;
         }
-    }
-
-    private void NewExampleSettingFile()
-    {
-        string SampleContent = $@"
-{{
-  // Declare GPT instances.
-  ""GPTs"": [
-    // To use Azure OpenAI as the AI completion service:
-    // - Set `Endpoint` to the endpoint of your Azure OpenAI service,
-    //   or the endpoint to the Azure API Management service if you are using it as a gateway.
-    // - Set `Deployment` to the deployment name of your Azure OpenAI service.
-    // - Set `Key` to the access key of your Azure OpenAI service,
-    //   or the key of the Azure API Management service if you are using it as a gateway.
-    {{
-      ""Name"": ""powershell-ai"",
-      ""Description"": ""A GPT instance with expertise in PowerShell scripting and command line utilities."",
-      ""Endpoint"": ""{Utils.ShellCopilotEndpoint}"",
-      ""Deployment"": ""gpt4"",
-      ""ModelName"": ""gpt-4-0314"",   // required field to infer properties of the service, such as token limit.
-      ""Key"": null,
-      ""SystemPrompt"": ""You are a helpful and friendly assistant with expertise in PowerShell scripting and command line.\nAssume user is using the operating system `{Utils.OS}` unless otherwise specified.\nPlease always respond in the markdown format and use the `code block` syntax to encapsulate any part in responses that is longer-format content such as code, YAML, JSON, and etc.""
-    }},
-
-    // To use the public OpenAI as the AI completion service:
-    // - Ignore the `Endpoint` and `Deployment` keys.
-    // - Set `Key` to be the OpenAI access token.
-    // For example:
-    /*
-    {{
-        ""Name"": ""python-ai"",
-        ""Description"": ""A GPT instance that acts as an expert in python programming that can generate python code based on user's query."",
-        ""ModelName"": ""gpt-4"",
-        ""Key"": null,
-        ""SystemPrompt"": ""example-system-prompt""
-    }}
-    */
-  ],
-
-  // Specify the GPT instance to use for user query.
-  ""Active"": ""powershell-ai""
-}}
-";
-        File.WriteAllText(SettingFile, SampleContent, Encoding.UTF8);
     }
 }

@@ -122,12 +122,6 @@ public class GPT
     private async Task AskForKeyAsync(IHost host, CancellationToken cancellationToken)
     {
         host.MarkupNoteLine($"The access key is missing.");
-        if (Utils.ShellCopilotEndpoint.Equals(Endpoint, StringComparison.OrdinalIgnoreCase))
-        {
-            host.MarkupLine(" [grey]> The model uses the default ShellCopilot endpoint.[/]")
-                .MarkupLine($" [grey]> You can apply an access key for it by following [green][link={Utils.KeyApplicationHelpLink}]the instructions[/][/] in our doc.[/]\n");
-        }
-
         string secret = await host
             .PromptForSecretAsync("Enter key: ", cancellationToken)
             .ConfigureAwait(false);

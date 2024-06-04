@@ -45,6 +45,11 @@ internal sealed class AgentCommand : CommandBase
         var shell = (Shell)Shell;
         var host = shell.Host;
 
+        if (!HasAnyAgent(shell, host))
+        {
+            return;
+        }
+
         var active = shell.ActiveAgent;
         var list = shell.Agents;
 
@@ -61,6 +66,11 @@ internal sealed class AgentCommand : CommandBase
     {
         var shell = (Shell)Shell;
         var host = shell.Host;
+
+        if (!HasAnyAgent(shell, host))
+        {
+            return;
+        }
 
         LLMAgent chosenAgent = string.IsNullOrEmpty(name)
             ? host.PromptForSelectionAsync(
@@ -102,6 +112,13 @@ internal sealed class AgentCommand : CommandBase
     private void ConfigAgentAction(string name, string editor)
     {
         var shell = (Shell)Shell;
+        var host = shell.Host;
+
+        if (!HasAnyAgent(shell, host))
+        {
+            return;
+        }
+
         LLMAgent chosenAgent = string.IsNullOrEmpty(name)
             ? shell.ActiveAgent
             : FindAgent(name, shell);
@@ -115,7 +132,7 @@ internal sealed class AgentCommand : CommandBase
         var current = chosenAgent.Impl;
         if (current.SettingFile is null)
         {
-            shell.Host.WriteErrorLine($"The agent '{current.Name}' doesn't support configuration.");
+            host.WriteErrorLine($"The agent '{current.Name}' doesn't support configuration.");
             return;
         }
 
@@ -131,8 +148,19 @@ internal sealed class AgentCommand : CommandBase
         }
         catch (Exception ex)
         {
-            shell.Host.WriteErrorLine(ex.Message);
+            host.WriteErrorLine(ex.Message);
         }
+    }
+
+    private static bool HasAnyAgent(Shell shell, Host host)
+    {
+        if (shell.Agents.Count is 0)
+        {
+            host.WriteErrorLine("No agent is available.");
+            return false;
+        }
+
+        return true;
     }
 
     private static string AgentName(LLMAgent agent)
