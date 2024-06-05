@@ -108,7 +108,9 @@ public sealed class OllamaAgent : ILLMAgent
 ### Step 4: Add necessary class members and methods
 
 Lets now implement the necessary variables and methods for the agent. Below are descriptions of each
-and the values we will use for the Ollama agent.
+and the values we will use for the Ollama agent. There is a
+`private OllamaChatService _chatService;` implementation which we will do later in the steps.
+
 
 ```csharp
 public sealed class OllamaAgent : ILLMAgent
@@ -121,8 +123,7 @@ public sealed class OllamaAgent : ILLMAgent
     /// <summary>
     /// The description of the agent to be shown at start up
     /// </summary>
-    public string Description => "This is an AI assistant that utilizes Ollama"; // TODO prerequistates for running this agent
-
+    public string Description => "This is an AI assistant that utilizes the Ollama CLI tool. Be sure to follow all prerequisites in aka.ms/ollama/readme"; 
 
     /// <summary>
     /// This is the company added to /like and /dislike verbiage for who the telemetry helps.
@@ -171,12 +172,13 @@ public sealed class OllamaAgent : ILLMAgent
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Ollama Docs"] = "https://github.com/ollama/ollama",
+            ["Prerequisites"] = "aka.ms/ollama/readme"
         };
 
     }
 
     /// <summary>
-    /// Get commands that a agent can register to the shell when being loaded
+    /// Get commands that an agent can register to the shell when being loaded
     /// </summary>
     public IEnumerable<CommandBase> GetCommands() => null;
 
@@ -213,7 +215,7 @@ public sealed class OllamaAgent : ILLMAgent
     public async Task<bool> Chat(string input, IShell shell)
     {
         
-    }
+    }  
 }
 ```
 
