@@ -6,6 +6,11 @@ namespace ShellCopilot.Ollama.Agent;
 
 internal static class Utils
 {
+    /// <summary>
+    /// Confirms a given CLI tool is installed on the system
+    /// </summary>
+    /// <param name="toolName">CLI tools name to check</param>
+    /// <returns>Boolean whether or not the CLI tool is installed</returns>
     public static bool IsCliToolInstalled(string toolName)
     {
         string shellCommand, shellArgument;
@@ -50,6 +55,11 @@ internal static class Utils
         }
     }
 
+    /// <summary>
+    /// Confirms a localhost port is open to ensure ollama server is running
+    /// </summary>
+    /// <param name="port">port number to check against</param>
+    /// <returns>Boolean whether or not the localhost port is responding</returns>
     public static bool IsPortResponding(int port)
     {
         using (TcpClient tcpClient = new TcpClient())

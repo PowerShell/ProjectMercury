@@ -8,23 +8,38 @@ namespace ShellCopilot.Ollama.Agent;
 
 internal class OllamaChatService : IDisposable
 {
-    // Ollama endpoint
+    /// <summary>
+    /// Ollama endpoint to call to generate a response
+    /// </summary>
     internal const string Endpoint = "http://localhost:11434/api/generate";
 
+    /// <summary>
+    /// Http client 
+    /// </summary>
     private readonly HttpClient _client;
+
+    /// <summary>
+    /// Initialization method to initialize the http client 
+    /// </summary>
 
     internal OllamaChatService()
     {
         _client = new HttpClient();
     }
 
-
+    /// <summary>
+    /// Dispose of the http client 
+    /// </summary>
     public void Dispose()
     {
         _client.Dispose();
     }
 
-
+    /// <summary>
+    /// Preparing chat with data to be sent
+    /// </summary>
+    /// <param name="input">The user input from the chat experience</param>
+    /// <returns>The HTTP request message</returns>
     private HttpRequestMessage PrepareForChat(string input)
     {
         // Main data to send to the endpoint
@@ -43,7 +58,13 @@ internal class OllamaChatService : IDisposable
         return request;
     }
 
-
+    /// <summary>
+    /// Getting the chat response async
+    /// </summary>
+    /// <param name="context">Interface for the status context used when displaying a spinner.</param>
+    /// <param name="input">The user input from the chat experience</param>
+    /// <param name="cancellationToken">The cancellation token to exit out of request</param>
+    /// <returns>Response data from the API call</returns>
     internal async Task<ResponseData> GetChatResponseAsync(IStatusContext context, string input, CancellationToken cancellationToken)
     {
         try
