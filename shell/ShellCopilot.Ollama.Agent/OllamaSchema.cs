@@ -5,7 +5,6 @@ internal class Query
 {
     public string prompt { get; set; }
     public string model { get; set; }
-
     public bool stream { get; set; }
 }
 

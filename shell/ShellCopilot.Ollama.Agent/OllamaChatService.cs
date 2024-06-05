@@ -21,7 +21,6 @@ internal class OllamaChatService : IDisposable
     /// <summary>
     /// Initialization method to initialize the http client 
     /// </summary>
-
     internal OllamaChatService()
     {
         _client = new HttpClient();
