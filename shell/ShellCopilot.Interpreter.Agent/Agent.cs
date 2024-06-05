@@ -1,6 +1,4 @@
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Interpreter.Agent;
@@ -13,7 +11,7 @@ public sealed class InterpreterAgent : ILLMAgent
 
     private const string SettingFileName = "interpreter.agent.json";
     private bool _isInteractive;
-    private bool _refreshSettings;
+    private bool _reloadSettings;
     private bool _isDisposed;
     private string _configRoot;
     private string _historyRoot;
@@ -44,35 +42,36 @@ public sealed class InterpreterAgent : ILLMAgent
     {
         _isInteractive = config.IsInteractive;
         _renderingStyle = config.RenderingStyle;
-        _configRoot = config.ConfigurationRoot;
 
-        SettingFile = Path.Combine(_configRoot, SettingFileName);
-        if (!File.Exists(SettingFile))
+        _configRoot = config.ConfigurationRoot;
+        _historyRoot = Path.Combine(_configRoot, "history");
+        if (!Directory.Exists(_historyRoot))
         {
-            NewExampleSettingFile();
+            Directory.CreateDirectory(_historyRoot);
         }
 
-        _historyRoot = Path.Combine(_configRoot, "history");
-        Directory.CreateDirectory(_historyRoot);
-
+        SettingFile = Path.Combine(_configRoot, SettingFileName);
         _settings = ReadSettings();
         _executionService = new CodeExecutionService();
         _chatService = new ChatService(_isInteractive, _historyRoot, _settings, _executionService);
 
-        Description = "An agent that specializes in completing code related tasks. This agent will write a plan, write code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. Currently only supports PowerShell and Python.";
-
+        UpdateDescription();
         _watcher = new FileSystemWatcher(_configRoot, SettingFileName)
         {
             NotifyFilter = NotifyFilters.LastWrite,
             EnableRaisingEvents = true,
         };
-        _watcher.Created += OnSettingFileChange;
+        _watcher.Changed += OnSettingFileChange;
     }
 
     /// <inheritdoc/>
     public void RefreshChat()
     {
+        // Reload the setting file if needed.
+        ReloadSettings();
+        // Reset the history so the subsequent chat can start fresh.
         _chatService.RefreshChat();
+        // Shut down the execution service to start fresh.
         _executionService.Terminate();
     }
 
@@ -90,18 +89,15 @@ public sealed class InterpreterAgent : ILLMAgent
     {
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
+
+        // Reload the setting file if needed.
+        ReloadSettings();
+
         bool checkPass = await SelfCheck(host, token);
         if (!checkPass)
         {
             host.MarkupWarningLine($"[[{Name}]]: Cannot serve the query due to the missing configuration. Please properly update the setting file.");
             return checkPass;
-        }
-
-        if (_refreshSettings)
-        {
-            _settings = ReadSettings();
-            _chatService.RefreshSettings(_settings);
-            _refreshSettings = false;
         }
 
         try
@@ -138,21 +134,74 @@ public sealed class InterpreterAgent : ILLMAgent
         return checkPass;
     }
 
+    internal void UpdateDescription()
+    {
+        const string DefaultDescription = """
+            An agent that specializes in completing code related tasks. Given a task, this agent will write a plan, generate code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. This agent currently only supports PowerShell and Python languages.
+            Learn more at https://aka.ms/aish/interpreter
+            """;
+
+        if (_settings is null)
+        {
+            Description = $"""
+                {DefaultDescription}
+
+                The agent is not ready to serve queries, because no AI service has been configured. Please follow the steps below to setup the AI service for this agent:
+
+                1. Run '/agent config' to open the setting file.
+                2. Configure the settings. See the example at
+                   https://aka.ms/aish/interpreter#configuration
+                3. Save and close the setting file.
+                4. Run '/refresh' to apply the new settings.
+                """;
+
+            return;
+        }
+
+        string deploymentOrModel = _settings.Type is EndpointType.OpenAI
+            ? $"Model: [{_settings.ModelName}]"
+            : $"Deployment: [{_settings.Deployment}]";
+
+        Description = $"""
+            {DefaultDescription}
+
+            Service in use: [{_settings.Type}], {deploymentOrModel}
+            """;
+    }
+
+    private void ReloadSettings()
+    {
+        if (_reloadSettings)
+        {
+            _reloadSettings = false;
+            var settings = ReadSettings();
+            if (settings is null)
+            {
+                return;
+            }
+
+            _settings = settings;
+            _chatService.RefreshSettings(_settings);
+            UpdateDescription();
+        }
+    }
+
     private Settings ReadSettings()
     {
         Settings settings = null;
-        if (File.Exists(SettingFile))
+        FileInfo file = new(SettingFile);
+
+        if (file.Exists)
         {
-            using var stream = new FileStream(SettingFile, FileMode.Open, FileAccess.Read, FileShare.Read);
-            var options = new JsonSerializerOptions
+            try
             {
-                AllowTrailingCommas = true,
-                PropertyNameCaseInsensitive = true,
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-            };
-            var data = JsonSerializer.Deserialize<ConfigData>(stream, options);
-            settings = new Settings(data);
+                using var stream = file.OpenRead();
+                settings = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.Settings);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidDataException($"Parsing settings from '{SettingFile}' failed with the following error: {e.Message}", e);
+            }
         }
 
         return settings;
@@ -161,46 +210,14 @@ public sealed class InterpreterAgent : ILLMAgent
     private void SaveSettings(Settings config)
     {
         using var stream = new FileStream(SettingFile, FileMode.Create, FileAccess.Write, FileShare.None);
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-        };
-
-        JsonSerializer.Serialize(stream, config.ToConfigData(), options);
+        JsonSerializer.Serialize(stream, config, SourceGenerationContext.Default.Settings);
     }
 
     private void OnSettingFileChange(object sender, FileSystemEventArgs e)
     {
         if (e.ChangeType is WatcherChangeTypes.Changed)
         {
-            _refreshSettings = true;
+            _reloadSettings = true;
         }
-    }
-
-    private void NewExampleSettingFile()
-    {
-        string SampleContent = $@"
-{{
-      ""Endpoint"" : ""{Utils.ShellCopilotEndpoint}"",
-      ""Deployment"" : ""gpt4"",
-      ""ModelName"" : ""gpt-4-0613"",   // required field to infer properties of the service, such as token limit.
-      ""AutoExecution"" : false,
-      ""DisplayErrors"" : true,
-      ""Key"" : null
-
-    // To use the public OpenAI as the AI completion service:
-    // - Ignore the `Endpoint` and `Deployment` keys.
-    // - Set `Key` to be the OpenAI access token.
-    // Replace the above with the following:
-    /*
-      ""ModelName"": ""gpt-4-0613"",
-      ""AutoExecution"": false,
-      ""DisplayErrors"": true,
-      ""Key"": null
-    */
-}}
-";
-        File.WriteAllText(SettingFile, SampleContent, Encoding.UTF8);
     }
 }

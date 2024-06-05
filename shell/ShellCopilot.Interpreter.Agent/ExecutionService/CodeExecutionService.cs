@@ -67,6 +67,7 @@ public class CodeExecutionService
         {
             runningProcess.Value.Dispose();
         }
+
         ActiveLanguages.Clear();
     }
 

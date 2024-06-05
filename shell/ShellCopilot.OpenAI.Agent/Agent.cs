@@ -129,19 +129,24 @@ public sealed class OpenAIAgent : ILLMAgent
 
     internal void UpdateDescription()
     {
-        const string DefaultDescription = "This agent is designed to provide a flexible platform for interacting with OpenAI services (Azure OpenAI or the public OpenAI) through one or more customly defined GPT instances. Learn more at https://aka.ms/aish/openai\n";
+        const string DefaultDescription = """
+            This agent is designed to provide a flexible platform for interacting with OpenAI services (Azure OpenAI or the public OpenAI) through one or more customly defined GPT instances.
+            Learn more at https://aka.ms/aish/openai
+            """;
 
         if (_settings is null || _settings.GPTs.Count is 0)
         {
             Description = $"""
-            {DefaultDescription}
-            The agent is currently not ready to serve queries, because there is no GPT defined. Please follow the steps below to configure the setting file properly before using this agent:
-              1. Run '/agent config' to open the setting file.
-              2. Define the GPT(s). See the example at
-                 {Utils.SettingHelpLink}
-              3. Save and close the setting file.
-              4. Run '/refresh' to apply the new settings.
-            """;
+                {DefaultDescription}
+
+                The agent is currently not ready to serve queries, because there is no GPT defined. Please follow the steps below to configure the setting file properly before using this agent:
+
+                1. Run '/agent config' to open the setting file.
+                2. Define the GPT(s). See the example at
+                   {Utils.SettingHelpLink}
+                3. Save and close the setting file.
+                4. Run '/refresh' to apply the new settings.
+                """;
 
             return;
         }
@@ -149,14 +154,16 @@ public sealed class OpenAIAgent : ILLMAgent
         if (_settings.Active is null)
         {
             Description = $"""
-            {DefaultDescription}
-            Multiple GPTs are defined but the active GPT is not specified. You will be prompted to choose from the available GPTs when sending the first query. Or, if you want to set the active GPT in configuration, please follow the steps below:
-              1. Run '/agent config' to open the setting file.
-              2. Set the 'Active' key. See the example at
-                 {Utils.SettingHelpLink}
-              3. Save and close the setting file
-              4. Run '/refresh' to apply the new settings.
-            """;
+                {DefaultDescription}
+
+                Multiple GPTs are defined but the active GPT is not specified. You will be prompted to choose from the available GPTs when sending the first query. Or, if you want to set the active GPT in configuration, please follow the steps below:
+
+                1. Run '/agent config' to open the setting file.
+                2. Set the 'Active' key. See the example at
+                   {Utils.SettingHelpLink}
+                3. Save and close the setting file
+                4. Run '/refresh' to apply the new settings.
+                """;
 
             return;
         }

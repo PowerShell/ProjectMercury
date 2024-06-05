@@ -8,14 +8,14 @@ namespace ShellCopilot.Interpreter.Agent;
 /// </summary>
 internal class TaskCompletionChat
 {
-    private ChatService _chatService;
-    private IHost host;
-    private CodeExecutionService _executionService;
-    private Dictionary<string,string> prompts = TaskCompletionChatPrompts.prompts;
-    private BaseModel model;
-    private bool _isFunctionCallingModel;
-    private bool _autoExecution;
-    private bool _displayErrors;
+    private readonly ChatService _chatService;
+    private readonly IHost _host;
+    private readonly CodeExecutionService _executionService;
+    private readonly Dictionary<string,string> _prompts;
+    private readonly BaseModel _model;
+    private readonly bool _isFunctionCallingModel;
+    private readonly bool _autoExecution;
+    private readonly bool _displayErrors;
 
     /// <summary>
     /// Constructor requires settings for the chat session. Type of model is resolved here.
@@ -26,23 +26,20 @@ internal class TaskCompletionChat
         CodeExecutionService executionService,
         IHost Host)
     {
-        _isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(settings.ModelName);
-		_autoExecution = settings.AutoExecution;
-        _displayErrors = settings.DisplayErrors;
+        _host = Host;
         _chatService = chatService;
         _executionService = executionService;
-		host = Host;
+        _prompts = TaskCompletionChatPrompts.prompts;
 
-        if(_isFunctionCallingModel)
-        {
-            model = new FunctionCallingModel(_autoExecution, _displayErrors, _chatService, _executionService, host);
-        }
-        else
-        {
-            model = new TextBasedModel(_autoExecution, _displayErrors, _chatService, _executionService, host);
-        }
+        _isFunctionCallingModel = settings.ModelInfo.SupportFunctionCalling;
+		_autoExecution = settings.AutoExecution;
+        _displayErrors = settings.DisplayErrors;
+
+        _model = _isFunctionCallingModel
+            ? new FunctionCallingModel(_autoExecution, _displayErrors, _chatService, _executionService, _host)
+            : new TextBasedModel(_autoExecution, _displayErrors, _chatService, _executionService, _host);
 	}
-    
+
     /// <summary>
     /// This method contains the while loop that manages the automated chat session.
     /// All AI responses and code exeuction results are reduced to boolean values that determine the next automated user response.
@@ -60,7 +57,7 @@ internal class TaskCompletionChat
             }
             try
             {
-                InternalChatResultsPacket packet = await model.SmartChat(input, renderingStyle, token);
+                InternalChatResultsPacket packet = await _model.SmartChat(input, renderingStyle, token);
 
                 AutomatedUserResponses(ref input, ref chatCompleted, ref previousCode, packet);
             }
@@ -94,7 +91,7 @@ internal class TaskCompletionChat
             // If the code is different, we can send a different response.
             if(packet.Code.Equals(previousCode) && !string.IsNullOrEmpty(previousCode))
             {
-                input = prompts["SameError"];
+                input = _prompts["SameError"];
             }
             else
             {
@@ -108,11 +105,11 @@ internal class TaskCompletionChat
                     {
                         if (_isFunctionCallingModel)
                         {
-                            input = prompts["ErrorFunctionsBased"];
+                            input = _prompts["ErrorFunctionsBased"];
                         }
                         else
                         {
-                            input = prompts["ErrorTextBased"] + packet.toolResponse;
+                            input = _prompts["ErrorTextBased"] + packet.toolResponse;
                         }
                     }
                     // Output is handled similiarly to errors.
@@ -120,11 +117,11 @@ internal class TaskCompletionChat
                     {
                         if (_isFunctionCallingModel)
                         {
-                            input = prompts["OutputFunctionBased"];
+                            input = _prompts["OutputFunctionBased"];
                         }
                         else
                         {
-                            input = prompts["OutputTextBased"] + packet.toolResponse;
+                            input = _prompts["OutputTextBased"] + packet.toolResponse;
                         }
                         previousCode = packet.Code;
                     }

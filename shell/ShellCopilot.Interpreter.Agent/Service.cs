@@ -151,7 +151,7 @@ internal class ChatService
     private int CountTokenForMessages(IEnumerable<ChatRequestMessage> messages)
     {
         ModelInfo modelDetail = _settings.ModelInfo;
-        GptEncoding encoding = modelDetail.GptEncoding;
+        GptEncoding encoding = modelDetail.Encoding;
         int tokensPerMessage = modelDetail.TokensPerMessage;
         int tokensPerName = modelDetail.TokensPerName;
 
@@ -217,7 +217,7 @@ internal class ChatService
     internal string ReduceToolResponseContentTokens(string content)
     {
         ModelInfo modelDetail = _settings.ModelInfo;
-        GptEncoding encoding = modelDetail.GptEncoding;
+        GptEncoding encoding = modelDetail.Encoding;
         string reducedContent = content;
         string truncationMessage = "\n...Output truncated.";
 
@@ -291,7 +291,7 @@ internal class ChatService
         ChatCompletionsOptions chatOptions;
 
         // Determine if the gpt model is a function calling model
-        bool isFunctionCallingModel = ModelInfo.IsFunctionCallingModel(_settings.ModelName);
+        bool isFunctionCallingModel = _settings.ModelInfo.SupportFunctionCalling;
 
         chatOptions = new()
         {

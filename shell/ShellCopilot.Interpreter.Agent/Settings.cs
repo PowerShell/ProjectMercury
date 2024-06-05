@@ -1,8 +1,8 @@
-using ShellCopilot.Abstraction;
+using System.Diagnostics;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security;
-using System.Diagnostics;
-using System.Net;
+using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Interpreter.Agent;
 
@@ -17,23 +17,33 @@ internal class Settings
     internal EndpointType Type { get; }
     internal bool Dirty { set; get; }
     internal ModelInfo ModelInfo { private set; get; }
+
     public string Endpoint { set; get; }
     public string Deployment { set; get; }
     public string ModelName { set; get; }
-    public bool AutoExecution { set; get; }
-    public bool DisplayErrors { set; get; }
+
+    [JsonConverter(typeof(SecureStringJsonConverter))]
     public SecureString Key { set; get; }
 
-    public Settings(ConfigData configData)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(configData.ModelName);
+    public bool AutoExecution { set; get; }
+    public bool DisplayErrors { set; get; }
 
-        Endpoint = configData.Endpoint?.Trim().TrimEnd('/');
-        Deployment = configData.Deployment;
-        ModelName = configData.ModelName.ToLowerInvariant();
-        AutoExecution = configData.AutoExecution;
-        DisplayErrors = configData.DisplayErrors;
-        Key = configData.Key;
+    public Settings(
+        string endpoint,
+        string deployment,
+        string modelName,
+        SecureString key,
+        bool autoExecution,
+        bool displayErrors)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(modelName);
+
+        Endpoint = endpoint?.Trim().TrimEnd('/');
+        Deployment = deployment;
+        ModelName = modelName.ToLowerInvariant();
+        AutoExecution = autoExecution;
+        DisplayErrors = displayErrors;
+        Key = key;
 
         Dirty = false;
         ModelInfo = ModelInfo.TryResolve(ModelName, out var model) ? model : null;
@@ -64,7 +74,7 @@ internal class Settings
         }
 
         host.WriteLine()
-            .MarkupNoteLine($"Some required information is missing for the GPT:");
+            .MarkupNoteLine($"Some required information is missing in the configuration:");
         ShowEndpointInfo(host);
 
         try
@@ -91,21 +101,21 @@ internal class Settings
 
     private void ShowEndpointInfo(IHost host)
     {
-        var GPTInfo = Type switch
+        CustomElement<Settings>[] GPTInfo = Type switch
         {
-            EndpointType.AzureOpenAI => new CustomElement<Settings>[]
-                {
+            EndpointType.AzureOpenAI =>
+                [
                     new(label: "  Type", m => m.Type.ToString()),
                     new(label: "  Endpoint", m => m.Endpoint),
                     new(label: "  Deployment", m => m.Deployment),
                     new(label: "  Model", m => m.ModelName),
-                },
+                ],
 
-            EndpointType.OpenAI => new CustomElement<Settings>[]
-                {
+            EndpointType.OpenAI =>
+                [
                     new(label: "  Type", m => m.Type.ToString()),
                     new(label: "  Model", m => m.ModelName),
-                },
+                ],
 
             _ => throw new UnreachableException(),
         };
@@ -137,12 +147,6 @@ internal class Settings
     private async Task AskForKeyAsync(IHost host, CancellationToken cancellationToken)
     {
         host.MarkupNoteLine($"The access key is missing.");
-        if (Utils.ShellCopilotEndpoint.Equals(Endpoint, StringComparison.OrdinalIgnoreCase))
-        {
-            host.MarkupLine(" [grey]> The model uses the default ShellCopilot endpoint.[/]")
-                .MarkupLine($" [grey]> You can apply an access key for it by following [green][link={Utils.KeyApplicationHelpLink}]the instructions[/][/] in our doc.[/]\n");
-        }
-
         string secret = await host
             .PromptForSecretAsync("Enter key: ", cancellationToken)
             .ConfigureAwait(false);
@@ -150,29 +154,17 @@ internal class Settings
         Dirty = true;
         Key = Utils.ConvertToSecureString(secret);
     }
-
-    internal ConfigData ToConfigData()
-    {
-        return new ConfigData()
-        {
-            Endpoint = this.Endpoint,
-            Deployment = this.Deployment,
-            ModelName = this.ModelName,
-            AutoExecution = this.AutoExecution,
-            DisplayErrors = this.DisplayErrors,
-            Key = this.Key,
-        };
-    }
 }
 
-internal class ConfigData
-{
-    public string Endpoint { set; get; }
-    public string Deployment { set; get; }
-    public string ModelName { set; get; }
-    public bool AutoExecution { set; get; }
-    public bool DisplayErrors { set; get; }
-             
-    [JsonConverter(typeof(SecureStringJsonConverter))]
-    public SecureString Key { set; get; }
-}
+/// <summary>
+/// Use source generation to serialize and deserialize the setting file.
+/// Both metadata-based and serialization-optimization modes are used to gain the best performance.
+/// </summary>
+[JsonSourceGenerationOptions(
+    WriteIndented = true,
+    AllowTrailingCommas = true,
+    PropertyNameCaseInsensitive = true,
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    UseStringEnumConverter = true)]
+[JsonSerializable(typeof(Settings))]
+internal partial class SourceGenerationContext : JsonSerializerContext { }
