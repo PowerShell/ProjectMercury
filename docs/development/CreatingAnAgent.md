@@ -1,16 +1,17 @@
 # Creating an Agent
 
-An agent is a class that implements the user interface that talks to a specific large language model
-or other assistance provider. Users can interact with these agents in a conversational manner, using
-natural language, to get the desired output or assistance. Agents are C# classes that utilize the
-`ShellCopilot.Abstraction` layer and implement the `ILLMAgent` interface.
+An agent is a module-esc package that utilizes the user interface that the ShellCopilot provides to
+talks to a specific large language model or other assistance provider. Users can use these agents to
+create a conversational chat using natural language, to get the desired output or assistance. Agents
+are C# classes that utilize the `ShellCopilot.Abstraction` layer and implement the `ILLMAgent`
+interface.
 
 For details on what the `ShellCopilot.Abstraction` layer and `ShellCopilot.Kernel` provides, see the
 [Shell Copilot architecture](../shell/README.md).
 
 ## Prerequisites
 
-- .NET 8 SDK
+- .NET 8 SDK or newer
 - PowerShell 7.4 or newer
 
 ## Steps to create an agent
@@ -583,9 +584,8 @@ public async Task<bool> Chat(string input, IShell shell)
 }
 ```
 
-### Step 8: Full code
-
-To find the full working structure of the ollama agent, you can find it in the
+Congrats! The agent is now complete and you can now build and test the agent to confirm it is
+working. To find the fully completed code to check if you missed a step you can find it in the
 [`shell/ShellCopilot.Ollama.Agent`](../../shell/ShellCopilot.Ollama.Agent/) folder.
 
 ## Sharing your own agent
