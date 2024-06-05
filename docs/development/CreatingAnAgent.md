@@ -1,13 +1,12 @@
 # Creating an Agent
 
-An agent is a module-esc package that utilizes the user interface that the ShellCopilot provides to
-talks to a specific large language model or other assistance provider. Users can use these agents to
-create a conversational chat using natural language, to get the desired output or assistance. Agents
-are C# classes that utilize the `ShellCopilot.Abstraction` layer and implement the `ILLMAgent`
-interface.
+An agent is a code library that interfaces with the ShellCopilot to talk to a specific large
+language model or other assistance provider. Users chat with the agents using natural language to
+get the desired output or assistance. Agents are implemented as C# classes that implement the
+`ILLMAgent` interface of the `ShellCopilot.Abstraction` layer.
 
-For details on what the `ShellCopilot.Abstraction` layer and `ShellCopilot.Kernel` provides, see the
-[Shell Copilot architecture](../shell/README.md).
+For details about the `ShellCopilot.Abstraction` layer and `ShellCopilot.Kernel`, see the
+[Shell Copilot architecture][03] documentation.
 
 ## Prerequisites
 
@@ -16,16 +15,16 @@ For details on what the `ShellCopilot.Abstraction` layer and `ShellCopilot.Kerne
 
 ## Steps to create an agent
 
-For this example we will be creating an agent to communicate with
-[Ollama](https://github.com/ollama/ollama), a CLI tool for managing and using locally built
-LLM/SLMs. The agent's folder structure will be `shell/ShellCopilot.Ollama.Agent`.
+For this example we create an agent to communicate with [Ollama][04], a CLI tool for managing and
+using locally built LLM/SLMs. The agent is stored in the `shell/ShellCopilot.Ollama.Agent` folder of
+the repository.
 
 ### Step 1: Create a new project
 
-Currently the only way to import or utilize an agent is for it to be included in the folder
-structure of this repository. We suggest creating an agent under the `shell/` folder. Create a new
-folder with the prefix `ShellCopilot.<AgentName>` and within that folder create a new C# project
-with the same name.
+Currently, the only way to import an agent is for it to be included in the folder structure of this
+repository. We suggest creating an agent under the `shell/` folder. Create a new folder with the
+prefix `ShellCopilot.<AgentName>`. Within that folder, create a new C# project with the same name.
+Run the following command from the folder where you want to create the agent:
 
 ```shell
 dotnet new classlib
@@ -33,8 +32,11 @@ dotnet new classlib
 
 ### Step 2: Add the necessary packages
 
-Within the newly created project, add the `ShellCopilot.Abstraction` package as a reference. This is
-what your `.csproj` file should look like:
+Within the newly created project, add a reference to the `ShellCopilot.Abstraction` package. To
+reduce the number of files created by the build, you can disable the generation of PDB and deps.json
+for release builds.
+
+Your `.csproj` file should contain the following elements:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -43,29 +45,36 @@ what your `.csproj` file should look like:
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+
+    <!-- Disable deps.json generation -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
 
- 
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <!-- Disable PDB generation for the Release build -->
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-alpha.11"> 
+    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-alpha.11">
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
+
 </Project>
 ```
 
-Be sure to replace the version number with the latest version of the package. That can be found in
-[`shell.common.props`](../../shell/shell.common.props) file in the `shell/` folder.
-
-> Note: To reduce the clutter of files you can see the csproj file in the `shell/` folder of the
-> agent to reduce PDB and deps.json files from generating during release.
+> [!IMPORTANT]
+> Be sure to replace the version number with the latest version of the package. That can be found in
+> the [`shell/shell.common.props`][01] file.
 
 ### Step 3: Modify the build script
 
-Early on it is good to modify the build script so you can build and test out your agent as you
-develop it. The `build.ps1` script is located in the root of the repository and is used to build the
-kernel and all agents. We will be adding the following code to the script to build our agent.
+Modify the build script so that you can build and test your agent during development. The
+`build.ps1` script is located in the root of the repository. This script builds the kernel and all
+agents. The following lines were added to the script to build the new agent.
 
 ```powershell
 $ollama_agent_dir = Join-Path $shell_dir "ShellCopilot.Ollama.Agent"
@@ -82,15 +91,16 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'ollama') {
 Be sure to put this code after definition of the `$shell_dir`, `$app_out_dir`, and
 `$AgentToInclude`. Also add the name of the agent to the `$AgentToInclude` array and parameter
 validation.
+
 ```powershell
 $AgentToInclude ??= @('openai-gpt', 'interpreter', 'ollama')
 ```
 
 ### Step 3: Implement the agent class
 
-Now lets start building the agent, modify the `Class1.cs` file to implement the `ILLMAgent`
-interface. We suggest renaming the file to `OllamaAgent.cs` and the class to `OllamaAgent`. We have
-also added a number of packages that will be useful as we develop the agent.
+To being the creation of the agent, modify the `Class1.cs` file to implement the `ILLMAgent`
+interface. We suggest renaming the file to `OllamaAgent.cs` and the rename class to `OllamaAgent`.
+We've also added some packages that are used by the code in the implementation.
 
 ```csharp
 using System.Diagnostics;
@@ -102,16 +112,16 @@ namespace ShellCopilot.Ollama.Agent;
 
 public sealed class OllamaAgent : ILLMAgent
 {
-    
+
 }
 ```
 
 ### Step 4: Add necessary class members and methods
 
-Lets now implement the necessary variables and methods for the agent. Below are descriptions of each
-and the values we will use for the Ollama agent. There is a
-`private OllamaChatService _chatService;` implementation which we will do later in the steps.
-
+Next, implement the necessary variables and methods of the agent class. The comments provide
+descriptions of the members of the **OllamaAgent** class. The `_chatService` member is an instance
+of the **OllamaChatService** class. The implementation of the **OllamaChatService** class is show in
+later steps.
 
 ```csharp
 public sealed class OllamaAgent : ILLMAgent
@@ -124,7 +134,7 @@ public sealed class OllamaAgent : ILLMAgent
     /// <summary>
     /// The description of the agent to be shown at start up
     /// </summary>
-    public string Description => "This is an AI assistant that utilizes the Ollama CLI tool. Be sure to follow all prerequisites in aka.ms/ollama/readme"; 
+    public string Description => "This is an AI assistant that utilizes the Ollama CLI tool. Be sure to follow all prerequisites in aka.ms/ollama/readme";
 
     /// <summary>
     /// This is the company added to /like and /dislike verbiage for who the telemetry helps.
@@ -151,7 +161,7 @@ public sealed class OllamaAgent : ILLMAgent
     /// <summary>
     /// A string builder to render the text at the end
     /// </summary>
-    private StringBuilder _text; 
+    private StringBuilder _text;
 
     /// <summary>
     /// Dispose method to clean up the unmanaged resource of the chatService
@@ -173,7 +183,7 @@ public sealed class OllamaAgent : ILLMAgent
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Ollama Docs"] = "https://github.com/ollama/ollama",
-            ["Prerequisites"] = "aka.ms/ollama/readme"
+            ["Prerequisites"] = "https://aka.ms/ollama/readme"
         };
 
     }
@@ -208,29 +218,32 @@ public sealed class OllamaAgent : ILLMAgent
     public void OnUserAction(UserActionPayload actionPayload) {}
 
     /// <summary>
-    /// Main chat function that takes 
+    /// Main chat function that takes
     /// </summary>
     /// <param name="input">The user input from the chat experience</param>
     /// <param name="shell">The shell that provides host functionality</param>
     /// <returns>Task Boolean that indicates whether the query was served by the agent.</returns>
     public async Task<bool> Chat(string input, IShell shell)
     {
-        
-    }  
+
+    }
 }
 ```
 
-Getting "Hello World!" from the agent you can add this code to your `Chat` method. We will also add
-a try catch to catch any expections where the user is trying to cancel the operation.
+For the initial implementation, we want the agent to return "Hello World!" to prove that we have
+create the correct interfaces. We will also add a `try-catch` block to catch any expections to
+handle when the user tries to cancel the operation.
+
+Add the following code to your `Chat` method.
 
 ```csharp
 public async Task<bool> Chat(string input, IShell shell)
 {
     // Get the shell host
-    IHost host = shell.Host; 
+    IHost host = shell.Host;
 
     // get the cancelation token
-    CancellationToken token = shell.CancellationToken; 
+    CancellationToken token = shell.CancellationToken;
 
     try
     {
@@ -241,22 +254,52 @@ public async Task<bool> Chat(string input, IShell shell)
         _text.AppendLine(e.ToString());
 
         host.RenderFullResponse(_text.ToString());
-        
+
         return false;
     }
-    
+
     return true;
 }
 ```
-At this point its good to try building the agent seeing if you get `Hello World!` when you ask a
-question.
 
-### Step 5: Adding Utils and checks
+### Step 5: Build your agent
 
-Before we start calling the ollama API, lets add a utility class to help us check that ollama is
-installed and running on the users computer. We will add two functions, one to check if the ollama
-CLI is installed and the other to check if the ollama API is running by checking if the port is open
-on local host.
+At this point its good to try building and testing the agent. See if you get `Hello World!` when you
+ask a question.
+
+Use the following command to build the agent:
+
+```powershell
+../../build.ps1
+```
+
+To test the agent, run the `aish` you just built. The build script puts the path to `aish` on the
+clipboard. Paste the path from the clipboard into your terminal application. Select your agent from
+the list of agents presented by `aish`.
+
+```
+Shell Copilot
+v0.1.0-preview.1
+
+Please select an agent to use:
+
+    az-ps
+    az-cli
+    interpreter
+   >ollama
+    openai-gpt
+```
+
+After selecting the agent, enter a question in the chat window. You should see the response "Hello
+World!".
+
+### Step 6: Add utility functions
+
+Next, we want to add a utility class to help us check that ollama is installed and running on the
+computer. The utility class contains to methods:
+
+- one to test that the ollama CLI is installed
+- one to test that the ollama API port is open on local host
 
 ```csharp
 using System.Diagnostics;
@@ -333,24 +376,23 @@ internal static class Utils
             }
             catch (SocketException ex)
             {
-                return false; 
+                return false;
             }
         }
     }
 }
 ```
 
-Now that we have these utility functions we can add a check to the chat method to ensure that ollama
-is installed and running before we call the API. 
+Next, add a tests to the chat method using these utility methods.
 
 ```csharp
 public async Task<bool> Chat(string input, IShell shell)
 {
     // Get the shell host
-    IHost host = shell.Host; 
+    IHost host = shell.Host;
 
     // get the cancellation token
-    CancellationToken token = shell.CancellationToken; 
+    CancellationToken token = shell.CancellationToken;
 
     try
     {
@@ -358,40 +400,41 @@ public async Task<bool> Chat(string input, IShell shell)
         if (!Utils.IsCliToolInstalled("ollama")){
             host.RenderFullResponse("Please be sure ollama is installed and running a server, check all the prerequisites in the README of this agent.");
             return false;
-        } 
+        }
 
         // Check that server is running
         if (!Utils.IsPortResponding(11434)){
             host.RenderFullResponse("It seems you may not have the ollama server running please be sure to have `ollama serve` running and check the prerequisites in the README of this agent.");
             return false;
         }
-        
+
         // Where we will put the call to the API
-        
+
     }
     catch (OperationCanceledException e)
     {
         _text.AppendLine(e.ToString());
 
         host.RenderFullResponse(_text.ToString());
-        
+
         return false;
     }
-    
+
     return true;
 }
 ```
-### Step 6: Creating a Chat Service and Schema for response
 
+### Step 7: Create data structures to exchange data with the Chat Service
 
-Before we call the ollama API lets create a few classes to help us be able to handle the responses.
-We will create a schema for the data to be sent to the ollama API, a schema for the response data
-from the ollama API and a response schema to help with the API calls. To find more information about
-the API call we are going to make see, this
-[ollama example](https://github.com/ollama/ollama/blob/main/docs/api.md#request-no-streaming). For
-this example we will be calling the ollama API to generate a response without streaming and a fixed
-model. In the future we can add streaming capabilities so that the responses are rendered in real
-time as the agent receives them. Lets create a new file called `OllamaSchema.cs` in the same folder.
+Before we can use the ollama API, we need to create classes that handle input to and responses from
+the ollama API. To find more information about the API call we're going to make see, this The
+following [ollama example][05] shows the format of the input and the response from the agent.
+
+For this example we call the ollama API with streaming disabled. This generates a single, fixed
+response. In the future we could add streaming capabilities so that responses could be rendered in
+real time, as the agent receives them.
+
+To defined the data structures, create a new file called `OllamaSchema.cs` in the same folder.
 
 ```csharp
 namespace ShellCopilot.Ollama.Agent;
@@ -431,11 +474,12 @@ internal class OllamaResponse
 }
 ```
 
-Once we have this schema we can more easily put together a chat service to help us communicate with
-the API. A separate chat service class is not required but can be helpful to abstract the calls to
-the API. Lets create a new file called `OllamaChatService.cs` in the same folder as the agent. Here
-we will hard code the endpoint and model for the ollama API. In the future we can add these as
-parameters to an agent configuration file.
+Now we have the pieces we need to construc a chat service that communicates using the ollama API. A
+separate chat service class isn't required but can be helpful to abstract the calls to the API.
+
+Create a new file called `OllamaChatService.cs` in the same folder as the agent. For this example,
+we are using a hard coded endpoint and model for the ollama API. In the future, we could add these
+as parameters in an agent configuration file.
 
 ```csharp
 using System.Net.Http.Headers;
@@ -454,12 +498,12 @@ internal class OllamaChatService : IDisposable
     internal const string Endpoint = "http://localhost:11434/api/generate";
 
     /// <summary>
-    /// Http client 
+    /// Http client
     /// </summary>
     private readonly HttpClient _client;
 
     /// <summary>
-    /// Initialization method to initialize the http client 
+    /// Initialization method to initialize the http client
     /// </summary>
 
     internal OllamaChatService()
@@ -468,7 +512,7 @@ internal class OllamaChatService : IDisposable
     }
 
     /// <summary>
-    /// Dispose of the http client 
+    /// Dispose of the http client
     /// </summary>
     public void Dispose()
     {
@@ -529,20 +573,21 @@ internal class OllamaChatService : IDisposable
 
 ```
 
-### Step 7: Calling the chat service
+### Step 8: Call the chat service
 
-Now its time to actually call the chat service in the main agent class. We will modify the `Chat`
-method to call the chat service and render the response to the user. Here is what a finalized `Chat`
-function should look like.
+Now we can call the chat service in the main agent class.
+
+Modify the `Chat` method to call the chat service and render the response to the user. The following
+code shows the completed `Chat` method.
 
 ```csharp
 public async Task<bool> Chat(string input, IShell shell)
 {
     // Get the shell host
-    IHost host = shell.Host; 
+    IHost host = shell.Host;
 
     // get the cancellation token
-    CancellationToken token = shell.CancellationToken; 
+    CancellationToken token = shell.CancellationToken;
 
     try
     {
@@ -550,47 +595,54 @@ public async Task<bool> Chat(string input, IShell shell)
         if (!Utils.IsCliToolInstalled("ollama")){
             host.RenderFullResponse("Please be sure ollama is installed and running a server, check all the prerequisites in the README of this agent.");
             return false;
-        } 
+        }
 
         // Check that server is running
         if (!Utils.IsPortResponding(11434)){
             host.RenderFullResponse("It seems you may not have the ollama server running please be sure to have `ollama serve` running and check the prerequisites in the README of this agent.");
             return false;
         }
-        
+
         ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
             status: "Thinking ...",
             func: async context => await _chatService.GetChatResponseAsync(context, input, token)
         ).ConfigureAwait(false);
 
-        if (ollamaResponse is not null)
+        if (ollamaResponse isn't null)
         {
             // render the content
-            host.RenderFullResponse(ollamaResponse.response); 
+            host.RenderFullResponse(ollamaResponse.response);
         }
-        
-        
+
+
     }
     catch (OperationCanceledException e)
     {
         _text.AppendLine(e.ToString());
 
         host.RenderFullResponse(_text.ToString());
-        
+
         return false;
     }
-    
+
     return true;
 }
 ```
 
-Congrats! The agent is now complete and you can now build and test the agent to confirm it is
-working. To find the fully completed code to check if you missed a step you can find it in the
-[`shell/ShellCopilot.Ollama.Agent`](../../shell/ShellCopilot.Ollama.Agent/) folder.
+Congratulations! The agent is now complete. You can build and test the agent to confirm it's
+working. Compare your code to the example code in the [`shell/ShellCopilot.Ollama.Agent`][02] folder
+to see if you missed a step.
 
-## Sharing your own agent
+## How can I share my own agent?
 
-Currently there is no way to share your agents in a centralized repository or location. We suggest
-forking this repo for development of your own agent or share your agent in the [Discussions](https://github.com/PowerShell/AISH/discussions/categories/agent-sharing)
-tab of this repo under `Agent Sharing`.
+Currently there is no way to share your agents in a centralized repository. We suggest forking this
+repository for development of your own agent. You can share a link your fork in the `Agent Sharing`
+section of the [Discussions][06] tab of this repository.
 
+<!-- updated link references -->
+[01]: ../../shell/shell.common.props
+[02]: ../../shell/ShellCopilot.Ollama.Agent/
+[03]: ../../shell/README.md
+[04]: https://github.com/ollama/ollama
+[05]: https://github.com/ollama/ollama/blob/main/docs/api.md#request-no-streaming
+[06]: https://github.com/PowerShell/AISH/discussions/categories/agent-sharing

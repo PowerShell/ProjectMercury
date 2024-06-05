@@ -15,7 +15,7 @@ public sealed class OllamaAgent : ILLMAgent
     /// <summary>
     /// The description of the agent to be shown at start up
     /// </summary>
-    public string Description => "This is an AI assistant that utilizes the Ollama CLI tool. Be sure to follow all prerequisites in aka.ms/ollama/readme"; 
+    public string Description => "This is an AI assistant that utilizes the Ollama CLI tool. Be sure to follow all prerequisites in aka.ms/ollama/readme";
 
 
     /// <summary>
@@ -43,7 +43,7 @@ public sealed class OllamaAgent : ILLMAgent
     /// <summary>
     /// A string builder to render the text at the end
     /// </summary>
-    private StringBuilder _text; 
+    private StringBuilder _text;
 
     /// <summary>
     /// Dispose method to clean up the unmanaged resource of the chatService
@@ -65,7 +65,7 @@ public sealed class OllamaAgent : ILLMAgent
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Ollama Docs"] = "https://github.com/ollama/ollama",
-            ["Prerequisites"] = "aka.ms/ollama/readme"
+            ["Prerequisites"] = "https://aka.ms/ollama/readme"
         };
 
     }
@@ -100,7 +100,7 @@ public sealed class OllamaAgent : ILLMAgent
     public void OnUserAction(UserActionPayload actionPayload) {}
 
     /// <summary>
-    /// Main chat function that takes 
+    /// Main chat function that takes
     /// </summary>
     /// <param name="input">The user input from the chat experience</param>
     /// <param name="shell">The shell that provides host functionality</param>
@@ -108,10 +108,10 @@ public sealed class OllamaAgent : ILLMAgent
     public async Task<bool> Chat(string input, IShell shell)
     {
         // Get the shell host
-        IHost host = shell.Host; 
+        IHost host = shell.Host;
 
         // get the cancellation token
-        CancellationToken token = shell.CancellationToken; 
+        CancellationToken token = shell.CancellationToken;
 
         try
         {
@@ -119,14 +119,14 @@ public sealed class OllamaAgent : ILLMAgent
             if (!Utils.IsCliToolInstalled("ollama")){
                 host.RenderFullResponse("Please be sure ollama is installed and running a server, check all the prerequisites in the README of this agent.");
                 return false;
-            } 
+            }
 
             // Check that server is running
             if (!Utils.IsPortResponding(11434)){
                 host.RenderFullResponse("It seems you may not have the ollama server running please be sure to have `ollama serve` running and check the prerequisites in the README of this agent.");
                 return false;
             }
-            
+
             ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
                 func: async context => await _chatService.GetChatResponseAsync(context, input, token)
@@ -135,21 +135,21 @@ public sealed class OllamaAgent : ILLMAgent
             if (ollamaResponse is not null)
             {
                 // render the content
-                host.RenderFullResponse(ollamaResponse.response); 
+                host.RenderFullResponse(ollamaResponse.response);
             }
-            
-            
+
+
         }
         catch (OperationCanceledException e)
         {
             _text.AppendLine(e.ToString());
 
             host.RenderFullResponse(_text.ToString());
-            
+
             return false;
         }
-       
+
         return true;
     }
-    
+
 }
