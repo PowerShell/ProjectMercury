@@ -591,6 +591,6 @@ working. To find the fully completed code to check if you missed a step you can 
 ## Sharing your own agent
 
 Currently there is no way to share your agents in a centralized repository or location. We suggest
-forking this repo for development of your own agent or share your agent in the [Discussions](TODO)
-tab of this repo under `Agent Share`.
+forking this repo for development of your own agent or share your agent in the [Discussions](https://github.com/PowerShell/AISH/discussions/categories/agent-sharing)
+tab of this repo under `Agent Sharing`.
 
