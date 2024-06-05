@@ -32,7 +32,7 @@ internal class TaskCompletionChat
         _prompts = TaskCompletionChatPrompts.prompts;
 
         _isFunctionCallingModel = settings.ModelInfo.SupportFunctionCalling;
-		_autoExecution = settings.AutoExecution;
+        _autoExecution = settings.AutoExecution;
         _displayErrors = settings.DisplayErrors;
 
         _model = _isFunctionCallingModel

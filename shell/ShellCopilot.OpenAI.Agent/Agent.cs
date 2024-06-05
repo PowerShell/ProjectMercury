@@ -161,7 +161,7 @@ public sealed class OpenAIAgent : ILLMAgent
                 1. Run '/agent config' to open the setting file.
                 2. Set the 'Active' key. See the example at
                    {Utils.SettingHelpLink}
-                3. Save and close the setting file
+                3. Save and close the setting file.
                 4. Run '/refresh' to apply the new settings.
                 """;
 
