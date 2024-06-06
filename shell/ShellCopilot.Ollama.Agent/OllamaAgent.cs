@@ -71,7 +71,7 @@ public sealed class OllamaAgent : ILLMAgent
     }
 
     /// <summary>
-    /// Get commands that an agent can register to the shell when being loaded
+    /// Get commands that an agent can register to the shell when being loaded.
     /// </summary>
     public IEnumerable<CommandBase> GetCommands() => null;
 
