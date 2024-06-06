@@ -122,6 +122,11 @@ public sealed class InterpreterAgent : ILLMAgent
 
     internal async Task<bool> SelfCheck(IHost host, CancellationToken token)
     {
+        if (_settings is null)
+        {
+            return false;
+        }
+
         bool checkPass = await _settings.SelfCheck(host, token);
 
         if (_settings.Dirty)
