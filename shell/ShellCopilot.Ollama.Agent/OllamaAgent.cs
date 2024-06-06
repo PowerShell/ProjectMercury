@@ -67,7 +67,6 @@ public sealed class OllamaAgent : ILLMAgent
             ["Ollama Docs"] = "https://github.com/ollama/ollama",
             ["Prerequisites"] = "https://aka.ms/ollama/readme"
         };
-
     }
 
     /// <summary>
