@@ -96,7 +96,7 @@ internal sealed class Shell : IShell
         Channel = args.Channel is null ? null : new Channel(args.Channel, this);
 
         _agents = [];
-        _setting = new Setting();
+        _setting = Setting.Load();
         _activeAgentStack = new Stack<LLMAgent>();
         _textToIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         _cancellationSource = new CancellationTokenSource();
@@ -255,7 +255,7 @@ internal sealed class Shell : IShell
         try
         {
             LLMAgent chosenAgent = null;
-            string active = _wrapper?.Agent ?? _setting.ActiveAgent;
+            string active = _wrapper?.Agent ?? _setting.DefaultAgent;
             if (!string.IsNullOrEmpty(active))
             {
                 foreach (LLMAgent agent in _agents)

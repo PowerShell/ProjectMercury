@@ -46,12 +46,12 @@ and then update the file based on the following example.
   // - Set `ModelName` to the name of the model used for your deployment, e.g. "gpt-4-0613".
   // - Set `Key` to the access key of your Azure OpenAI service,
   //     or the key of the Azure API Management service if you are using it as a gateway.
-  "Endpoint" : "<insert your Azure OpenAI endpoint>",
-  "Deployment" : "<insert your deployment name>",
-  "ModelName" : "<insert the model name>",
-  "Key" : "<insert your key>",
-  "AutoExecution" : false, // 'true' to allow the agent run code automatically; 'false' to always prompt before running code.
-  "DisplayErrors" : true   // 'true' to display the errors when running code; 'false' to hide the errors to be less verbose.
+  "Endpoint": "<insert your Azure OpenAI endpoint>",
+  "Deployment": "<insert your deployment name>",
+  "ModelName": "<insert the model name>",
+  "Key": "<insert your key>",
+  "AutoExecution": false, // 'true' to allow the agent run code automatically; 'false' to always prompt before running code.
+  "DisplayErrors": true   // 'true' to display the errors when running code; 'false' to hide the errors to be less verbose.
 
   // To use the public OpenAI service:
   // - Ignore the `Endpoint` and `Deployment` keys.
