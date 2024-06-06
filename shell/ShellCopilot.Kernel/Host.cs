@@ -227,7 +227,7 @@ internal sealed class Host : IHost
             for (int i = 0; i < elements.Count; i++)
             {
                 var element = elements[i];
-                string value = element.Value(source) ?? string.Empty;
+                string value = element.Value(source).EscapeMarkup() ?? string.Empty;
                 spectreTable.Rows.Update(rowIndex, i, new Markup(value));
             }
         }
@@ -298,7 +298,7 @@ internal sealed class Host : IHost
         foreach (var element in elements)
         {
             string col1 = element.Name;
-            string col2 = element.Value(source) ?? string.Empty;
+            string col2 = element.Value(source).EscapeMarkup() ?? string.Empty;
             spectreTable.AddRow(Spectre.Console.Markup.FromInterpolated($"  [green bold]{col1} :[/]"), new Markup(col2));
         }
 

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using ShellCopilot.Abstraction;
 
@@ -54,6 +55,12 @@ public sealed class InterpreterAgent : ILLMAgent
         _settings = ReadSettings();
         _executionService = new CodeExecutionService();
         _chatService = new ChatService(_isInteractive, _historyRoot, _settings, _executionService);
+
+        if (_settings is null)
+        {
+            // Create the setting file with examples to serve as a template for user to update.
+            NewExampleSettingFile();
+        }
 
         UpdateDescription();
         _watcher = new FileSystemWatcher(_configRoot, SettingFileName)
@@ -136,21 +143,18 @@ public sealed class InterpreterAgent : ILLMAgent
 
     internal void UpdateDescription()
     {
-        const string DefaultDescription = """
-            An agent that specializes in completing code related tasks. Given a task, this agent will write a plan, generate code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. This agent currently only supports PowerShell and Python languages.
-            Learn more at https://aka.ms/aish/interpreter
-            """;
+        const string DefaultDescription = "An agent that specializes in completing code related tasks. Given a task, this agent will write a plan, generate code, execute code, and move on to the next step of the plan until the task is complete while correcting itself for any errors. This agent currently only supports PowerShell and Python languages.";
 
         if (_settings is null)
         {
             Description = $"""
                 {DefaultDescription}
 
-                The agent is not ready to serve queries, because no AI service has been configured. Please follow the steps below to setup the AI service for this agent:
+                The agent is not ready to serve queries, because AI service has not been configured. Please follow the steps below to setup the AI service for this agent:
 
                 1. Run '/agent config' to open the setting file.
-                2. Configure the settings. See the example at
-                   https://aka.ms/aish/interpreter#configuration
+                2. Configure the settings. See details at
+                     https://aka.ms/aish/interpreter
                 3. Save and close the setting file.
                 4. Run '/refresh' to apply the new settings.
                 """;
@@ -188,7 +192,6 @@ public sealed class InterpreterAgent : ILLMAgent
 
     private Settings ReadSettings()
     {
-        Settings settings = null;
         FileInfo file = new(SettingFile);
 
         if (file.Exists)
@@ -196,7 +199,8 @@ public sealed class InterpreterAgent : ILLMAgent
             try
             {
                 using var stream = file.OpenRead();
-                settings = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.Settings);
+                ConfigData data = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ConfigData);
+                return data.IsEmpty() ? null : new Settings(data);
             }
             catch (Exception e)
             {
@@ -204,13 +208,13 @@ public sealed class InterpreterAgent : ILLMAgent
             }
         }
 
-        return settings;
+        return null;
     }
 
     private void SaveSettings(Settings config)
     {
         using var stream = new FileStream(SettingFile, FileMode.Create, FileAccess.Write, FileShare.None);
-        JsonSerializer.Serialize(stream, config, SourceGenerationContext.Default.Settings);
+        JsonSerializer.Serialize(stream, config.ToConfigData(), SourceGenerationContext.Default.ConfigData);
     }
 
     private void OnSettingFileChange(object sender, FileSystemEventArgs e)
@@ -219,5 +223,39 @@ public sealed class InterpreterAgent : ILLMAgent
         {
             _reloadSettings = true;
         }
+    }
+
+    private void NewExampleSettingFile()
+    {
+        string SampleContent = """
+        {
+          // To use the Azure OpenAI service:
+          // - Set `Endpoint` to the endpoint of your Azure OpenAI service,
+          //     or the endpoint to the Azure API Management service if you are using it as a gateway.
+          // - Set `Deployment` to the deployment name of your Azure OpenAI service.
+          // - Set `ModelName` to the name of the model used for your deployment, e.g. "gpt-4-0613".
+          // - Set `Key` to the access key of your Azure OpenAI service,
+          //     or the key of the Azure API Management service if you are using it as a gateway.
+          "Endpoint": "",
+          "Deployment": "",
+          "ModelName": "",
+          "Key": "",
+          "AutoExecution": false, // 'true' to allow the agent run code automatically; 'false' to always prompt before running code.
+          "DisplayErrors": true   // 'true' to display the errors when running code; 'false' to hide the errors to be less verbose.
+
+          // To use the public OpenAI service:
+          // - Ignore the `Endpoint` and `Deployment` keys.
+          // - Set `ModelName` to the name of the model to be used. e.g. "gpt-4o".
+          // - Set `Key` to be the OpenAI access token.
+          // Replace the above with the following:
+          /*
+          "ModelName": "",
+          "Key": "",
+          "AutoExecution": false,
+          "DisplayErrors": true
+          */
+        }
+        """;
+        File.WriteAllText(SettingFile, SampleContent, Encoding.UTF8);
     }
 }

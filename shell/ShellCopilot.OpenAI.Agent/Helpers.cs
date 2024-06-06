@@ -18,7 +18,6 @@ internal static class Utils
     internal const string ApimAuthorizationHeader = "Ocp-Apim-Subscription-Key";
     internal const string ApimGatewayDomain = ".azure-api.net";
     internal const string AzureOpenAIDomain = ".openai.azure.com";
-    internal const string SettingHelpLink = "https://aka.ms/aish/openai#configuration";
 
     internal static readonly string OS;
 

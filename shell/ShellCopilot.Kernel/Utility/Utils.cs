@@ -43,6 +43,7 @@ internal static class Utils
 
     internal static string AppName;
     internal static string ShellConfigHome;
+    internal static string AppConfigFile;
     internal static string AgentHome;
     internal static string AgentConfigHome;
 
@@ -54,6 +55,7 @@ internal static class Utils
 
         AppName = appName?.Trim().ToLower() ?? DefaultAppName;
         ShellConfigHome = Path.Combine(locationPath, AppName.Replace(' ', '.'));
+        AppConfigFile = Path.Combine(ShellConfigHome, "config.json");
         AgentHome = Path.Join(ShellConfigHome, "agents");
         AgentConfigHome = Path.Join(ShellConfigHome, "agent-config");
 

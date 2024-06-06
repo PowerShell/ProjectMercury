@@ -21,29 +21,21 @@ internal class Settings
     public string Endpoint { set; get; }
     public string Deployment { set; get; }
     public string ModelName { set; get; }
-
-    [JsonConverter(typeof(SecureStringJsonConverter))]
     public SecureString Key { set; get; }
 
     public bool AutoExecution { set; get; }
     public bool DisplayErrors { set; get; }
 
-    public Settings(
-        string endpoint,
-        string deployment,
-        string modelName,
-        SecureString key,
-        bool autoExecution,
-        bool displayErrors)
+    public Settings(ConfigData configData)
     {
-        ArgumentException.ThrowIfNullOrEmpty(modelName);
+        ArgumentException.ThrowIfNullOrEmpty(configData.ModelName);
 
-        Endpoint = endpoint?.Trim().TrimEnd('/');
-        Deployment = deployment;
-        ModelName = modelName.ToLowerInvariant();
-        AutoExecution = autoExecution;
-        DisplayErrors = displayErrors;
-        Key = key;
+        Endpoint = configData.Endpoint?.Trim().TrimEnd('/');
+        Deployment = configData.Deployment;
+        ModelName = configData.ModelName.ToLowerInvariant();
+        AutoExecution = configData.AutoExecution ?? false;
+        DisplayErrors = configData.DisplayErrors ?? true;
+        Key = configData.Key;
 
         Dirty = false;
         ModelInfo = ModelInfo.TryResolve(ModelName, out var model) ? model : null;
@@ -154,6 +146,38 @@ internal class Settings
         Dirty = true;
         Key = Utils.ConvertToSecureString(secret);
     }
+
+    internal ConfigData ToConfigData()
+    {
+        return new ConfigData()
+        {
+            Endpoint = this.Endpoint,
+            Deployment = this.Deployment,
+            ModelName = this.ModelName,
+            AutoExecution = this.AutoExecution,
+            DisplayErrors = this.DisplayErrors,
+            Key = this.Key,
+        };
+    }
+}
+
+internal class ConfigData
+{
+    public string Endpoint { set; get; }
+    public string Deployment { set; get; }
+    public string ModelName { set; get; }
+    public bool? AutoExecution { set; get; }
+    public bool? DisplayErrors { set; get; }
+
+    [JsonConverter(typeof(SecureStringJsonConverter))]
+    public SecureString Key { set; get; }
+
+    internal bool IsEmpty()
+    {
+        return string.IsNullOrEmpty(Endpoint)
+            && string.IsNullOrEmpty(Deployment)
+            && string.IsNullOrEmpty(ModelName);
+    }
 }
 
 /// <summary>
@@ -166,5 +190,5 @@ internal class Settings
     PropertyNameCaseInsensitive = true,
     ReadCommentHandling = JsonCommentHandling.Skip,
     UseStringEnumConverter = true)]
-[JsonSerializable(typeof(Settings))]
+[JsonSerializable(typeof(ConfigData))]
 internal partial class SourceGenerationContext : JsonSerializerContext { }

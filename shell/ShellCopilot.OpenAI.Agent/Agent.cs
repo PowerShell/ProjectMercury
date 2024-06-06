@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Azure.AI.OpenAI;
 using ShellCopilot.Abstraction;
@@ -50,6 +51,12 @@ public sealed class OpenAIAgent : ILLMAgent
         SettingFile = Path.Combine(_configRoot, SettingFileName);
         _settings = ReadSettings();
         _chatService = new ChatService(_historyRoot, _settings);
+
+        if (_settings is null)
+        {
+            // Create the setting file with examples to serve as a template for user to update.
+            NewExampleSettingFile();
+        }
 
         UpdateDescription();
         _watcher = new FileSystemWatcher(_configRoot, SettingFileName)
@@ -131,40 +138,29 @@ public sealed class OpenAIAgent : ILLMAgent
     {
         const string DefaultDescription = """
             This agent is designed to provide a flexible platform for interacting with OpenAI services (Azure OpenAI or the public OpenAI) through one or more customly defined GPT instances.
-            Learn more at https://aka.ms/aish/openai
+
+            {0}:
+
+            1. Run '/agent config' to open the setting file.
+            2. {1}. See details at
+                 https://aka.ms/aish/openai
+            3. Save and close the setting file.
+            4. Run '/refresh' to apply the new settings.
             """;
 
         if (_settings is null || _settings.GPTs.Count is 0)
         {
-            Description = $"""
-                {DefaultDescription}
-
-                The agent is currently not ready to serve queries, because there is no GPT defined. Please follow the steps below to configure the setting file properly before using this agent:
-
-                1. Run '/agent config' to open the setting file.
-                2. Define the GPT(s). See the example at
-                   {Utils.SettingHelpLink}
-                3. Save and close the setting file.
-                4. Run '/refresh' to apply the new settings.
-                """;
-
+            string error = "The agent is currently not ready to serve queries, because there is no GPT defined. Please follow the steps below to configure the setting file properly before using this agent";
+            string action = "Define the GPT(s)";
+            Description = string.Format(DefaultDescription, error, action);
             return;
         }
 
         if (_settings.Active is null)
         {
-            Description = $"""
-                {DefaultDescription}
-
-                Multiple GPTs are defined but the active GPT is not specified. You will be prompted to choose from the available GPTs when sending the first query. Or, if you want to set the active GPT in configuration, please follow the steps below:
-
-                1. Run '/agent config' to open the setting file.
-                2. Set the 'Active' key. See the example at
-                   {Utils.SettingHelpLink}
-                3. Save and close the setting file.
-                4. Run '/refresh' to apply the new settings.
-                """;
-
+            string error = "Multiple GPTs are defined but the active GPT is not specified. You will be prompted to choose from the available GPTs when sending the first query. Or, if you want to set the active GPT in configuration, please follow the steps below";
+            string action = "Set the 'Active' key";
+            Description = string.Format(DefaultDescription, error, action);
             return;
         }
 
@@ -249,5 +245,54 @@ public sealed class OpenAIAgent : ILLMAgent
         {
             _reloadSettings = true;
         }
+    }
+
+    private void NewExampleSettingFile()
+    {
+        string SampleContent = $$"""
+        {
+          // Declare GPT instances.
+          "GPTs": [
+              /* --- uncomment the examples below and update as appropriate ---
+              //
+              // To use the Azure OpenAI service:
+              // - Set `Endpoint` to the endpoint of your Azure OpenAI service,
+              //     or the endpoint to the Azure API Management service if you are using it as a gateway.
+              // - Set `Deployment` to the deployment name of your Azure OpenAI service.
+              // - Set `ModelName` to the name of the model used for your deployment, e.g. "gpt-4-0613".
+              // - Set `Key` to the access key of your Azure OpenAI service,
+              //     or the key of the Azure API Management service if you are using it as a gateway.
+              // For example:
+              {
+                "Name": "ps-az-gpt4",
+                "Description": "A GPT instance with expertise in PowerShell scripting and command line utilities. Use gpt-4 running in Azure.",
+                "Endpoint": "<insert your Azure OpenAI endpoint>",
+                "Deployment": "<insert your deployment name>",
+                "ModelName": "<insert the model name>",   // required field to infer properties of the service, such as token limit.
+                "Key": "<insert your key>",
+                "SystemPrompt": "1. You are a helpful and friendly assistant with expertise in PowerShell scripting and command line.\n2. Assume user is using the operating system `{{Utils.OS}}` unless otherwise specified.\n3. Use the `code block` syntax in markdown to encapsulate any part in responses that is code, YAML, JSON or XML, but not table.\n4. When encapsulating command line code, use '```powershell' if it's PowerShell command; use '```sh' if it's non-PowerShell CLI command.\n5. When generating CLI commands, never ever break a command into multiple lines. Instead, always list all parameters and arguments of the command on the same line.\n6. Please keep the response concise but to the point. Do not overexplain."
+              },
+
+              // To use the public OpenAI service:
+              // - Ignore the `Endpoint` and `Deployment` keys.
+              // - Set `ModelName` to the name of the model to be used.
+              // - Set `Key` to be the OpenAI access token.
+              // For example:
+              {
+                "Name": "ps-gpt4o",
+                "Description": "A GPT instance with expertise in PowerShell scripting and command line utilities. Use gpt-4o running in OpenAI.",
+                "ModelName": "gpt-4o",
+                "Key": "<insert your key>",
+                "SystemPrompt": "1. You are a helpful and friendly assistant with expertise in PowerShell scripting and command line.\n2. Assume user is using the operating system `Windows 11` unless otherwise specified.\n3. Use the `code block` syntax in markdown to encapsulate any part in responses that is code, YAML, JSON or XML, but not table.\n4. When encapsulating command line code, use '```powershell' if it's PowerShell command; use '```sh' if it's non-PowerShell CLI command.\n5. When generating CLI commands, never ever break a command into multiple lines. Instead, always list all parameters and arguments of the command on the same line.\n6. Please keep the response concise but to the point. Do not overexplain."
+              }
+              */
+          ],
+
+          // Specify the default GPT instance to use for user query.
+          // For example: "ps-az-gpt4"
+          "Active": null
+        }
+        """;
+        File.WriteAllText(SettingFile, SampleContent, Encoding.UTF8);
     }
 }

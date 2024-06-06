@@ -85,7 +85,7 @@ and then update the file based on the following example.
     }
   ],
 
-  // Specify the active GPT instance to use for user query.
+  // Specify the default GPT instance to use for user query.
   "Active": "ps-az-gpt4"
 }
 ```
