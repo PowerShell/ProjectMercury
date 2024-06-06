@@ -102,7 +102,7 @@ public sealed class OllamaAgent : ILLMAgent
     /// <summary>
     /// Main chat function that takes
     /// </summary>
-    /// <param name="input">The user input from the chat experience</param>
+    /// <param name="input">The user input from the chat experience.</param>
     /// <param name="shell">The shell that provides host functionality</param>
     /// <returns>Task Boolean that indicates whether the query was served by the agent.</returns>
     public async Task<bool> Chat(string input, IShell shell)
