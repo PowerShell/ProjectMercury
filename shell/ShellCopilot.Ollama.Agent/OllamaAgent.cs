@@ -136,8 +136,6 @@ public sealed class OllamaAgent : ILLMAgent
                 // render the content
                 host.RenderFullResponse(ollamaResponse.response);
             }
-
-
         }
         catch (OperationCanceledException e)
         {
