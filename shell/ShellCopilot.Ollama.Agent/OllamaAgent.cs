@@ -148,5 +148,4 @@ public sealed class OllamaAgent : ILLMAgent
 
         return true;
     }
-
 }
