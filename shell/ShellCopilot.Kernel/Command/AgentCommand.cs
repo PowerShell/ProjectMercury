@@ -1,6 +1,7 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Completions;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using ShellCopilot.Abstraction;
 
 namespace ShellCopilot.Kernel.Commands;
@@ -130,7 +131,8 @@ internal sealed class AgentCommand : CommandBase
         }
 
         var current = chosenAgent.Impl;
-        if (current.SettingFile is null)
+        var settingFile = current.SettingFile;
+        if (settingFile is null)
         {
             host.WriteErrorLine($"The agent '{current.Name}' doesn't support configuration.");
             return;
@@ -138,13 +140,54 @@ internal sealed class AgentCommand : CommandBase
 
         if (string.IsNullOrEmpty(editor))
         {
-            editor = OperatingSystem.IsWindows() ? "notepad" : "nano";
+            if (OperatingSystem.IsWindows())
+            {
+                string ext = Path.GetExtension(settingFile);
+                if (Interop.HasDefaultApp(ext, out string defaultApp))
+                {
+                    // Handle VSCode specially because when simply using shell execute to start VSCode from a console app,
+                    // it writes log messages to the cosnole output and there is no way to suppress it.
+                    // However, it is very common for users to set VSCode as the default editor for many file extensions,
+                    // so we want to make it work as expected.
+                    // It turns out shell execute uses "...\Microsoft VS Code\Code.exe", but instead, we should use the CLI
+                    // version "...\Microsoft VS Code\bin\code.cmd" to avoid the log messages.
+                    if (defaultApp.EndsWith(@"Microsoft VS Code\Code.exe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string code = Path.Combine(Path.GetDirectoryName(defaultApp), @"bin\code.cmd");
+                        if (Path.Exists(code))
+                        {
+                            defaultApp = code;
+                        }
+                    }
+
+                    ProcessStartInfo info = defaultApp.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
+                        ? new("cmd.exe") { ArgumentList = { "/c", defaultApp, settingFile } }
+                        : new(defaultApp) { ArgumentList = { settingFile } };
+
+                    info.RedirectStandardOutput = true;
+                    info.RedirectStandardError = true;
+
+                    Process.Start(info);
+                    return;
+                }
+
+                editor = "notepad";
+            }
+            else
+            {
+                editor = "nano";
+            }
         }
 
         try
         {
-            ProcessStartInfo info = new(editor, current.SettingFile);
-            Process.Start(info).WaitForExit();
+            ProcessStartInfo info = new(editor, settingFile)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            Process.Start(info);
         }
         catch (Exception ex)
         {
@@ -183,5 +226,95 @@ internal sealed class AgentCommand : CommandBase
     {
         var shell = (Shell)Shell;
         return shell.Agents.Select(AgentName);
+    }
+}
+
+internal static partial class Interop
+{
+    [Flags]
+    public enum AssocF
+    {
+        None = 0,
+        Init_NoRemapCLSID = 0x1,
+        Init_ByExeName = 0x2,
+        Open_ByExeName = 0x2,
+        Init_DefaultToStar = 0x4,
+        Init_DefaultToFolder = 0x8,
+        NoUserSettings = 0x10,
+        NoTruncate = 0x20,
+        Verify = 0x40,
+        RemapRunDll = 0x80,
+        NoFixUps = 0x100,
+        IgnoreBaseClass = 0x200,
+        Init_IgnoreUnknown = 0x400,
+        Init_Fixed_ProgId = 0x800,
+        Is_Protocol = 0x1000,
+        Init_For_File = 0x2000
+    }
+
+    public enum AssocStr
+    {
+        Command = 1,
+        Executable,
+        FriendlyDocName,
+        FriendlyAppName,
+        NoOpen,
+        ShellNewValue,
+        DDECommand,
+        DDEIfExec,
+        DDEApplication,
+        DDETopic,
+        InfoTip,
+        QuickTip,
+        TileInfo,
+        ContentType,
+        DefaultIcon,
+        ShellExtension,
+        DropTarget,
+        DelegateExecute,
+        Supported_Uri_Protocols,
+        ProgID,
+        AppID,
+        AppPublisher,
+        AppIconReference,
+        Max
+    }
+
+    [LibraryImport("Shlwapi.dll", EntryPoint = "AssocQueryStringW", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial uint AssocQueryString(
+        AssocF flags,
+        AssocStr str,
+        string pszAssoc,
+        string pszExtra,
+        [Out] char[] pszOut,
+        ref int pcchOut);
+
+    /// <summary>
+    /// The method returns "C:\WINDOWS\system32\OpenWith.exe" when the file extension
+    /// is not associated with a default application.
+    /// </summary>
+    internal static bool HasDefaultApp(string extension, out string executable)
+    {
+        const int S_OK = 0;
+        const int S_FALSE = 1;
+
+        int length = 0;
+        executable = null;
+
+        uint ret = AssocQueryString(AssocF.None, AssocStr.Executable, extension, null, null, ref length);
+        if (ret != S_FALSE)
+        {
+            return false;
+        }
+
+        char[] charArray = new char[length];
+        ret = AssocQueryString(AssocF.None, AssocStr.Executable, extension, null, charArray, ref length);
+        if (ret != S_OK)
+        {
+            return false;
+        }
+
+        executable = new string(charArray, 0, length - 1);
+        return true;
     }
 }
