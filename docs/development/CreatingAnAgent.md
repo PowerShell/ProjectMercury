@@ -293,97 +293,9 @@ Please select an agent to use:
 After selecting the agent, enter a question in the chat window. You should see the response "Hello
 World!".
 
-### Step 6: Add utility functions
+### Step 6: Add ollama check
 
-Next, we want to add a utility class to help us check that ollama is installed and running on the
-computer. The utility class contains two methods:
-
-- one to test that the ollama CLI is installed
-- one to test that the ollama API port is open on local host
-
-```csharp
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Net.Sockets;
-
-namespace ShellCopilot.Ollama.Agent;
-
-internal static class Utils
-{
-    /// <summary>
-    /// Confirms a given CLI tool is installed on the system
-    /// </summary>
-    /// <param name="toolName">CLI tools name to check</param>
-    /// <returns>Boolean whether or not the CLI tool is installed</returns>
-    public static bool IsCliToolInstalled(string toolName)
-    {
-        string shellCommand, shellArgument;
-        // Determine the shell command and arguments based on the OS
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            shellCommand = "cmd.exe";
-            shellArgument = "/c " + toolName + " --version";
-        }
-        else
-        {
-            shellCommand = "/bin/bash";
-            shellArgument = "-c \"" + toolName + " --version\"";
-        }
-
-        try
-        {
-            ProcessStartInfo procStartInfo = new ProcessStartInfo(shellCommand, shellArgument)
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using (Process process = new Process())
-            {
-                process.StartInfo = procStartInfo;
-                process.Start();
-
-                // You can read the output or error if necessary for further processing
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-                process.WaitForExit();
-
-                return process.ExitCode == 0;
-            }
-        }
-        catch (Exception ex)
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Confirms a localhost port is open to ensure ollama server is running
-    /// </summary>
-    /// <param name="port">port number to check against</param>
-    /// <returns>Boolean whether or not the localhost port is responding</returns>
-    public static bool IsPortResponding(int port)
-    {
-        using (TcpClient tcpClient = new TcpClient())
-        {
-            try
-            {
-                // Attempt to connect to the specified port on localhost
-                tcpClient.Connect("localhost", port);
-                return true;
-            }
-            catch (SocketException ex)
-            {
-                return false;
-            }
-        }
-    }
-}
-```
-
-Next, add a tests to the chat method using these utility methods.
+Next, we want to add a check to make sure ollama is running.
 
 ```csharp
 public async Task<bool> Chat(string input, IShell shell)
@@ -394,31 +306,12 @@ public async Task<bool> Chat(string input, IShell shell)
     // get the cancellation token
     CancellationToken token = shell.CancellationToken;
 
-    try
-    {
-        // Check that ollama is installed
-        if (!Utils.IsCliToolInstalled("ollama")){
-            host.RenderFullResponse("Please be sure ollama is installed and running a server, check all the prerequisites in the README of this agent.");
-            return false;
-        }
-
-        // Check that server is running
-        if (!Utils.IsPortResponding(11434)){
-            host.RenderFullResponse("It seems you may not have the ollama server running please be sure to have `ollama serve` running and check the prerequisites in the README of this agent.");
-            return false;
-        }
-
-        // Where we will put the call to the API
-
-    }
-    catch (OperationCanceledException e)
-    {
-        _text.AppendLine(e.ToString());
-
-        host.RenderFullResponse(_text.ToString());
-
+    if(Process.GetProcessesByName("ollama").Length <= 0){
+        host.RenderFullResponse("Please be sure the ollama is installed and server is running. Check all the prerequisites in the README of this agent are met.");
         return false;
     }
+
+    // Calls to the API will go here
 
     return true;
 }
@@ -589,42 +482,22 @@ public async Task<bool> Chat(string input, IShell shell)
     // get the cancellation token
     CancellationToken token = shell.CancellationToken;
 
-    try
-    {
-        // Check that ollama is installed
-        if (!Utils.IsCliToolInstalled("ollama")){
-            host.RenderFullResponse("Please be sure ollama is installed and running a server, check all the prerequisites in the README of this agent.");
-            return false;
-        }
-
-        // Check that server is running
-        if (!Utils.IsPortResponding(11434)){
-            host.RenderFullResponse("It seems you may not have the ollama server running please be sure to have `ollama serve` running and check the prerequisites in the README of this agent.");
-            return false;
-        }
-
-        ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
-            status: "Thinking ...",
-            func: async context => await _chatService.GetChatResponseAsync(context, input, token)
-        ).ConfigureAwait(false);
-
-        if (ollamaResponse is not null)
-        {
-            // render the content
-            host.RenderFullResponse(ollamaResponse.response);
-        }
-
-
-    }
-    catch (OperationCanceledException e)
-    {
-        _text.AppendLine(e.ToString());
-
-        host.RenderFullResponse(_text.ToString());
-
+    if(Process.GetProcessesByName("ollama").Length <= 0){
+        host.RenderFullResponse("Please be sure the ollama is installed and server is running. Check all the prerequisites in the README of this agent are met.");
         return false;
     }
 
+    ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
+        status: "Thinking ...",
+        func: async context => await _chatService.GetChatResponseAsync(context, input, token)
+    ).ConfigureAwait(false);
+
+    if (ollamaResponse is not null)
+    {
+        // render the content
+        host.RenderFullResponse(ollamaResponse.response);
+    }
+    
     return true;
 }
 ```

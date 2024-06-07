@@ -98,7 +98,7 @@ public sealed class OllamaAgent : ILLMAgent
     public void OnUserAction(UserActionPayload actionPayload) {}
 
     /// <summary>
-    /// Main chat function that takes
+    /// Main chat function that takes the users input and passes it to the LLM and renders it.
     /// </summary>
     /// <param name="input">The user input from the chat experience.</param>
     /// <param name="shell">The shell that provides host functionality.</param>
@@ -111,40 +111,22 @@ public sealed class OllamaAgent : ILLMAgent
         // get the cancellation token
         CancellationToken token = shell.CancellationToken;
 
-        try
-        {
-            // Check that ollama is installed
-            if (!Utils.IsCliToolInstalled("ollama")){
-                host.RenderFullResponse("Please be sure ollama is installed and running a server, check all the prerequisites in the README of this agent.");
-                return false;
-            }
-
-            // Check that server is running
-            if (!Utils.IsPortResponding(11434)){
-                host.RenderFullResponse("It seems you may not have the ollama server running please be sure to have `ollama serve` running and check the prerequisites in the README of this agent.");
-                return false;
-            }
-
-            ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
-                status: "Thinking ...",
-                func: async context => await _chatService.GetChatResponseAsync(context, input, token)
-            ).ConfigureAwait(false);
-
-            if (ollamaResponse is not null)
-            {
-                // render the content
-                host.RenderFullResponse(ollamaResponse.response);
-            }
-        }
-        catch (OperationCanceledException e)
-        {
-            _text.AppendLine(e.ToString());
-
-            host.RenderFullResponse(_text.ToString());
-
+        if(Process.GetProcessesByName("ollama").Length <= 0){
+            host.RenderFullResponse("Please be sure the ollama is installed and server is running. Check all the prerequisites in the README of this agent are met.");
             return false;
         }
 
+        ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
+            status: "Thinking ...",
+            func: async context => await _chatService.GetChatResponseAsync(context, input, token)
+        ).ConfigureAwait(false);
+
+        if (ollamaResponse is not null)
+        {
+            // render the content
+            host.RenderFullResponse(ollamaResponse.response);
+        }
+        
         return true;
     }
 }
