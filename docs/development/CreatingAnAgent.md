@@ -296,7 +296,7 @@ World!".
 ### Step 6: Add utility functions
 
 Next, we want to add a utility class to help us check that ollama is installed and running on the
-computer. The utility class contains to methods:
+computer. The utility class contains two methods:
 
 - one to test that the ollama CLI is installed
 - one to test that the ollama API port is open on local host
