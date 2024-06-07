@@ -283,8 +283,6 @@ v0.1.0-preview.1
 
 Please select an agent to use:
 
-    az-ps
-    az-cli
     interpreter
    >ollama
     openai-gpt
