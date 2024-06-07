@@ -608,7 +608,7 @@ public async Task<bool> Chat(string input, IShell shell)
             func: async context => await _chatService.GetChatResponseAsync(context, input, token)
         ).ConfigureAwait(false);
 
-        if (ollamaResponse isn't null)
+        if (ollamaResponse is not null)
         {
             // render the content
             host.RenderFullResponse(ollamaResponse.response);
