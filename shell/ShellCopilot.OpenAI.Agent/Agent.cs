@@ -144,8 +144,7 @@ public sealed class OpenAIAgent : ILLMAgent
             1. Run '/agent config' to open the setting file.
             2. {1}. See details at
                  https://aka.ms/aish/openai
-            3. Save and close the setting file.
-            4. Run '/refresh' to apply the new settings.
+            3. Run '/refresh' to apply the new settings.
             """;
 
         if (_settings is null || _settings.GPTs.Count is 0)

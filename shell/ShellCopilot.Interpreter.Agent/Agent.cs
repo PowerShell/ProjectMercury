@@ -160,8 +160,7 @@ public sealed class InterpreterAgent : ILLMAgent
                 1. Run '/agent config' to open the setting file.
                 2. Configure the settings. See details at
                      https://aka.ms/aish/interpreter
-                3. Save and close the setting file.
-                4. Run '/refresh' to apply the new settings.
+                3. Run '/refresh' to apply the new settings.
                 """;
 
             return;
