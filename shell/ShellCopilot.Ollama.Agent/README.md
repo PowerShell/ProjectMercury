@@ -1,6 +1,6 @@
 # Ollama Plugin
 
-This agent is used to communicate with the Ollama API with a locally running language model. Before utilizing
+This agent is used to interact with a language model running locally by utilizing the Ollama API. Before using
 this agent you need to have Ollama installed and running.
 
 ## Pre-requisites to using the agent
