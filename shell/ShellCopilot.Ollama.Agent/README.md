@@ -15,5 +15,5 @@ this agent you need to have Ollama installed and running.
 Currently to change the model you will need to modify the query in the code in the
 `OllamaChatService` class. The default model is `phi3`.
 
-The endpoint is `http://localhost`and the default port is `11434`. This can be changed in the code
+The default endpoint is `http://localhost:11434/api/generate` with `11434` being the default port. This can be changed in the code
 and eventually will be added to a configuration file.
