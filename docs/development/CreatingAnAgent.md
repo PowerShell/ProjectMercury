@@ -296,7 +296,7 @@ public async Task<bool> Chat(string input, IShell shell)
     // get the cancellation token
     CancellationToken token = shell.CancellationToken;
 
-    if(Process.GetProcessesByName("ollama").Length is 0)
+    if (Process.GetProcessesByName("ollama").Length is 0)
     {
         host.RenderFullResponse("Please be sure the ollama is installed and server is running. Check all the prerequisites in the README of this agent are met.");
         return false;
