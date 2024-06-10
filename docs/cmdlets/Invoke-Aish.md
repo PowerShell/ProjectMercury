@@ -69,7 +69,7 @@ Accept wildcard characters: False
 ```
 
 ### -ContextFromClipboard
-{{ Fill ContextFromClipboard Description }}
+This shares the text content you have in your clipboard to the AISH agent.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
