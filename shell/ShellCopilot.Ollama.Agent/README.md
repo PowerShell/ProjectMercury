@@ -17,3 +17,12 @@ Currently to change the model you will need to modify the query in the code in t
 
 The default endpoint is `http://localhost:11434/api/generate` with `11434` being the default port. This can be changed in the code
 and eventually will be added to a configuration file.
+
+## Known Limitations
+
+- There is no history shared across queries so the model will not be able to remember previous
+  queries
+- Streaming is currently not supported if you change the stream value to `true` in the data to send
+  to the API it will not work
+- Configuration is currently hard coded in the code and will be moved to a configuration file in the
+  future

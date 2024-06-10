@@ -46,15 +46,6 @@ Your `.csproj` file should contain the following elements:
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
-
-    <!-- Disable deps.json generation -->
-    <GenerateDependencyFile>false</GenerateDependencyFile>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <!-- Disable PDB generation for the Release build -->
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>None</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -100,7 +91,7 @@ $AgentToInclude ??= @('openai-gpt', 'interpreter', 'ollama')
 ### Step 3: Implement the agent class
 
 To being the creation of the agent, modify the `Class1.cs` file to implement the `ILLMAgent`
-interface. We suggest renaming the file to `OllamaAgent.cs` and the rename class to `OllamaAgent`.
+interface. We suggest renaming the file to `OllamaAgent.cs` and then rename class to `OllamaAgent`.
 We've also added some packages that are used by the code in the implementation.
 
 ```csharp
@@ -511,7 +502,9 @@ to see if you missed a step.
 
 Currently there is no way to share your agents in a centralized repository. We suggest forking this
 repository for development of your own agent. You can share a link your fork in the `Agent Sharing`
-section of the [Discussions][06] tab of this repository.
+section of the [Discussions][06] tab of this repository. To use an agent, if you put its `dll` files
+in the `agents` folder of the home directory of `aish.exe` (`~\aish\agents`), the agent will be
+loaded by `aish`.
 
 <!-- updated link references -->
 [01]: ../../shell/shell.common.props
