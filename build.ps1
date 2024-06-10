@@ -14,7 +14,7 @@ param (
     [string] $Runtime = [NullString]::Value,
 
     [Parameter()]
-    [ValidateSet('openai-gpt', 'interpreter')]
+    [ValidateSet('openai-gpt', 'interpreter', 'ollama')]
     [string[]] $AgentToInclude,
 
     [Parameter()]
@@ -28,7 +28,7 @@ function GetProjectFile($dir)
 
 $ErrorActionPreference = 'Stop'
 
-$AgentToInclude ??= @('openai-gpt', 'interpreter')
+$AgentToInclude ??= @('openai-gpt', 'interpreter', 'ollama')
 $RID = $Runtime ?? (dotnet --info |
     Select-String '^\s*RID:\s+(\w+-\w+)$' |
     Select-Object -First 1 |
@@ -40,6 +40,7 @@ $app_dir = Join-Path $shell_dir "ShellCopilot.App"
 $pkg_dir = Join-Path $shell_dir "ShellCopilot.Abstraction"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
 $interpreter_agent_dir = Join-Path $shell_dir "ShellCopilot.Interpreter.Agent"
+$ollama_agent_dir = Join-Path $shell_dir "ShellCopilot.Ollama.Agent"
 $module_dir = Join-Path $shell_dir "ShellCopilot.Integration"
 
 $config = $Configuration.ToLower()
@@ -48,6 +49,7 @@ $app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
 $module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "Aish"
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.OpenAI.Agent"
 $interpreter_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Interpreter.Agent"
+$ollama_out_dir =  Join-Path $app_out_dir "agents" "ShellCopilot.Ollama.Agent"
 
 if ($Clean) {
     $out_path = Join-Path $PSScriptRoot "out"
@@ -83,6 +85,12 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter') {
     Write-Host "`n[Build the Interpreter agent ...]`n" -ForegroundColor Green
     $interpreter_csproj = GetProjectFile $interpreter_agent_dir
     dotnet publish $interpreter_csproj -c $Configuration -o $interpreter_out_dir
+}
+
+if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'ollama') {
+    Write-Host "`n[Build the Ollama agent ...]`n" -ForegroundColor Green
+    $ollama_csproj = GetProjectFile $ollama_agent_dir
+    dotnet publish $ollama_csproj -c $Configuration -o $ollama_out_dir
 }
 
 if ($LASTEXITCODE -eq 0) {
