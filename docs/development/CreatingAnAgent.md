@@ -16,7 +16,8 @@ For details about the `ShellCopilot.Abstraction` layer and `ShellCopilot.Kernel`
 ## Steps to create an agent
 
 For this example we create an agent to communicate with the language model `phi3` by utilizing [Ollama][04], a CLI tool for managing and
-using locally built LLM/SLMs. The agent is stored in the `shell/ShellCopilot.Ollama.Agent` folder of
+using locally built LLM/SLMs.
+The complete source code of the agent can be found in the `shell/ShellCopilot.Ollama.Agent` folder of the repository.
 the repository.
 
 ### Step 1: Create a new project
