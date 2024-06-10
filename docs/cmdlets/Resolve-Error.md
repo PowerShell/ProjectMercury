@@ -29,7 +29,7 @@ PS C:\> Start-AISH
 PS C:\> Resolve-Error
 ```
 
-This sends the last error hit to the current AISH window and agent to attempt to resolve.
+This sends the last error hit to the current AISH window to attempt to resolve.
 
 ## PARAMETERS
 

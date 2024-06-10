@@ -8,7 +8,7 @@ schema: 2.0.0
 # Invoke-Aish
 
 ## SYNOPSIS
-When an AISH session is available, this cmdlet sends a query to the AISH agent and results are shown in the AISH window.
+When an AISH session is available, this cmdlet sends a query to the AISH window. Results are shown in the AISH window.
 
 ## SYNTAX
 
