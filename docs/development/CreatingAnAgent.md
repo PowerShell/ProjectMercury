@@ -503,7 +503,7 @@ to see if you missed a step.
 Currently there is no way to share your agents in a centralized repository. We suggest forking this
 repository for development of your own agent. You can share a link your fork in the `Agent Sharing`
 section of the [Discussions][06] tab of this repository. To use an agent, if you put its `dll` files
-in the `agents` folder of the home directory of `aish.exe` (`~\aish\agents`), the agent will be
+in the `agents` folder of the base directory of `aish.exe`, the agent will be
 loaded by `aish`.
 
 <!-- updated link references -->
