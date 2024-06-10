@@ -41,6 +41,7 @@ $pkg_dir = Join-Path $shell_dir "ShellCopilot.Abstraction"
 $open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
 $interpreter_agent_dir = Join-Path $shell_dir "ShellCopilot.Interpreter.Agent"
 $module_dir = Join-Path $shell_dir "ShellCopilot.Integration"
+$doc_dir = Join-Path $PSScriptRoot "docs"
 
 $config = $Configuration.ToLower()
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
@@ -89,6 +90,8 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "`n[Build the Aish module ...]`n" -ForegroundColor Green
     $aish_module_csproj = GetProjectFile $module_dir
     dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
+    $cmdlet_help_dir = Join-Path $doc_dir "cmdlets"
+    New-ExternalHelp -Path $cmdlet_help_dir -OutputPath $module_out_dir
 }
 
 if ($LASTEXITCODE -eq 0) {

@@ -31,7 +31,7 @@ PS C:\> Start-AISH
 
 If aish.exe is found in the PATH, this will start an AISH session in the right pane of the terminal window.
 
-### Example 
+### Example 2
 ```powershell
 PS C:\> Start-AISH -PATH C:\Users\aish.exe
 ```

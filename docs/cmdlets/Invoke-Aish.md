@@ -54,7 +54,7 @@ Accept wildcard characters: False
 ```
 
 ### -Context
-{{ Fill Context Description }}
+Additional context you want to send to the AISH agent.
 
 ```yaml
 Type: System.Management.Automation.PSObject
