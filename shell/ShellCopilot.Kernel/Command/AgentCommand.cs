@@ -138,56 +138,60 @@ internal sealed class AgentCommand : CommandBase
             return;
         }
 
-        if (string.IsNullOrEmpty(editor))
+        try
         {
+            ProcessStartInfo info;
+            if (!string.IsNullOrEmpty(editor))
+            {
+                info = new(editor)
+                {
+                    ArgumentList = { settingFile },
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                Process.Start(info);
+                return;
+            }
+
             if (OperatingSystem.IsWindows())
             {
                 string ext = Path.GetExtension(settingFile);
-                if (Interop.HasDefaultApp(ext, out string defaultApp))
+                if (!Interop.HasDefaultApp(ext, out string defaultApp))
                 {
-                    // Handle VSCode specially because when simply using shell execute to start VSCode from a console app,
-                    // it writes log messages to the cosnole output and there is no way to suppress it.
-                    // However, it is very common for users to set VSCode as the default editor for many file extensions,
-                    // so we want to make it work as expected.
-                    // It turns out shell execute uses "...\Microsoft VS Code\Code.exe", but instead, we should use the CLI
-                    // version "...\Microsoft VS Code\bin\code.cmd" to avoid the log messages.
-                    if (defaultApp.EndsWith(@"Microsoft VS Code\Code.exe", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string code = Path.Combine(Path.GetDirectoryName(defaultApp), @"bin\code.cmd");
-                        if (Path.Exists(code))
-                        {
-                            defaultApp = code;
-                        }
-                    }
-
-                    ProcessStartInfo info = defaultApp.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
-                        ? new("cmd.exe") { ArgumentList = { "/c", defaultApp, settingFile } }
-                        : new(defaultApp) { ArgumentList = { settingFile } };
-
-                    info.RedirectStandardOutput = true;
-                    info.RedirectStandardError = true;
-
-                    Process.Start(info);
-                    return;
+                    defaultApp = "notepad.exe";
                 }
 
-                editor = "notepad";
+                // Handle VSCode specially because when simply using shell execute to start VSCode from a console app,
+                // it writes log messages to the cosnole output and there is no way to suppress it.
+                // However, it is very common for users to set VSCode as the default editor for many file extensions,
+                // so we want to make it work as expected.
+                // It turns out shell execute uses "...\Microsoft VS Code\Code.exe", but instead, we should use the CLI
+                // version "...\Microsoft VS Code\bin\code.cmd" to avoid the log messages.
+                if (defaultApp.EndsWith(@"Microsoft VS Code\Code.exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    string code = Path.Combine(Path.GetDirectoryName(defaultApp), @"bin\code.cmd");
+                    if (Path.Exists(code))
+                    {
+                        defaultApp = code;
+                    }
+                }
+
+                info = defaultApp.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
+                    ? new("cmd.exe") { ArgumentList = { "/c", defaultApp, settingFile } }
+                    : new(defaultApp) { ArgumentList = { settingFile } };
+
+                info.RedirectStandardOutput = true;
+                info.RedirectStandardError = true;
+
+                Process.Start(info);
             }
             else
             {
-                editor = "nano";
+                // On macOS and Linux, we just depend on the default editor.
+                info = new(settingFile) { UseShellExecute = true };
+                Process.Start(info);
             }
-        }
-
-        try
-        {
-            ProcessStartInfo info = new(editor, settingFile)
-            {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
-            Process.Start(info);
         }
         catch (Exception ex)
         {
