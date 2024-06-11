@@ -2,6 +2,7 @@
 external help file: ShellCopilot.Integration.dll-Help.xml
 Module Name: Aish
 online version:
+ms.date: 06/21/2021
 schema: 2.0.0
 ---
 
@@ -18,30 +19,33 @@ Start-Aish [-Path <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Starts and AISH Session in a split pane window of Windows Terminal. The AISH session is started in
-the right pane of the terminal window. The left pane is the current session. This is required to
-utilize all other commands.
+
+Starts an AISH session in a split pane window of Windows Terminal. The AISH session is started in
+the right pane of the terminal window. The left pane is the current shell session. You must use
+these windows to interact with the AISH session.
 
 ## EXAMPLES
 
-### Example 1
+### Example 1 - Start an AISH session
+
 ```powershell
-PS C:\> Start-AISH
+Start-Aish
 ```
 
-If aish.exe is found in the PATH, this will start an AISH session in the right pane of the terminal window.
+The cmdlet looks for the`aish` executable in the locations listed in the `$env:PATH` environment variable.
 
-### Example 2
+### Example 2 - Start an AISH session with a specific path
+
 ```powershell
-PS C:\> Start-AISH -PATH C:\Users\aish.exe
+Start-AISH -PATH C:\Users\aish.exe
 ```
-
-This example specifies the path to a specific aish.exe file.
 
 ## PARAMETERS
 
 ### -Path
-Optional path to the aish.exe file. If not specified, the PATH environment variable is used to find aish.exe.
+
+By default, the cmdlet looks for the`aish` executable in the locations listed in the `$env:PATH`
+environment variable. Use this parameter to specify an alternate location for the `aish` executable.
 
 ```yaml
 Type: System.String
@@ -56,14 +60,24 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
 ### None
+
 ## OUTPUTS
 
 ### System.Object
+
 ## NOTES
 
 ## RELATED LINKS
+
+[Invoke-Aish](Invoke-Aish.md)
+
+[Resolve-Error](Resolve-Error.md)

@@ -2,6 +2,7 @@
 external help file: ShellCopilot.Integration.dll-Help.xml
 Module Name: Aish
 online version:
+ms.date: 06/21/2021
 schema: 2.0.0
 ---
 
@@ -13,23 +14,28 @@ When an AISH session is available, this cmdlet sends a query to the AISH window.
 ## SYNTAX
 
 ### Default (Default)
+
 ```
 Invoke-Aish [-Query] <String> [-Agent <String>] [[-Context] <PSObject>] [<CommonParameters>]
 ```
 
 ### Clipboard
+
 ```
 Invoke-Aish [-Query] <String> [-Agent <String>] [-ContextFromClipboard] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
+
 This cmdlet sends a query to the open AISH agent and results
+
 ## EXAMPLES
 
-### Example 1
+### Example 1 - Send a query to the AISH agent
+
 ```powershell
-PS C:\> Start-AISH
-PS C:\> Invoke-AISH -Query "How do I list out the 5 most CPU intensive processes?"
+Start-AISH
+Invoke-AISH -Query "How do I list out the 5 most CPU intensive processes?"
 ```
 
 This example sends a query, "How do I list out the 5 most CPU intensive processes?" to the AISH
@@ -38,8 +44,9 @@ agent. Responses are given in the AISH window.
 ## PARAMETERS
 
 ### -Agent
-Which agent to use in the AISH window open. If not specified it will use the currently selected
-agent.
+
+Specifies the agent to use in the current AISH session. If not specified, AISH uses the currently
+selected agent.
 
 ```yaml
 Type: System.String
@@ -54,7 +61,8 @@ Accept wildcard characters: False
 ```
 
 ### -Context
-Additional context you want to send to the AISH agent.
+
+Additional context informat you want to send to the AISH agent.
 
 ```yaml
 Type: System.Management.Automation.PSObject
@@ -69,7 +77,8 @@ Accept wildcard characters: False
 ```
 
 ### -ContextFromClipboard
-This shares the text content you have in your clipboard to the AISH agent.
+
+Use the content in your clipboard as context information for the AISH agent.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -84,6 +93,7 @@ Accept wildcard characters: False
 ```
 
 ### -Query
+
 The user input to send to the AISH agent.
 
 ```yaml
@@ -99,14 +109,24 @@ Accept wildcard characters: False
 ```
 
 ### CommonParameters
-This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable,
+-InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose,
+-WarningAction, and -WarningVariable. For more information, see
+[about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
 ### System.Management.Automation.PSObject
+
 ## OUTPUTS
 
 ### System.Object
+
 ## NOTES
 
 ## RELATED LINKS
+
+[Start-Aish](Start-Aish.md)
+
+[Resolve-Error](Resolve-Error.md)
