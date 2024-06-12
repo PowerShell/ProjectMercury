@@ -188,6 +188,8 @@ public class StartAishCommand : PSCmdlet
                     targetObject: null));
             }
 
+            proc.Dispose();
+
             // Write the Python script to a temp file, if not yet.
             string pythonScript = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "__aish_split_pane.py");
             if (!File.Exists(pythonScript))
@@ -197,7 +199,7 @@ public class StartAishCommand : PSCmdlet
 
             // Run the Python script to split the pane and start AIShell.
             startInfo = new("python3") { ArgumentList = { pythonScript, Path, pipeName } };
-            proc.StartInfo = startInfo;
+            proc = new() { StartInfo = startInfo };
             proc.Start();
             proc.WaitForExit();
         }
