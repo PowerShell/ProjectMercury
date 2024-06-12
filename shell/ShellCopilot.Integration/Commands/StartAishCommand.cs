@@ -242,7 +242,7 @@ public class StartAishCommand : PSCmdlet
                 # Update the layout, which will change the panes to preferred size.
                 await current_tab.async_update_layout()
 
-                await splitpane.async_send_text(f'{app_path} --channel {channel}\n')
+                await split_pane.async_send_text(f'{app_path} --channel {channel}\n')
             else:
                 # You can view this message in the script console.
                 print("No current iTerm2 window. Make sure you are running in iTerm2.")
