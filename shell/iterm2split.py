@@ -12,7 +12,7 @@ import iterm2
 # iTerm needs to be running for this to work
 async def main(connection):
     app = await iterm2.async_get_app(connection)
-    print(app_path)
+    print(aish_path)
 
     # Foreground the app
     await app.async_activate()
@@ -24,8 +24,7 @@ async def main(connection):
         # Split pane vertically
         splitpane = await currentpane.async_split_pane(vertical=True)
 
-
-        await splitpane.async_send_text(f'{app_path} --channel {channel}\n')
+        await splitpane.async_send_text(f'{aish_path} --channel {channel}\n')
         
     else:
         # You can view this message in the script console.
@@ -33,17 +32,15 @@ async def main(connection):
 
 
 if len(sys.argv) > 1:
-    app_path = sys.argv[1]  
+    # Get the path of aish
+    aish_path = sys.argv[1]
+
+    # Get the name of the channel started  
     channel = sys.argv[2]
+
     # Passing True for the second parameter means keep trying to
     # connect until the app launches.
     iterm2.run_until_complete(main, True)
 else:
-    print("Please provide the application path as a command line argument.")
+    print("Please provide the path of aish.exe and the name of the channel")
 
-# path to aish (string)
-# piped channel name (string) 
-# figure out how to split the pane
-
-# Example usage
-check_and_install_module('numpy')
