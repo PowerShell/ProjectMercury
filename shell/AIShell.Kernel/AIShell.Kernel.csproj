@@ -13,7 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ReadLine\PSReadLine.csproj" />
     <ProjectReference Include="..\Markdown.VT\Markdown.VT.csproj" />
-    <ProjectReference Include="..\ShellCopilot.Abstraction\ShellCopilot.Abstraction.csproj" />
+    <ProjectReference Include="..\AIShell.Abstraction\AIShell.Abstraction.csproj" />
   </ItemGroup>
 
 </Project>

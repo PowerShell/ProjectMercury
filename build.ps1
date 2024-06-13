@@ -36,20 +36,20 @@ $RID = $Runtime ?? (dotnet --info |
 Write-Verbose "RID: $RID"
 
 $shell_dir = Join-Path $PSScriptRoot "shell"
-$app_dir = Join-Path $shell_dir "ShellCopilot.App"
-$pkg_dir = Join-Path $shell_dir "ShellCopilot.Abstraction"
-$open_ai_agent_dir = Join-Path $shell_dir "ShellCopilot.OpenAI.Agent"
-$interpreter_agent_dir = Join-Path $shell_dir "ShellCopilot.Interpreter.Agent"
-$ollama_agent_dir = Join-Path $shell_dir "ShellCopilot.Ollama.Agent"
-$module_dir = Join-Path $shell_dir "ShellCopilot.Integration"
+$app_dir = Join-Path $shell_dir "AIShell.App"
+$pkg_dir = Join-Path $shell_dir "AIShell.Abstraction"
+$open_ai_agent_dir = Join-Path $shell_dir "AIShell.OpenAI.Agent"
+$interpreter_agent_dir = Join-Path $shell_dir "AIShell.Interpreter.Agent"
+$ollama_agent_dir = Join-Path $shell_dir "AIShell.Ollama.Agent"
+$module_dir = Join-Path $shell_dir "AIShell.Integration"
 
 $config = $Configuration.ToLower()
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
-$module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "Aish"
-$open_ai_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.OpenAI.Agent"
-$interpreter_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Interpreter.Agent"
-$ollama_out_dir =  Join-Path $app_out_dir "agents" "ShellCopilot.Ollama.Agent"
+$module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "AIShell"
+$open_ai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
+$interpreter_out_dir = Join-Path $app_out_dir "agents" "AIShell.Interpreter.Agent"
+$ollama_out_dir =  Join-Path $app_out_dir "agents" "AIShell.Ollama.Agent"
 
 if ($Clean) {
     $out_path = Join-Path $PSScriptRoot "out"
@@ -64,7 +64,7 @@ if (-not (Test-Path $pkg_out_dir)) {
     New-Item $pkg_out_dir -ItemType Directory > $null
 }
 
-Write-Host "`n[Build Shell Copilot ...]`n" -ForegroundColor Green
+Write-Host "`n[Build AI Shell ...]`n" -ForegroundColor Green
 $app_csproj = GetProjectFile $app_dir
 dotnet publish $app_csproj -c $Configuration -o $app_out_dir -r $RID --sc
 
@@ -94,7 +94,7 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'ollama') {
 }
 
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "`n[Build the Aish module ...]`n" -ForegroundColor Green
+    Write-Host "`n[Build the AIShell module ...]`n" -ForegroundColor Green
     $aish_module_csproj = GetProjectFile $module_dir
     dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
 }
