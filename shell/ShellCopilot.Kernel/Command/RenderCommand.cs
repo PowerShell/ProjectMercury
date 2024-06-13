@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using System.Text.Json;
 using System.CommandLine;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Kernel.Commands;
+namespace AIShell.Kernel.Commands;
 
 internal sealed class RenderCommand : CommandBase
 {

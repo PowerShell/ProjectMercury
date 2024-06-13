@@ -1,7 +1,6 @@
 ﻿using Azure.AI.OpenAI;
-using System;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 /// <summary>
 /// This class is used to encapsulate data that is sent between Agent and CodeExeuctionService.

@@ -1,4 +1,4 @@
-﻿namespace ShellCopilot.Abstraction;
+﻿namespace AIShell.Abstraction;
 
 public enum UserAction
 {

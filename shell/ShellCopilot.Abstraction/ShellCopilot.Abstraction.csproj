@@ -2,13 +2,13 @@
   <Import Project="..\shell.common.props" />
 
   <PropertyGroup>
-    <AssemblyName>ShellCopilot.Abstraction</AssemblyName>
+    <AssemblyName>AIShell.Abstraction</AssemblyName>
 
-    <PackageId>ShellCopilot.Abstraction</PackageId>
+    <PackageId>AIShell.Abstraction</PackageId>
     <Company>Microsoft Corporation</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
-    <Description>The abstraction layer SDK for building a plugin agent for Shell Copilot.</Description>
+    <Description>The abstraction layer SDK for building a plugin agent for AIShell.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>

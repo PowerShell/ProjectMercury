@@ -1,13 +1,13 @@
 ﻿using System.Reflection;
 using System.Text;
 using Markdig.Helpers;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 using Spectre.Console;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 /// <summary>
-/// Host implementation of the Shell Copilot.
+/// Host implementation of the AIShell.
 /// </summary>
 internal sealed class Host : IHost
 {

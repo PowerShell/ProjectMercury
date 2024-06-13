@@ -1,4 +1,4 @@
-﻿namespace ShellCopilot.Interpreter.Agent;
+﻿namespace AIShell.Interpreter.Agent;
 
 /// <summary>
 /// This class handles code exeuction on the local machine. All information 

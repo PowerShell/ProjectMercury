@@ -1,4 +1,4 @@
-﻿namespace ShellCopilot.Interpreter.Agent;
+﻿namespace AIShell.Interpreter.Agent;
 
 /// <summary>
 /// This class is used to execute Python code on the local machine. It inherits most functionality 

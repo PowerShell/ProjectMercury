@@ -1,10 +1,9 @@
-﻿using System.Net.Http.Headers;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Ollama.Agent;
+namespace AIShell.Ollama.Agent;
 
 internal class OllamaChatService : IDisposable
 {

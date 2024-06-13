@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 internal static partial class Clipboard
 {

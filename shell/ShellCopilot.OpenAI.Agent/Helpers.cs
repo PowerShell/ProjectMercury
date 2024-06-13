@@ -8,7 +8,7 @@ using Azure;
 using Azure.Core;
 using Azure.Core.Pipeline;
 
-namespace ShellCopilot.OpenAI.Agent;
+namespace AIShell.OpenAI.Agent;
 
 /// <summary>
 /// Static type that contains all utility methods.

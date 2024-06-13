@@ -1,8 +1,8 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Parsing;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Kernel.Commands;
+namespace AIShell.Kernel.Commands;
 
 internal class CommandRunner
 {
@@ -99,14 +99,14 @@ internal class CommandRunner
     /// Invoke the given command line.
     /// </summary>
     /// <param name="commandLine">The command line to run, which may include flags and arguments.</param>
-    /// <exception cref="ShellCopilotException"></exception>
+    /// <exception cref="AIShellException"></exception>
     internal void InvokeCommand(string commandLine)
     {
         int index = commandLine.IndexOf(' ');
         string commandName = index is -1 ? commandLine : commandLine[..index];
 
         CommandBase command = ResolveCommand(commandName)
-            ?? throw new ShellCopilotException($"The term '{commandName}' is not recognized as a name of a command.");
+            ?? throw new AIShellException($"The term '{commandName}' is not recognized as a name of a command.");
 
         command.Parser.Invoke(commandLine);
     }

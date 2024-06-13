@@ -3,11 +3,11 @@ using System.Reflection;
 using System.Text;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Integration;
+namespace AIShell.Integration;
 
-public class AishChannel : IDisposable
+public class Channel : IDisposable
 {
     private const int MaxNamedPipeNameSize = 104;
     private const int ConnectionTimeout = 7000;
@@ -17,7 +17,7 @@ public class AishChannel : IDisposable
     private readonly Runspace _runspace;
     private readonly MethodInfo _psrlInsert, _psrlRevertLine, _psrlAcceptLine;
     private readonly ManualResetEvent _connSetupWaitHandler;
-    private readonly AishPredictor _predictor;
+    private readonly Predictor _predictor;
 
     private ShellClientPipe _clientPipe;
     private ShellServerPipe _serverPipe;
@@ -25,7 +25,7 @@ public class AishChannel : IDisposable
     private Exception _exception;
     private Thread _serverThread;
 
-    private AishChannel(Runspace runspace, Type psConsoleReadLineType)
+    private Channel(Runspace runspace, Type psConsoleReadLineType)
     {
         _runspace = runspace;
         _psrlType = psConsoleReadLineType;
@@ -43,15 +43,15 @@ public class AishChannel : IDisposable
         _psrlRevertLine = _psrlType.GetMethod("RevertLine", bindingFlags);
         _psrlAcceptLine = _psrlType.GetMethod("AcceptLine", bindingFlags);
 
-        _predictor = new AishPredictor();
+        _predictor = new Predictor();
     }
 
-    public static AishChannel CreateSingleton(Runspace runspace, Type psConsoleReadLineType)
+    public static Channel CreateSingleton(Runspace runspace, Type psConsoleReadLineType)
     {
-        return Singleton ??= new AishChannel(runspace, psConsoleReadLineType);
+        return Singleton ??= new Channel(runspace, psConsoleReadLineType);
     }
 
-    internal static AishChannel Singleton { get; private set; }
+    internal static Channel Singleton { get; private set; }
 
     internal string PSVersion => _runspace.Version.ToString();
 
@@ -180,7 +180,7 @@ public class AishChannel : IDisposable
         {
             codeToInsert = codeBlocks[0];
         }
-        else if (AishPredictor.TryProcessForPrediction(codeBlocks, out predictionCandidates))
+        else if (Predictor.TryProcessForPrediction(codeBlocks, out predictionCandidates))
         {
             codeToInsert = predictionCandidates[0].Code;
         }
@@ -251,6 +251,6 @@ public class Init : IModuleAssemblyCleanup
 {
     public void OnRemove(PSModuleInfo psModuleInfo)
     {
-        AishChannel.Singleton?.Dispose();
+        Channel.Singleton?.Dispose();
     }
 }

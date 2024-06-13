@@ -7,7 +7,7 @@ using Azure;
 using Azure.Core;
 using Azure.Core.Pipeline;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 /// <summary>
 /// Static type that contains all utility methods.

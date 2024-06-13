@@ -1,9 +1,9 @@
 using System.Collections;
 using System.Management.Automation;
 using Microsoft.PowerShell.Commands;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Integration;
+namespace AIShell.Integration;
 
 [Alias("fixit")]
 [Cmdlet(VerbsDiagnostic.Resolve, "Error")]
@@ -42,12 +42,12 @@ public class ResolveErrorCommand : PSCmdlet
 
         string query = null, context = null;
         HistoryInfo lastHistory = results[0];
-        AishChannel channel = AishChannel.Singleton;
+        Channel channel = Channel.Singleton;
         string commandLine = lastHistory.CommandLine;
 
         if (TryGetLastError(lastHistory, out ErrorRecord lastError))
         {
-            query = AishErrorFeedback.CreateQueryForError(commandLine, lastError, channel);
+            query = ErrorFeedback.CreateQueryForError(commandLine, lastError, channel);
         }
         else if (lastExitCode is 0)
         {

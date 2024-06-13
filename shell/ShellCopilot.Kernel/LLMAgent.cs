@@ -1,7 +1,7 @@
-﻿using ShellCopilot.Abstraction;
+﻿using AIShell.Abstraction;
 using Spectre.Console;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 internal class LLMAgent
 {

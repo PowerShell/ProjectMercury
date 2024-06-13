@@ -1,6 +1,6 @@
 using SharpToken;
 
-namespace ShellCopilot.OpenAI.Agent;
+namespace AIShell.OpenAI.Agent;
 
 internal class ModelInfo
 {

@@ -2,11 +2,11 @@ using System.Diagnostics;
 using System.Management.Automation;
 using System.Text;
 
-namespace ShellCopilot.Integration;
+namespace AIShell.Integration;
 
 [Alias("aish")]
-[Cmdlet(VerbsLifecycle.Start, "Aish")]
-public class StartAishCommand : PSCmdlet
+[Cmdlet(VerbsLifecycle.Start, "AIShell")]
+public class StartAIShellCommand : PSCmdlet
 {
     [Parameter]
     [ValidateNotNullOrEmpty]
@@ -21,7 +21,7 @@ public class StartAishCommand : PSCmdlet
             {
                 ThrowTerminatingError(new(
                     new NotSupportedException("The executable 'aish' cannot be found."),
-                    "AISHMissing",
+                    "AIShellMissing",
                     ErrorCategory.NotInstalled,
                     targetObject: null));
             }
@@ -110,7 +110,7 @@ public class StartAishCommand : PSCmdlet
 
     protected override void EndProcessing()
     {
-        string pipeName = AishChannel.Singleton.StartChannelSetup();
+        string pipeName = Channel.Singleton.StartChannelSetup();
 
         if (OperatingSystem.IsWindows())
         {
@@ -132,7 +132,7 @@ public class StartAishCommand : PSCmdlet
                         "-s",
                         "0.4",
                         "--title",
-                        "AISH",
+                        "AIShell",
                         Path,
                         "--channel",
                         pipeName
@@ -155,7 +155,7 @@ public class StartAishCommand : PSCmdlet
                         "-s",
                         "0.4",
                         "--title",
-                        "AISH",
+                        "AIShell",
                         Path,
                         "--channel",
                         pipeName

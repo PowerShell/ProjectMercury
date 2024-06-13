@@ -1,8 +1,8 @@
 ﻿using Azure.AI.OpenAI;
 using Azure;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 /// <summary>
 /// The base model class for LLMs. Implementations are FunctionCallingModel and TextBasedModels.

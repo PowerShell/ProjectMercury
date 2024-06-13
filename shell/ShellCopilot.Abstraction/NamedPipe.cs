@@ -2,7 +2,7 @@
 using System.IO.Pipes;
 using System.Text.Json;
 
-namespace ShellCopilot.Abstraction;
+namespace AIShell.Abstraction;
 
 /// <summary>
 /// Message types.

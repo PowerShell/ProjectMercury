@@ -2,7 +2,7 @@
 using System.Text;
 using System.Runtime.InteropServices;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 /// <summary>
 /// This is the parent class for all languages.
@@ -188,7 +188,7 @@ internal abstract class SubprocessLanguage : IDisposable
         {
             return;
         }
-        // Pressing CTRL+C in Shell Copilot during python code execution will propogate the command to 
+        // Pressing CTRL+C in AIShell during python code execution will propogate the command to 
         // the python process and cause a KeyboardInterrupt exception. The KeyboardInterrupt will stop 
         // code execution and print the exception to stderr. Then we will never encounter the end of exeuction
         // marker, "##end_of_execution##" so DoneExecutionEvent is set here instead.

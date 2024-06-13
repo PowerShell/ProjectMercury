@@ -1,4 +1,4 @@
-namespace ShellCopilot.Ollama.Agent;
+namespace AIShell.Ollama.Agent;
 
 // Query class for the data to send to the endpoint
 internal class Query

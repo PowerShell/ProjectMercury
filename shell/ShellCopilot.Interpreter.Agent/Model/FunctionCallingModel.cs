@@ -1,9 +1,9 @@
 ﻿using Azure.AI.OpenAI;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 using System.Text;
 using System.Text.Json;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 internal static class Tools
 {

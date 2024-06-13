@@ -1,6 +1,6 @@
-﻿using ShellCopilot.Abstraction;
+﻿using AIShell.Abstraction;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 /// <summary>
 /// Arguments for the AI shell.

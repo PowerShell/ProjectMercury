@@ -1,9 +1,9 @@
 using System.Management.Automation.Subsystem;
 using System.Management.Automation.Subsystem.Prediction;
 
-namespace ShellCopilot.Integration;
+namespace AIShell.Integration;
 
-public sealed class AishPredictor : ICommandPredictor
+public sealed class Predictor : ICommandPredictor
 {
     private const int MaxRoundsToInvalidate = 10;
     private const string GUID = "F4CEBE0C-AB0C-4F9B-B24D-CB911EA6DB29";
@@ -14,7 +14,7 @@ public sealed class AishPredictor : ICommandPredictor
     private bool _checkExecutionResult;
     private List<PredictionCandidate> _candidates;
 
-    internal AishPredictor()
+    internal Predictor()
     {
         _guid = new Guid(GUID);
         _invalidationCount = -1;
@@ -27,9 +27,9 @@ public sealed class AishPredictor : ICommandPredictor
 
     public Guid Id => _guid;
 
-    public string Name => "aish";
+    public string Name => "AIShell";
 
-    public string Description => "Provide command-line prediction by leveraging AI agents running in aish.";
+    public string Description => "Provide command-line prediction by leveraging AI agents running in AIShell.";
 
     public bool CanAcceptFeedback(PredictionClient client, PredictorFeedbackKind feedback)
     {

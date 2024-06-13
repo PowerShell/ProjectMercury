@@ -4,7 +4,7 @@ using Azure.Core;
 using Azure.AI.OpenAI;
 using SharpToken;
 
-namespace ShellCopilot.OpenAI.Agent;
+namespace AIShell.OpenAI.Agent;
 
 internal class ChatService
 {

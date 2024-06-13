@@ -1,4 +1,4 @@
-﻿using System;
+﻿namespace AIShell.Interpreter.Agent;
 
 /// <summary>
 /// Summary description for Class1
@@ -23,5 +23,4 @@ public static class TaskCompletionChatPrompts
                        "If it is what you were expecting please move on to the next step and only the next step. If the task is done say " +
                        "EXACTLY 'The task is done.'\n Code output:\n\n"},
     };
-
 }

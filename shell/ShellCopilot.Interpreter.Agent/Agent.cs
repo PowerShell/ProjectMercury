@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 public sealed class InterpreterAgent : ILLMAgent
 {
