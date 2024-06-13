@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
@@ -42,7 +43,8 @@ internal static class Utils
     internal const string DefaultPrompt = "aish";
 
     internal static string AppName;
-    internal static string ShellConfigHome;
+    internal static string ConfigHome;
+    internal static string AppCacheDir;
     internal static string AppConfigFile;
     internal static string AgentHome;
     internal static string AgentConfigHome;
@@ -50,19 +52,25 @@ internal static class Utils
     internal static void Setup(string appName)
     {
         string locationPath = OperatingSystem.IsWindows()
-            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+            ? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
             : Environment.GetEnvironmentVariable("HOME");
 
         AppName = appName?.Trim().ToLower() ?? DefaultAppName;
-        ShellConfigHome = Path.Combine(locationPath, AppName.Replace(' ', '.'));
-        AppConfigFile = Path.Combine(ShellConfigHome, "config.json");
-        AgentHome = Path.Join(ShellConfigHome, "agents");
-        AgentConfigHome = Path.Join(ShellConfigHome, "agent-config");
+        ConfigHome = Path.Combine(locationPath, $".{AppName.Replace(' ', '-')}");
+        AppCacheDir = Path.Combine(ConfigHome, ".cache");
+        AppConfigFile = Path.Combine(ConfigHome, "config.json");
+        AgentHome = Path.Join(ConfigHome, "agents");
+        AgentConfigHome = Path.Join(ConfigHome, "agent-config");
 
         // Create the folders if they don't exist.
-        CreateFolderWithRightPermission(ShellConfigHome);
+        CreateFolderWithRightPermission(ConfigHome);
+        Directory.CreateDirectory(AppCacheDir);
         Directory.CreateDirectory(AgentHome);
         Directory.CreateDirectory(AgentConfigHome);
+
+        // Enable optimization profiling to load assemblies in parallel if possible.
+        ProfileOptimization.SetProfileRoot(AppCacheDir);
+        ProfileOptimization.StartProfile("StartupProfileData");
     }
 
     internal static JsonSerializerOptions GetJsonSerializerOptions()
