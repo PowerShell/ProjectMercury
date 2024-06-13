@@ -1,8 +1,8 @@
-﻿using ShellCopilot.Abstraction;
+﻿using AIShell.Abstraction;
 using System.ComponentModel;
 using System.Diagnostics;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 /// <summary>
 /// This class is used to execute powershell code on the local machine. It inherits most functionality 

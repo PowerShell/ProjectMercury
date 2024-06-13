@@ -1,10 +1,10 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 /// <summary>
-/// Settings for Shell Copilot.
+/// Settings for AIShell.
 /// </summary>
 internal class Setting
 {

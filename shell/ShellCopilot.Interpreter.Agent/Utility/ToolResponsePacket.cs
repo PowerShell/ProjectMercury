@@ -1,7 +1,7 @@
 ﻿using Azure.AI.OpenAI;
-using System.Security.Cryptography;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
+
 /// <summary>
 /// Summarizes the content of a response from the tool into booleans.
 /// </summary>

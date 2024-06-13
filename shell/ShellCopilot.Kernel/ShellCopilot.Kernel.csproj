@@ -2,7 +2,7 @@
   <Import Project="..\shell.common.props" />
 
   <PropertyGroup>
-    <AssemblyName>ShellCopilot.Kernel</AssemblyName>
+    <AssemblyName>AIShell.Kernel</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

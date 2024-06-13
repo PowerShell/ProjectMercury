@@ -4,10 +4,10 @@ using System.CommandLine.Parsing;
 using System.CommandLine.Completions;
 
 using Microsoft.PowerShell;
-using ShellCopilot.Abstraction;
-using ShellCopilot.Kernel.Commands;
+using AIShell.Abstraction;
+using AIShell.Kernel.Commands;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 internal class ReadLineHelper : IReadLineHelper
 {

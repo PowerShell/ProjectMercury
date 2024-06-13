@@ -1,8 +1,8 @@
 ﻿using System.CommandLine;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 using Spectre.Console;
 
-namespace ShellCopilot.Kernel.Commands;
+namespace AIShell.Kernel.Commands;
 
 internal abstract class FeedbackCommand : CommandBase
 {

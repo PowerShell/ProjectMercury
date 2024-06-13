@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.Json;
 using Azure.AI.OpenAI;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.OpenAI.Agent;
+namespace AIShell.OpenAI.Agent;
 
 public sealed class OpenAIAgent : ILLMAgent
 {

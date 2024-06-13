@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Text;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 internal class Channel : IDisposable
 {

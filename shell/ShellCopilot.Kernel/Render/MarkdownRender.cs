@@ -1,8 +1,8 @@
 ﻿using Markdig;
 using Markdown.VT;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 internal class CodeBlockVisitor : IVTRenderVisitor
 {

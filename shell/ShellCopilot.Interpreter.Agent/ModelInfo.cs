@@ -1,6 +1,6 @@
 using SharpToken;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 internal class ModelInfo
 {

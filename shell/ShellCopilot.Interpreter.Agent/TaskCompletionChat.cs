@@ -1,7 +1,7 @@
 ﻿using System.Runtime;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 /// <summary>
 /// Manages a task chat session with automated user responses that guide the AI to complete the task.

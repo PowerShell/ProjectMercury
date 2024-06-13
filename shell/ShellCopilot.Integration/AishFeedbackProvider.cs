@@ -2,17 +2,17 @@ using System.Management.Automation;
 using System.Management.Automation.Subsystem;
 using System.Management.Automation.Subsystem.Feedback;
 using System.Text;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Integration;
+namespace AIShell.Integration;
 
-public sealed class AishErrorFeedback : IFeedbackProvider
+public sealed class ErrorFeedback : IFeedbackProvider
 {
     internal const string GUID = "10A13623-CE5E-4808-8346-1DEC831C24BB";
 
     private readonly Guid _guid;
 
-    internal AishErrorFeedback()
+    internal ErrorFeedback()
     {
         _guid = new Guid(GUID);
         SubsystemManager.RegisterSubsystem(SubsystemKind.FeedbackProvider, this);
@@ -22,16 +22,16 @@ public sealed class AishErrorFeedback : IFeedbackProvider
 
     public Guid Id => _guid;
 
-    public string Name => "aish";
+    public string Name => "AIShell";
 
-    public string Description => "Provide feedback for errors by leveraging AI agents running in aish.";
+    public string Description => "Provide feedback for errors by leveraging AI agents running in AIShell.";
 
     public FeedbackTrigger Trigger => FeedbackTrigger.Error;
 
     public FeedbackItem GetFeedback(FeedbackContext context, CancellationToken token)
     {
         // The trigger we listen to is 'Error', so 'LastError' won't be null.
-        AishChannel channel = AishChannel.Singleton;
+        Channel channel = Channel.Singleton;
         if (channel.CheckConnection(blocking: false, out _))
         {
             string query = CreateQueryForError(context.CommandLine, context.LastError, channel);
@@ -44,7 +44,7 @@ public sealed class AishErrorFeedback : IFeedbackProvider
         return null;
     }
 
-    internal static string CreateQueryForError(string commandLine, ErrorRecord lastError, AishChannel channel)
+    internal static string CreateQueryForError(string commandLine, ErrorRecord lastError, Channel channel)
     {
         Exception exception = lastError.Exception;
         StringBuilder sb = new StringBuilder(capacity: 100)

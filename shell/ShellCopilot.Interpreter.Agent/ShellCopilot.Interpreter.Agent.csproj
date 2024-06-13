@@ -19,7 +19,7 @@
     <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.13" />
     <PackageReference Include="Azure.Core" Version="1.37.0" />
     <PackageReference Include="SharpToken" Version="2.0.3" />
-    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-alpha.11">
+    <PackageReference Include="AIShell.Abstraction" Version="0.1.0-alpha.11">
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

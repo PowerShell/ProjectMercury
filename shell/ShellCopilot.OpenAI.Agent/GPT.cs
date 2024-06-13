@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Security;
 using System.Text.Json.Serialization;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.OpenAI.Agent;
+namespace AIShell.OpenAI.Agent;
 
 internal enum EndpointType
 {

@@ -1,8 +1,8 @@
 using System.CommandLine;
 using System.CommandLine.Completions;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.OpenAI.Agent;
+namespace AIShell.OpenAI.Agent;
 
 internal sealed class GPTCommand : CommandBase
 {

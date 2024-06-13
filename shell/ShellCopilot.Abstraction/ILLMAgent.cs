@@ -1,7 +1,7 @@
-namespace ShellCopilot.Abstraction;
+namespace AIShell.Abstraction;
 
 /// <summary>
-/// Contract class for an application to warp around Shell Copilot.
+/// Contract class for an application to warp around AIShell.
 /// </summary>
 public class ShellWrapper
 {
@@ -10,18 +10,18 @@ public class ShellWrapper
 
     /// <summary>
     /// Name of the application to run from command line, e.g. 'az copilot'. Required key.
-    /// It's used to setup the configuration folder of Shell Copilot.
+    /// It's used to setup the configuration folder of AIShell.
     /// </summary>
     public string Name { set; get; }
 
     /// <summary>
-    /// Banner text to be displayed at the startup of Shell Copilot. Required key.
+    /// Banner text to be displayed at the startup of AIShell. Required key.
     /// </summary>
     public string Banner { set; get; }
 
     /// <summary>
-    /// Version to be displayed at the startup of Shell Copilot. Optional key.
-    /// The version of Shell Copilot will be used if this key is not specified.
+    /// Version to be displayed at the startup of AIShell. Optional key.
+    /// The version of AIShell will be used if this key is not specified.
     /// </summary>
     public string Version
     {
@@ -31,7 +31,7 @@ public class ShellWrapper
     }
 
     /// <summary>
-    /// The description to be displayed at the startup of Shell Copilot. Optional key.
+    /// The description to be displayed at the startup of AIShell. Optional key.
     /// The default description of the chosen agent will be used if this key is not specified.
     /// </summary>
     public string Description
@@ -47,7 +47,7 @@ public class ShellWrapper
     public string Prompt { set; get; }
 
     /// <summary>
-    /// The default agent to use, which should be available along with Shell Copilot. Required key.
+    /// The default agent to use, which should be available along with AIShell. Required key.
     /// </summary>
     public string Agent { set; get; }
 
@@ -88,7 +88,7 @@ public class AgentConfig
     public RenderingStyle RenderingStyle { set; get; }
 
     /// <summary>
-    /// Sets and gets the context information for the agent that is passed into Shell Copilot.
+    /// Sets and gets the context information for the agent that is passed into AIShell.
     /// </summary>
     public Dictionary<string, string> Context { set; get; }
 }

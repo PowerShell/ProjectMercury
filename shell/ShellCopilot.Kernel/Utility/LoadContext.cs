@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.Loader;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 internal class AgentAssemblyLoadContext : AssemblyLoadContext
 {

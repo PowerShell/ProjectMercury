@@ -1,10 +1,10 @@
 ﻿using System.CommandLine;
 using System.Text;
 using System.Text.Json;
-using ShellCopilot.Abstraction;
-using ShellCopilot.Kernel;
+using AIShell.Abstraction;
+using AIShell.Kernel;
 
-namespace ShellCopilot.App;
+namespace AIShell.App;
 
 internal class Program
 {
@@ -26,7 +26,7 @@ internal class Program
         Console.OutputEncoding = Encoding.Default;
         Argument<string> query = new("query", getDefaultValue: () => null, "The query term used to get response from AI.");
         Option<string> channel = new("--channel", "A named pipe used to setup communication between aish and the command-line shell.");
-        Option<FileInfo> shellWrapper = new("--shell-wrapper", "Path to the configuration file to wrap Shell Copilot as a different application.");
+        Option<FileInfo> shellWrapper = new("--shell-wrapper", "Path to the configuration file to wrap AIShell as a different application.");
 
         query.AddValidator(result =>
         {

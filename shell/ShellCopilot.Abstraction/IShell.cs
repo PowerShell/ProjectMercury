@@ -1,9 +1,9 @@
-namespace ShellCopilot.Abstraction;
+namespace AIShell.Abstraction;
 
 public interface IShell
 {
     /// <summary>
-    /// The host of the shell copilot.
+    /// The host of the AIShell.
     /// </summary>
     IHost Host { get; }
 

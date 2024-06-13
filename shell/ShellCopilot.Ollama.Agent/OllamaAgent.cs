@@ -1,9 +1,7 @@
 using System.Diagnostics;
-using System.Text;
-using System.Text.Json;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Ollama.Agent;
+namespace AIShell.Ollama.Agent;
 
 public sealed class OllamaAgent : ILLMAgent
 {
@@ -40,11 +38,6 @@ public sealed class OllamaAgent : ILLMAgent
     private OllamaChatService _chatService;
 
     /// <summary>
-    /// A string builder to render the text at the end
-    /// </summary>
-    private StringBuilder _text;
-
-    /// <summary>
     /// Dispose method to clean up the unmanaged resource of the chatService
     /// </summary>
     public void Dispose()
@@ -58,7 +51,6 @@ public sealed class OllamaAgent : ILLMAgent
     /// <param name="config">Agent configuration for any configuration file and other settings</param>
     public void Initialize(AgentConfig config)
     {
-        _text = new StringBuilder();
         _chatService = new OllamaChatService();
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)

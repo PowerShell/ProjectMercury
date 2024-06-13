@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using Microsoft.PowerShell;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 /// <summary>
 /// When a channel is established between PowerShell and AISH, we need to be able to

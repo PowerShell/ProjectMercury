@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace ShellCopilot.Abstraction;
+namespace AIShell.Abstraction;
 
 public interface IRenderElement<T>
 {

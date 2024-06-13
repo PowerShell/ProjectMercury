@@ -2,7 +2,7 @@
 using System.CommandLine.Parsing;
 using System.CommandLine;
 
-namespace ShellCopilot.Abstraction;
+namespace AIShell.Abstraction;
 
 public abstract class CommandBase : Command, IDisposable
 {
@@ -22,7 +22,7 @@ public abstract class CommandBase : Command, IDisposable
     private Parser _parser;
 
     /// <summary>
-    /// Gets the <see cref="IShell"/> implementation to interact with Shell Copilot.
+    /// Gets the <see cref="IShell"/> implementation to interact with AIShell.
     /// </summary>
     public IShell Shell { internal set; get; }
 

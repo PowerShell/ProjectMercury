@@ -1,4 +1,4 @@
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 internal enum OutputType
 {

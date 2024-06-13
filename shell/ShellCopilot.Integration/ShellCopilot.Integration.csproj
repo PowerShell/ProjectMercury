@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <AssemblyName>AIShell.Integration</AssemblyName>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
@@ -17,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-alpha.11" />
+    <PackageReference Include="AIShell.Abstraction" Version="0.1.0-alpha.11" />
     <PackageReference Include="System.Management.Automation" Version="7.4.0">
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>All</PrivateAssets>

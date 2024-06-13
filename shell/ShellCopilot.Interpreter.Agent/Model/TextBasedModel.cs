@@ -1,7 +1,7 @@
 ﻿using Azure.AI.OpenAI;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Interpreter.Agent;
+namespace AIShell.Interpreter.Agent;
 
 internal class TextBasedModel : BaseModel
 {

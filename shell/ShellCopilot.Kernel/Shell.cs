@@ -1,10 +1,10 @@
 using System.Reflection;
 using Microsoft.PowerShell;
-using ShellCopilot.Abstraction;
-using ShellCopilot.Kernel.Commands;
+using AIShell.Abstraction;
+using AIShell.Kernel.Commands;
 using Spectre.Console;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 internal sealed class Shell : IShell
 {
@@ -127,7 +127,7 @@ internal sealed class Shell : IShell
 
     internal void ShowBanner()
     {
-        string banner = _wrapper?.Banner is null ? "Shell Copilot" : _wrapper.Banner;
+        string banner = _wrapper?.Banner is null ? "AI Shell" : _wrapper.Banner;
         string version = _wrapper?.Version is null ? _version : _wrapper.Version;
         Host.MarkupLine($"[bold]{banner.EscapeMarkup()}[/]")
             .MarkupLine($"[grey]{version.EscapeMarkup()}[/]")
@@ -688,7 +688,7 @@ internal sealed class Shell : IShell
                         .WriteErrorLine();
                 }
             }
-            catch (ShellCopilotException e)
+            catch (AIShellException e)
             {
                 Host.WriteErrorLine(e.Message);
                 if (e.HandlerAction is ExceptionHandlerAction.Stop)
@@ -721,7 +721,7 @@ internal sealed class Shell : IShell
         {
             Host.WriteErrorLine("Operation was aborted.");
         }
-        catch (ShellCopilotException exception)
+        catch (AIShellException exception)
         {
             Host.WriteErrorLine(exception.Message);
         }

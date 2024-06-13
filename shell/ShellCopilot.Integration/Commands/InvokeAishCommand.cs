@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Management.Automation;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Integration;
+namespace AIShell.Integration;
 
 [Alias("askai")]
-[Cmdlet(VerbsLifecycle.Invoke, "Aish", DefaultParameterSetName = "Default")]
-public class InvokeAishCommand : PSCmdlet
+[Cmdlet(VerbsLifecycle.Invoke, "AIShell", DefaultParameterSetName = "Default")]
+public class InvokeAIShellCommand : PSCmdlet
 {
     [Parameter(Position = 0, Mandatory = true)]
     public string Query { get; set; }
@@ -55,6 +55,6 @@ public class InvokeAishCommand : PSCmdlet
         }
 
         string context = results?.Count > 0 ? results[0] : null;
-        AishChannel.Singleton.PostQuery(new PostQueryMessage(Query, context, Agent));
+        Channel.Singleton.PostQuery(new PostQueryMessage(Query, context, Agent));
     }
 }

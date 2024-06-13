@@ -2,9 +2,9 @@
 using System.CommandLine.Completions;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Kernel.Commands;
+namespace AIShell.Kernel.Commands;
 
 internal sealed class AgentCommand : CommandBase
 {

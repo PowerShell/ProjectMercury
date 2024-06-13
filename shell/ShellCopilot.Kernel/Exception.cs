@@ -1,4 +1,4 @@
-﻿namespace ShellCopilot.Kernel;
+﻿namespace AIShell.Kernel;
 
 public enum ExceptionHandlerAction
 {
@@ -6,21 +6,21 @@ public enum ExceptionHandlerAction
     Continue,
 }
 
-public sealed class ShellCopilotException : Exception
+public sealed class AIShellException : Exception
 {
     public ExceptionHandlerAction HandlerAction { get; }
 
-    public ShellCopilotException(string message)
+    public AIShellException(string message)
         : this(message, ExceptionHandlerAction.Continue, innerException: null)
     {
     }
 
-    public ShellCopilotException(string message, Exception innerException)
+    public AIShellException(string message, Exception innerException)
         : this(message, ExceptionHandlerAction.Continue, innerException)
     {
     }
 
-    public ShellCopilotException(string message, ExceptionHandlerAction action, Exception innerException = null)
+    public AIShellException(string message, ExceptionHandlerAction action, Exception innerException = null)
         : base(message, innerException)
     {
         ArgumentException.ThrowIfNullOrEmpty(message);

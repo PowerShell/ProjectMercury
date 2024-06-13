@@ -1,10 +1,10 @@
 ﻿using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 using Spectre.Console;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 internal sealed class DummyStreamRender : IStreamRender
 {

@@ -4,7 +4,7 @@ using System.Text;
 
 using Spectre.Console;
 
-namespace ShellCopilot.Kernel;
+namespace AIShell.Kernel;
 
 internal class Pager
 {
@@ -88,7 +88,7 @@ internal class Pager
         }
         catch (Win32Exception e)
         {
-            throw new ShellCopilotException(
+            throw new AIShellException(
                 $"Failed to run the paging utility '{_command}': {e.Message}",
                 innerException: e);
         }
