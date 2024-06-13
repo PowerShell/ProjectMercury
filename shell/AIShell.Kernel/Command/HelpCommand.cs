@@ -31,7 +31,7 @@ internal sealed class HelpCommand : CommandBase
         };
 
         shellImpl.Host.RenderTable(list, elements);
-        host.MarkupLine($"Learn more at [link]https://aka.ms/CopilotforShell[/].\n");
+        host.MarkupLine($"Learn more at [link]https://aka.ms/AIShell[/].\n");
     }
 
     private class CommandComparer : IComparer<CommandBase>
