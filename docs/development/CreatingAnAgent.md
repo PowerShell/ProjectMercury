@@ -17,13 +17,13 @@ For details about the `AIShell.Abstraction` layer and `AIShell.Kernel`, see the
 
 For this example we create an agent to communicate with the language model `phi3` by utilizing [Ollama][04], a CLI tool for managing and
 using locally built LLM/SLMs.
-The complete source code of the agent can be found in the `shell/AIShell.Ollama.Agent` folder of the repository.
+The complete source code of the agent can be found in the `shell/agents/AIShell.Ollama.Agent` folder of the repository.
 the repository.
 
 ### Step 1: Create a new project
 
 Currently, the only way to import an agent is for it to be included in the folder structure of this
-repository. We suggest creating an agent under the `shell/` folder. Create a new folder with the
+repository. We suggest creating an agent under the `shell/agents` folder. Create a new folder with the
 prefix `AIShell.<AgentName>`. Within that folder, create a new C# project with the same name.
 Run the following command from the folder where you want to create the agent:
 
@@ -495,7 +495,7 @@ public async Task<bool> Chat(string input, IShell shell)
 ```
 
 Congratulations! The agent is now complete. You can build and test the agent to confirm it's
-working. Compare your code to the example code in the [`shell/AIShell.Ollama.Agent`][02] folder
+working. Compare your code to the example code in the [`shell/agents/AIShell.Ollama.Agent`][02] folder
 to see if you missed a step.
 
 ## How can I share my own agent?
@@ -508,7 +508,7 @@ loaded by `aish`.
 
 <!-- updated link references -->
 [01]: ../../shell/shell.common.props
-[02]: ../../shell/AIShell.Ollama.Agent/
+[02]: ../../shell/agents/AIShell.Ollama.Agent
 [03]: ../../shell/README.md
 [04]: https://github.com/ollama/ollama
 [05]: https://github.com/ollama/ollama/blob/main/docs/api.md#request-no-streaming

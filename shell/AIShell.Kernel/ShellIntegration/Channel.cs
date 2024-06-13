@@ -10,8 +10,8 @@ internal class Channel : IDisposable
     private const int ConnectionTimeout = 3000;
 
     private readonly string _aishPipeName;
-    private readonly CopilotClientPipe _clientPipe;
-    private readonly CopilotServerPipe _serverPipe;
+    private readonly AishClientPipe _clientPipe;
+    private readonly AishServerPipe _serverPipe;
     private readonly ManualResetEvent _connSetupWaitHandler;
     private readonly CancellableReadKey _readkeyProxy;
     private readonly Queue<PostQueryMessage> _queries;
@@ -35,8 +35,8 @@ internal class Channel : IDisposable
             .Append(Utils.DefaultAppName)
             .ToString();
 
-        _clientPipe = new CopilotClientPipe(pipeName);
-        _serverPipe = new CopilotServerPipe(_aishPipeName);
+        _clientPipe = new AishClientPipe(pipeName);
+        _serverPipe = new AishServerPipe(_aishPipeName);
         _serverPipe.OnPostQuery += OnPostQuery;
         _serverPipe.OnConnectedOrFailed += OnConnectedOrFailed;
         _connSetupWaitHandler = new ManualResetEvent(false);

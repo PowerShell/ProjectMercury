@@ -1,26 +1,26 @@
-# Welcome to the AISH repository
+# Welcome to the AI Shell repository
 
-**AISH** is our latest CLI tool that provides an interactive shell session to chat with large
+**AI Shell** is our latest CLI tool that provides an interactive shell session to chat with large
 language models. Users can use _agents_ to interact with different AI models, or other assistance
-providers, in a conversational manner. **AISH** also provides a framework for creating AI agents.
+providers, in a conversational manner. **AI Shell** also provides a framework for creating AI agents.
 
 This project is currently in an **alpha** state. Expect many significant changes to the code as we
 experiment and refine the user experiences of this tool. We appreciate your feedback and patience as
 we continue our development.
 
-![GIF showing demo of AISH][04]
+![GIF showing demo of AI Shell][04]
 
-## Installing AISH
+## Installing AI Shell
 
-Some prerequisites for building AISH
+Some prerequisites for building AI Shell
 
 - Build script requires PowerShell v7.2 or newer versions
 - [PowerShell v7.4][11] is recommended
 - [.NET SDK 8][09] is required to build the project
 
-Here are the steps to install and use AISH.
+Here are the steps to install and use AI Shell.
 
-1. Clone this repository, `git clone https://github.com/PowerShell/AISH`
+1. Clone this repository, `git clone https://github.com/PowerShell/ProjectMercury`
 2. Run `./build.ps1` in the repository's root directory to build the project
 3. After the build is complete, you can find the produced executable `aish` in the `out\debug\app`
    folder within the repository's root directory. You can add the location to the `PATH` environment
@@ -28,7 +28,7 @@ Here are the steps to install and use AISH.
 
 ## AI Agents
 
-AISH provides a framework for creating and registering multiple AI Agents. The agents are libraries
+AI Shell provides a framework for creating and registering multiple AI Agents. The agents are libraries
 that you use to interact with different AI models or assistance providers. Currently, these are the
 supported agents:
 
@@ -40,7 +40,7 @@ Agent README files:
 When you run `aish`, you are prompted to choose an agent. For more details about each agent, see the
 README in the each agent folder.
 
-## How to use AISH
+## How to use AI Shell
 
 To start a chat session with the LLM, run `aish`, which starts a new session in your current window.
 Choose the agent you would like to use. Once you select an agent you can begin your conversation.
@@ -59,7 +59,7 @@ your `$PROFILE` script:
 $PSReadLineSplat = @{
     Chord = 'F3'
     ScriptBlock = {
-        wt -w 0 sp --tabColor '#345beb'--size 0.4 -p $env:WT_PROFILE_ID --title 'AISH' <full-path-to-aish.exe>
+        wt -w 0 sp --tabColor '#345beb'--size 0.4 -p $env:WT_PROFILE_ID --title 'AIShell' <full-path-to-aish.exe>
     }
 }
 Set-PSReadLineKeyHandler @PSReadLineSplat
@@ -115,8 +115,8 @@ bugs, suggestions, or feedback.
 [03]: ./docs/development/CreatingAnAgent.md
 [04]: ./docs/media/AIShellDemo.gif
 [05]: ./docs/SUPPORT.md
-[07]: ./shell/AIShell.Interpreter.Agent/README.md
-[08]: ./shell/AIShell.OpenAI.Agent/README.md
+[07]: ./shell/agents/AIShell.Interpreter.Agent/README.md
+[08]: ./shell/agents/AIShell.OpenAI.Agent/README.md
 [09]: https://dotnet.microsoft.com/en-us/download
-[10]: https://github.com/PowerShell/AISH/issues
+[10]: https://github.com/PowerShell/ProjectMercury/issues
 [11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell

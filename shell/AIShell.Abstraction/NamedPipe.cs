@@ -10,27 +10,27 @@ namespace AIShell.Abstraction;
 public enum MessageType : int
 {
     /// <summary>
-    /// A query from command-line shell to Copilot.
+    /// A query from command-line shell to AIShell.
     /// </summary>
     PostQuery = 0,
 
     /// <summary>
-    /// A message from Copilot to command-line shell to ask for conncetion.
+    /// A message from AIShell to command-line shell to ask for conncetion.
     /// </summary>
     AskConnection = 1,
 
     /// <summary>
-    /// A message from Copilot to command-line shell to ask for context.
+    /// A message from AIShell to command-line shell to ask for context.
     /// </summary>
     AskContext = 2,
 
     /// <summary>
-    /// A message from command-line shell to Copilot to post context.
+    /// A message from command-line shell to AIShell to post context.
     /// </summary>
     PostContext = 3,
 
     /// <summary>
-    /// A message from Copilot to command-line shell to send code block.
+    /// A message from AIShell to command-line shell to send code block.
     /// </summary>
     PostCode = 4,
 }
@@ -534,14 +534,14 @@ public sealed class ShellClientPipe : PipeCommon
     }
 
     /// <summary>
-    /// Connect to the server end of the pipe on the copilot side.
+    /// Connect to the server end of the pipe on the AIShell side.
     /// </summary>
     /// <param name="timeout">Timeout for the connection attempt.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     internal Task ConnectAsync(int timeout, CancellationToken cancellationToken) => _client.ConnectAsync(timeout, cancellationToken);
 
     /// <summary>
-    /// Post a query to the copilot.
+    /// Post a query to AIShell.
     /// </summary>
     /// <param name="message">The <see cref="MessageType.PostQuery"/> message.</param>
     /// <exception cref="IOException">Throws when the pipe is closed by the other side.</exception>
@@ -549,17 +549,17 @@ public sealed class ShellClientPipe : PipeCommon
 }
 
 /// <summary>
-/// The type represents the server end of a named pipe in the copilot side.
+/// The type represents the server end of a named pipe in the AIShell side.
 /// </summary>
-public sealed class CopilotServerPipe : PipeCommon
+public sealed class AishServerPipe : PipeCommon
 {
     private readonly NamedPipeServerStream _server;
 
     /// <summary>
-    /// Creates an instance of <see cref="CopilotServerPipe"/>.
+    /// Creates an instance of <see cref="AishServerPipe"/>.
     /// </summary>
     /// <param name="pipeName">The pipe name to create the <see cref="NamedPipeServerStream"/>.</param>
-    public CopilotServerPipe(string pipeName)
+    public AishServerPipe(string pipeName)
         : base(pipeName, new NamedPipeServerStream(pipeName))
     {
         _server = (NamedPipeServerStream)PipeStream;
@@ -674,17 +674,17 @@ public sealed class CopilotServerPipe : PipeCommon
 }
 
 /// <summary>
-/// The type represents the client end of a named pipe in the copilot side.
+/// The type represents the client end of a named pipe in the AIShell side.
 /// </summary>
-public sealed class CopilotClientPipe : PipeCommon
+public sealed class AishClientPipe : PipeCommon
 {
     private readonly NamedPipeClientStream _client;
 
     /// <summary>
-    /// Creates an instance of <see cref="CopilotClientPipe"/>.
+    /// Creates an instance of <see cref="AishClientPipe"/>.
     /// </summary>
     /// <param name="pipeName">The pipe name to create the <see cref="NamedPipeClientStream"/>.</param>
-    public CopilotClientPipe(string pipeName)
+    public AishClientPipe(string pipeName)
         : base(pipeName, new NamedPipeClientStream(pipeName))
     {
         _client = (NamedPipeClientStream)PipeStream;
