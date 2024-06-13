@@ -36,17 +36,21 @@ $RID = $Runtime ?? (dotnet --info |
 Write-Verbose "RID: $RID"
 
 $shell_dir = Join-Path $PSScriptRoot "shell"
+$agent_dir = Join-Path $shell_dir "agents"
+
 $app_dir = Join-Path $shell_dir "AIShell.App"
 $pkg_dir = Join-Path $shell_dir "AIShell.Abstraction"
-$open_ai_agent_dir = Join-Path $shell_dir "AIShell.OpenAI.Agent"
-$interpreter_agent_dir = Join-Path $shell_dir "AIShell.Interpreter.Agent"
-$ollama_agent_dir = Join-Path $shell_dir "AIShell.Ollama.Agent"
 $module_dir = Join-Path $shell_dir "AIShell.Integration"
+
+$open_ai_agent_dir = Join-Path $agent_dir "AIShell.OpenAI.Agent"
+$interpreter_agent_dir = Join-Path $agent_dir "AIShell.Interpreter.Agent"
+$ollama_agent_dir = Join-Path $agent_dir "AIShell.Ollama.Agent"
 
 $config = $Configuration.ToLower()
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
 $module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "AIShell"
+
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
 $interpreter_out_dir = Join-Path $app_out_dir "agents" "AIShell.Interpreter.Agent"
 $ollama_out_dir =  Join-Path $app_out_dir "agents" "AIShell.Ollama.Agent"

@@ -1,6 +1,6 @@
 # AI Shell architecture
 
-<img src="./assets/shell-copilot-overall-arch.png" alt="shell-copilot" width="500"/>
+<img src="../docs/media/AIShell-overall-arch.png" alt="ai-shell" width="500"/>
 
 ### AIShell.Abstraction
 

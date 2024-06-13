@@ -11,10 +11,9 @@ or feature request as a [new issue][05].
 For other help and questions please see:
 
 - [Repository README][01]
-- [AISH architecture][02]
+- [AI Shell architecture][02]
 - [FAQ][03]
 - Agent README files:
-  - [`az-cli` & `az-ps`][06]
   - [`openai-gpt`][08]
   - [`interpreter`][07]
 
@@ -22,8 +21,7 @@ For other help and questions please see:
 [01]: ../README.md
 [02]: ../shell/README.md
 [03]: ./FAQ.md
-[04]: https://github.com/PowerShell/AISH/issues
-[05]: https://github.com/PowerShell/AISH/issues/new/choose
-[06]: ../shell/AIShell.Azure.Agent/README.md
-[07]: ../shell/AIShell.Interpreter.Agent/README.md
-[08]: ../shell/AIShell.OpenAI.Agent/README.md
+[04]: https://github.com/PowerShell/ProjectMercury/issues
+[05]: https://github.com/PowerShell/ProjectMercury/issues/new/choose
+[07]: ../shell/agents/AIShell.Interpreter.Agent/README.md
+[08]: ../shell/agents/AIShell.OpenAI.Agent/README.md
