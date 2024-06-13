@@ -41,5 +41,5 @@ documentation for your terminal application to see if it supports this feature.
 
 <!-- link references -->
 [01]: ../shell/README.md
-[03]: ./shell/ShellCopilot.Interpreter.Agent/README.md
-[04]: ./shell/ShellCopilot.OpenAI.Agent/README.md
+[03]: ./shell/AIShell.Interpreter.Agent/README.md
+[04]: ./shell/AIShell.OpenAI.Agent/README.md

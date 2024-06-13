@@ -24,6 +24,6 @@ For other help and questions please see:
 [03]: ./FAQ.md
 [04]: https://github.com/PowerShell/AISH/issues
 [05]: https://github.com/PowerShell/AISH/issues/new/choose
-[06]: ../shell/ShellCopilot.Azure.Agent/README.md
-[07]: ../shell/ShellCopilot.Interpreter.Agent/README.md
-[08]: ../shell/ShellCopilot.OpenAI.Agent/README.md
+[06]: ../shell/AIShell.Azure.Agent/README.md
+[07]: ../shell/AIShell.Interpreter.Agent/README.md
+[08]: ../shell/AIShell.OpenAI.Agent/README.md
