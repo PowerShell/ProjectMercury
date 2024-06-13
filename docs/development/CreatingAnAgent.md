@@ -1,12 +1,12 @@
 # Creating an Agent
 
-An agent is a code library that interfaces with the ShellCopilot to talk to a specific large
+An agent is a code library that interfaces with the AI Shell to talk to a specific large
 language model or other assistance provider. Users chat with the agents using natural language to
 get the desired output or assistance. Agents are implemented as C# classes that implement the
-`ILLMAgent` interface from the `ShellCopilot.Abstraction` package.
+`ILLMAgent` interface from the `AIShell.Abstraction` package.
 
-For details about the `ShellCopilot.Abstraction` layer and `ShellCopilot.Kernel`, see the
-[Shell Copilot architecture][03] documentation.
+For details about the `AIShell.Abstraction` layer and `AIShell.Kernel`, see the
+[AI Shell architecture][03] documentation.
 
 ## Prerequisites
 
@@ -17,14 +17,14 @@ For details about the `ShellCopilot.Abstraction` layer and `ShellCopilot.Kernel`
 
 For this example we create an agent to communicate with the language model `phi3` by utilizing [Ollama][04], a CLI tool for managing and
 using locally built LLM/SLMs.
-The complete source code of the agent can be found in the `shell/ShellCopilot.Ollama.Agent` folder of the repository.
+The complete source code of the agent can be found in the `shell/AIShell.Ollama.Agent` folder of the repository.
 the repository.
 
 ### Step 1: Create a new project
 
 Currently, the only way to import an agent is for it to be included in the folder structure of this
 repository. We suggest creating an agent under the `shell/` folder. Create a new folder with the
-prefix `ShellCopilot.<AgentName>`. Within that folder, create a new C# project with the same name.
+prefix `AIShell.<AgentName>`. Within that folder, create a new C# project with the same name.
 Run the following command from the folder where you want to create the agent:
 
 ```shell
@@ -33,7 +33,7 @@ dotnet new classlib
 
 ### Step 2: Add the necessary packages
 
-Within the newly created project, add a reference to the `ShellCopilot.Abstraction` package. To
+Within the newly created project, add a reference to the `AIShell.Abstraction` package. To
 reduce the number of files created by the build, you can disable the generation of PDB and deps.json
 for release builds.
 
@@ -49,7 +49,7 @@ Your `.csproj` file should contain the following elements:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ShellCopilot.Abstraction" Version="0.1.0-alpha.11">
+    <PackageReference Include="AIShell.Abstraction" Version="0.1.0-alpha.11">
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -69,9 +69,9 @@ Modify the build script so that you can build and test your agent during develop
 agents. The following lines were added to the script to build the new agent.
 
 ```powershell
-$ollama_agent_dir = Join-Path $shell_dir "ShellCopilot.Ollama.Agent"
+$ollama_agent_dir = Join-Path $shell_dir "AIShell.Ollama.Agent"
 
-$ollama_out_dir =  Join-Path $app_out_dir "agents" "ShellCopilot.Ollama.Agent"
+$ollama_out_dir =  Join-Path $app_out_dir "agents" "AIShell.Ollama.Agent"
 
 if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'ollama') {
     Write-Host "`n[Build the Ollama agent ...]`n" -ForegroundColor Green
@@ -98,9 +98,9 @@ We've also added some packages that are used by the code in the implementation.
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Ollama.Agent;
+namespace AIShell.Ollama.Agent;
 
 public sealed class OllamaAgent : ILLMAgent
 {
@@ -270,8 +270,8 @@ clipboard. Paste the path from the clipboard into your terminal application. Sel
 the list of agents presented by `aish`.
 
 ```
-Shell Copilot
-v0.1.0-preview.1
+AI Shell
+v0.1.0-alpha.11
 
 Please select an agent to use:
 
@@ -321,7 +321,7 @@ real time, as the agent receives them.
 To defined the data structures, create a new file called `OllamaSchema.cs` in the same folder.
 
 ```csharp
-namespace ShellCopilot.Ollama.Agent;
+namespace AIShell.Ollama.Agent;
 
 // Query class for the data to send to the endpoint
 internal class Query
@@ -370,9 +370,9 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Ollama.Agent;
+namespace AIShell.Ollama.Agent;
 
 internal class OllamaChatService : IDisposable
 {
@@ -495,7 +495,7 @@ public async Task<bool> Chat(string input, IShell shell)
 ```
 
 Congratulations! The agent is now complete. You can build and test the agent to confirm it's
-working. Compare your code to the example code in the [`shell/ShellCopilot.Ollama.Agent`][02] folder
+working. Compare your code to the example code in the [`shell/AIShell.Ollama.Agent`][02] folder
 to see if you missed a step.
 
 ## How can I share my own agent?
@@ -508,8 +508,8 @@ loaded by `aish`.
 
 <!-- updated link references -->
 [01]: ../../shell/shell.common.props
-[02]: ../../shell/ShellCopilot.Ollama.Agent/
+[02]: ../../shell/AIShell.Ollama.Agent/
 [03]: ../../shell/README.md
 [04]: https://github.com/ollama/ollama
 [05]: https://github.com/ollama/ollama/blob/main/docs/api.md#request-no-streaming
-[06]: https://github.com/PowerShell/AISH/discussions/categories/agent-sharing
+[06]: https://github.com/PowerShell/ProjectMercury/discussions/categories/agent-sharing

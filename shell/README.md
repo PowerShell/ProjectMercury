@@ -1,11 +1,11 @@
-# Shell Copilot architecture
+# AI Shell architecture
 
 <img src="./assets/shell-copilot-overall-arch.png" alt="shell-copilot" width="500"/>
 
-### ShellCopilot.Abstraction
+### AIShell.Abstraction
 
 This project will be released as a NuGet package. It contains all the interfaces for defining an
-agent plugin that interacts with Shell Copilot.
+agent plugin that interacts with AI Shell.
 
 This abstraction layer includes:
 
@@ -28,9 +28,9 @@ and render the output using the utilities provided by `IShell`.
 
 An agent plugin is responsible for managing its own chat history.
 
-### ShellCopilot.Kernel
+### AIShell.Kernel
 
-This is the implementation of Shell Copilot. It consists of the following components:
+This is the implementation of AI Shell. It consists of the following components:
 
 - ReadLine
 - Renders (mardown render, stream render, paging render)
@@ -43,8 +43,8 @@ This is the implementation of Shell Copilot. It consists of the following compon
 - Shell integration (deep integration with the command-line shell. **not-yet-started**)
 - Configuration (colors, key bindings, and etc. **not-yet-started**)
 
-### ShellCopilot.App
+### AIShell.App
 
-This is a thin wrapper over `ShellCopilot.Kernel` to create an executable. The initial idea is to
-make `ShellCopilot.Kernel` a library, so it can be used or hosted by other applications. We can
-easily merge `ShellCopilot.App` into `ShellCopilot.Kernel` if this idea no longer make sense.
+This is a thin wrapper over `AIShell.Kernel` to create an executable. The initial idea is to
+make `AIShell.Kernel` a library, so it can be used or hosted by other applications. We can
+easily merge `AIShell.App` into `AIShell.Kernel` if this idea no longer make sense.

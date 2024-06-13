@@ -113,10 +113,10 @@ bugs, suggestions, or feedback.
 [01]: ./docs/CODE_OF_CONDUCT.md
 [02]: ./docs/CONTRIBUTING.md
 [03]: ./docs/development/CreatingAnAgent.md
-[04]: ./docs/media/ShellCopilotDemo.gif
+[04]: ./docs/media/AIShellDemo.gif
 [05]: ./docs/SUPPORT.md
-[07]: ./shell/ShellCopilot.Interpreter.Agent/README.md
-[08]: ./shell/ShellCopilot.OpenAI.Agent/README.md
+[07]: ./shell/AIShell.Interpreter.Agent/README.md
+[08]: ./shell/AIShell.OpenAI.Agent/README.md
 [09]: https://dotnet.microsoft.com/en-us/download
 [10]: https://github.com/PowerShell/AISH/issues
 [11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
