@@ -1,5 +1,5 @@
 @{
-    RootModule = 'Aish.psm1'
+    RootModule = 'AIShell.psm1'
     NestedModules = @("AIShell.Integration.dll")
     ModuleVersion = '0.1.0'
     GUID = 'ECB8BEE0-59B9-4DAE-9D7B-A990B480279A'
