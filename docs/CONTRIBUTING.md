@@ -1,13 +1,13 @@
-# Contributing to AISH
+# Contributing to Project Mercury
 
-Thank you for your interest in contributing to AISH! We aren't currently accepting pull requests,
-but we highly value your contributions in other forms.
+Thank you for your interest in contributing to Project Mercury! We aren't currently accepting pull
+requests, but we highly value your contributions in other forms.
 
 ## Reporting Issues
 
 Issues are a great way to contribute to the project. By creating a detailed report, you help us
 understand and prioritize what needs attention. Whether it's a bug or a feature request, your
-reports play a crucial role in improving AISH.
+reports play a crucial role in improving Project Mercury.
 
 ### How to Report an Issue
 
