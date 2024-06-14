@@ -9,12 +9,14 @@ internal class Python: SubprocessLanguage
 {
     internal Python() : base()
     {
+        string python = OperatingSystem.IsWindows() ? "python" : "python3";
+
         // -q doesn't print the banner
         // -i runs the code in interactive mode
         // -u unbuffered binary stdout and stderr
         // Without these flags, the output is buffered and we can't read it until the process ends
-        StartCmd = ["python", "-qui"];
-        VersionCmd = ["python", "-V"];
+        StartCmd = [ python, "-qui" ];
+        VersionCmd = [ python, "-V" ];
     }
 
     protected override string PreprocessCode(string code)
