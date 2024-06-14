@@ -1,7 +1,7 @@
-# Welcome to the Project Mercury repository
+# Welcome to Project Mercury
 
 **Project Mercury** contains our latest CLI tool that provides an interactive shell session to chat
-with large language models, creating an *AI Shell*. Users can use _agents_ to interact with different AI models, or other
+with language models, creating an *AI Shell*. Users can use _agents_ to interact with different AI models, or other
 assistance providers, in a conversational manner. **Project Mercury** also provides a framework for
 creating AI agents.
 
