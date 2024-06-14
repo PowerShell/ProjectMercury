@@ -1,23 +1,25 @@
 # OpenAI Agent
 
-This agent is designed to provide a flexible and user-friendly platform for interacting with OpenAI services, either the public OpenAI service or a private deployment of the Azure OpenAI service, through one or more customly defined GPT instances.
+This agent is designed to provide a flexible and user-friendly platform for interacting with OpenAI
+services, either the public OpenAI service or a private deployment of the Azure OpenAI service,
+through one or more customly defined GPT instances.
 
 ## GPT
 
-GPTs are configured in the agent's settings file, which is in JSON format.
-Each GPT configuration includes the name, description, the targeted OpenAI model, and the system prompt for interaction.
-This allows for the creation of distinct GPTs, each tailored to a specific domain or scenario,
-whose system prompts can be customized to suit these individual scenarios.
-Furthermore, you have the flexibility to select different OpenAI models for each GPT as required.
+GPTs are configured in the agent's settings file, which is in JSON format. Each GPT configuration
+includes the name, description, the targeted OpenAI model, and the system prompt for interaction.
+This allows for the creation of distinct GPTs, each tailored to a specific domain or scenario, whose
+system prompts can be customized to suit these individual scenarios. Furthermore, you have the
+flexibility to select different OpenAI models for each GPT as required.
 
 ## Command
 
 The command `/gpt` is provided to make it easy to manage the GPTs.
 
-- Run `/gpt use <gpt-name>` to switch to another GPT instance,
-  or run `/gpt use` to simply choose from the availalbe ones.
-- Run `/gpt list <gpt-name>` to view the details of a GPT definition,
-  or run `/gpt list` to list all availalbe GPTs.
+- Run `/gpt use <gpt-name>` to switch to another GPT instance, or run `/gpt use` to simply choose
+  from the available ones.
+- Run `/gpt list <gpt-name>` to view the details of a GPT definition, or run `/gpt list` to list all
+  available GPTs.
 
 ```shell
 aish:1> /gpt --help
