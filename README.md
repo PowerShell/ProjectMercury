@@ -1,24 +1,29 @@
-# Welcome to the AI Shell repository
+# Welcome to the Project Mercury repository
 
-**AI Shell** is our latest CLI tool that provides an interactive shell session to chat with large
-language models. Users can use _agents_ to interact with different AI models, or other assistance
-providers, in a conversational manner. **AI Shell** also provides a framework for creating AI agents.
+**Project Mercury** contains our latest CLI tool that provides an interactive shell session to chat
+with large language models, creating an *AI Shell*. Users can use _agents_ to interact with different AI models, or other
+assistance providers, in a conversational manner. **Project Mercury** also provides a framework for
+creating AI agents.
+
+Why the name **Project Mercury**? The name is inspired both by the Roman god of messages and the
+first human spaceflight by the US. This project is our first step into the new world of AI powered
+assistance and focuses on being the connection (or messenger) between the user and the AI model.
 
 This project is currently in an **alpha** state. Expect many significant changes to the code as we
 experiment and refine the user experiences of this tool. We appreciate your feedback and patience as
 we continue our development.
 
-![GIF showing demo of AI Shell][04]
+![GIF showing demo of the AI Shell][04]
 
-## Installing AI Shell
+## Installation
 
-Some prerequisites for building AI Shell
+Some prerequisites for building an AI Shell:
 
 - Build script requires PowerShell v7.2 or newer versions
 - [PowerShell v7.4][11] is recommended
 - [.NET SDK 8][09] is required to build the project
 
-Here are the steps to install and use AI Shell.
+Here are the steps to install and use.
 
 1. Clone this repository, `git clone https://github.com/PowerShell/ProjectMercury`
 2. Run `./build.ps1` in the repository's root directory to build the project
@@ -28,19 +33,20 @@ Here are the steps to install and use AI Shell.
 
 ## AI Agents
 
-AI Shell provides a framework for creating and registering multiple AI Agents. The agents are libraries
-that you use to interact with different AI models or assistance providers. Currently, these are the
-supported agents:
+Project Mercury provides a framework for creating and registering multiple AI Agents. The agents are
+libraries that you use to interact with different AI models or assistance providers. Currently,
+these are the supported agents:
 
 Agent README files:
 
 - [`openai-gpt`][08]
+- [`ollama`][06]
 - [`interpreter`][07]
 
 When you run `aish`, you are prompted to choose an agent. For more details about each agent, see the
 README in the each agent folder.
 
-## How to use AI Shell
+## Usage
 
 To start a chat session with the LLM, run `aish`, which starts a new session in your current window.
 Choose the agent you would like to use. Once you select an agent you can begin your conversation.
@@ -64,6 +70,8 @@ $PSReadLineSplat = @{
 }
 Set-PSReadLineKeyHandler @PSReadLineSplat
 ```
+
+Similarly, you can use iTerm2 to get a similiar split pane experience on MacOS. You can split the pane vertically by pressing `Cmd + D` and then run `aish` in one of the panes.
 
 ### `/` commands
 
@@ -115,6 +123,7 @@ bugs, suggestions, or feedback.
 [03]: ./docs/development/CreatingAnAgent.md
 [04]: ./docs/media/AIShellDemo.gif
 [05]: ./docs/SUPPORT.md
+[06]: ./shell/agents/AIShell.Ollama.Agent/README.md
 [07]: ./shell/agents/AIShell.Interpreter.Agent/README.md
 [08]: ./shell/agents/AIShell.OpenAI.Agent/README.md
 [09]: https://dotnet.microsoft.com/en-us/download
