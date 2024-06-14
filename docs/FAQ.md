@@ -11,7 +11,7 @@ deeply connected to PowerShell 7. For more about the architecture, see the
 
 ## What are agents?
 
-An agent is a library that implements the user interface that talks to a specific large language
+An agent is a library that implements the user interface that talks to a specific language
 model or other assistance provider. Users can interact with these agents in a conversational manner,
 using natural language, to get the desired output or assistance. Currently, these are the supported
 agents:
@@ -22,7 +22,7 @@ Agent README files:
 - [`ollama`][02]
 - [`interpreter`][03]
 
-An assistance provider is an agent that provides user assistance without using a large language
+An assistance provider is an agent that provides user assistance without using a language
 model or AI engine.
 
 ## What operating systems are supported?
