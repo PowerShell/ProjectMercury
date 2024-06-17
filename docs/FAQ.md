@@ -13,8 +13,8 @@ deeply connected to PowerShell 7. For more about the architecture, see the
 
 An agent is a library that implements the user interface that talks to a specific language
 model or other assistance provider. Users can interact with these agents in a conversational manner,
-using natural language, to get the desired output or assistance. Currently, there are four supported
-agents in this repository.
+using natural language, to get the desired output or assistance. Currently, these are the supported
+agents:
 
 Agent README files:
 
