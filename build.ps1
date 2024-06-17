@@ -102,8 +102,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "`n[Build the AIShell module ...]`n" -ForegroundColor Green
     $aish_module_csproj = GetProjectFile $module_dir
     dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
-    $cmdlet_help_dir = Join-Path $doc_dir "cmdlets"
-    New-ExternalHelp -Path $cmdlet_help_dir -OutputPath $module_out_dir -Force
+    New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
 }
 
 if ($LASTEXITCODE -eq 0) {
