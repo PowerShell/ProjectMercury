@@ -9,7 +9,7 @@ Why the name **Project Mercury**? The name is inspired both by the Roman god of 
 first human spaceflight by the US. This project is our first step into the new world of AI powered
 assistance and focuses on being the connection (or messenger) between the user and the AI model.
 
-This project is currently in an **alpha** state. Expect many significant changes to the code as we
+This project is currently in the **alpha** phase. Expect many significant changes to the code as we
 experiment and refine the user experiences of this tool. We appreciate your feedback and patience as
 we continue our development.
 
@@ -46,6 +46,8 @@ Agent README files:
 When you run `aish`, you are prompted to choose an agent. For more details about each agent, see the
 README in the each agent folder.
 
+To learn more about how to create an agent for yourself please see, [Creating an Agent][03].
+
 ## Usage
 
 To start a chat session with the LLM, run `aish`, which starts a new session in your current window.
@@ -73,31 +75,54 @@ Set-PSReadLineKeyHandler @PSReadLineSplat
 
 Similarly, you can use iTerm2 to get a similiar split pane experience on MacOS. You can split the pane vertically by pressing `Cmd + D` and then run `aish` in one of the panes.
 
-### `/` commands
+### Chat commands
 
 By default, `aish` provides a base set of chat `/` commands used to interact with the responses from
 the AI model. To get a list of commands, use the `/help` command in the chat session.
 
 ```
-  Name       Description
-────────────────────────────────────────────────────────────
-  /agent     Command for agent management.
-  /cls       Clear the screen.
-  /code      Command to interact with the code generated.
-  /dislike   Dislike the last response and send feedback.
-  /exit      Exit the interactive session.
-  /help      Show all available commands.
-  /like      Like the last response and send feedback.
-  /refresh   Refresh the chat session.
-  /retry     Regenerate a new response for the last query.
+  Name       Description                                      Source
+──────────────────────────────────────────────────────────────────────
+  /agent     Command for agent management.                    Core
+  /cls       Clear the screen.                                Core
+  /code      Command to interact with the code generated.     Core
+  /dislike   Dislike the last response and send feedback.     Core
+  /exit      Exit the interactive session.                    Core
+  /help      Show all available commands.                     Core
+  /like      Like the last response and send feedback.        Core
+  /refresh   Refresh the chat session.                        Core
+  /render    Render a markdown file, for diagnosis purpose.   Core
+  /retry     Regenerate a new response for the last query.    Core
 ```
 
-Also, agents can implement their own commands. Some commands, such as `/like` and `/dislike`, are
-commands that sends feedback to the agents. It is up to the agents to consume the feedback.
+Also, agents can implement their own commands. For example, the `openai-gpt` agent register the command `/gpt`
+for managing the GPTs defined for the agent. Some commands, such as `/like` and `/dislike`, are commands that
+sends feedback to the agents. It is up to the agents to consume the feedback.
 
-## Agent development
+### Key bindings for commands
 
-To learn more about how to create an agent for yourself please see, [Creating an Agent][03].
+AI Shell supports key bindings for the `/code` command.
+They are currently hard-coded, but custom key bindings will be supported in future releases.
+
+| Key bindings              | Command          | Functionality |
+| ------------------------- | ---------------- | ------------- |
+| <kbd>Ctrl+d, Ctrl+c</kbd> | `/code copy`     | Copy _all_ the generated code snippets from the last response to clipboard |
+| <kbd>Ctrl+\<n\></kbd>     | `/code copy <n>` | Copy the _n-th_ generated code snippet from the last response to clipboard |
+| <kbd>Ctrl+d, Ctrl+d</kbd> | `/code post`     | Post _all_ the generated code snippets from the last response to the connected application |
+| <kbd>Ctrl+d, \<n\></kbd>  | `/code post <n>` | Post the _n-th_ generated code snippet from the last response to the connected application |
+
+### Configuration
+
+Currently, AI Shell supports very basic configuration. One can creates a file named `config.json` under `~/.aish` to configure AI Shell,
+but it only supports declaring the default agent to use at startup. This way you do not need to select agents everytime you run `aish.exe`
+
+Configuration of AI Shell will be improved in future releases to support custom key bindings, color themes and more.
+
+```json
+{
+  "DefaultAgent": "openai-gpt"
+}
+```
 
 ## Contributing to the project
 
