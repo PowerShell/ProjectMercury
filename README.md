@@ -159,4 +159,4 @@ bugs, suggestions, or feedback.
 [10]: https://github.com/PowerShell/ProjectMercury/issues
 [11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
 [12]: ./docs/SECURITY.md
-[13]: ./shell/agents/ShellCopilot.Azure.Agent/README.md
+[13]: ./shell/agents/AIShell.Azure.Agent/README.md

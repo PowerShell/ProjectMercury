@@ -2,9 +2,9 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using Azure.Identity;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Azure.CLI;
+namespace AIShell.Azure.CLI;
 
 public sealed class AzCLIAgent : ILLMAgent
 {

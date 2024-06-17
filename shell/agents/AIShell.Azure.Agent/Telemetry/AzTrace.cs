@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace ShellCopilot.Azure;
+namespace AIShell.Azure;
 
 public class AzTrace
 {
