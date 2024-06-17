@@ -1,4 +1,4 @@
-namespace ShellCopilot.Azure.CLI;
+namespace AIShell.Azure.CLI;
 
 internal class Query
 {

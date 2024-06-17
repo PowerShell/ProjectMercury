@@ -3,9 +3,9 @@ using System.Text;
 using System.Text.Json;
 using Azure.Core;
 using Azure.Identity;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 
-namespace ShellCopilot.Azure.PowerShell;
+namespace AIShell.Azure.PowerShell;
 
 internal class AzPSChatService : IDisposable
 {

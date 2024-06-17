@@ -6,7 +6,7 @@ using Microsoft.ApplicationInsights.WorkerService;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 
-namespace ShellCopilot.Azure;
+namespace AIShell.Azure;
 
 public class MetricHelper
 {
@@ -94,7 +94,7 @@ public class MetricHelper
             { "EndTime", trace.EndTime?.ToString() },
         };
 
-        _telemetryClient.TrackTrace("shellCopilot", eventProperties);
+        _telemetryClient.TrackTrace("AIShell", eventProperties);
 
         // Explicitly call Flush() followed by sleep is required in Console Apps.
         // This is to ensure that even if application terminates, telemetry is sent to the back-end.
