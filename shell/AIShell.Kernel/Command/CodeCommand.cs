@@ -157,7 +157,7 @@ internal sealed class CodeCommand : CommandBase
         try
         {
             shell.Channel.PostCode(new PostCodeMessage(codeToPost));
-            host.WriteLine("Code posted to the channel.");
+            host.WriteLine("Code posted to the connected application.");
             shell.OnUserAction(new CodePayload(UserAction.CodePost, string.Join("\n\n", codeToPost)));
         }
         catch (Exception e)
