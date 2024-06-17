@@ -75,7 +75,7 @@ Set-PSReadLineKeyHandler @PSReadLineSplat
 
 Similarly, you can use iTerm2 to get a similiar split pane experience on MacOS. You can split the pane vertically by pressing `Cmd + D` and then run `aish` in one of the panes.
 
-### Chat Commands
+### Chat commands
 
 By default, `aish` provides a base set of chat `/` commands used to interact with the responses from
 the AI model. To get a list of commands, use the `/help` command in the chat session.
