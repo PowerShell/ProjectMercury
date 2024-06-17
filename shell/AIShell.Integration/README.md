@@ -42,7 +42,7 @@ This cmdlet allows you to send a query to the AIShell agent to execute. This is 
 
 ### /code post
 
-One of the built in chat commands we have is the `/code` command. This command allows you to
+One of the built in chat commands we have in AI Shell is the `/code` command. This command allows you to
 interact with the code given by the assistance provider in an agent. There is a subcommand for this
 command called `post` which allows you to post the code to the working shell and predictive
 intellisense buffer of your working shell. Meaning you can run the code in your working shell and
