@@ -43,7 +43,7 @@ $pkg_dir = Join-Path $shell_dir "AIShell.Abstraction"
 $module_dir = Join-Path $shell_dir "AIShell.Integration"
 
 $open_ai_agent_dir = Join-Path $agent_dir "AIShell.OpenAI.Agent"
-$az_agent_dir = Join-Path $agent_dir "ShellCopilot.Azure.Agent"
+$az_agent_dir = Join-Path $agent_dir "AIShell.Azure.Agent"
 $interpreter_agent_dir = Join-Path $agent_dir "AIShell.Interpreter.Agent"
 $ollama_agent_dir = Join-Path $agent_dir "AIShell.Ollama.Agent"
 
@@ -53,7 +53,7 @@ $app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
 $module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "AIShell"
 
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
-$az_out_dir = Join-Path $app_out_dir "agents" "ShellCopilot.Azure.Agent"
+$az_out_dir = Join-Path $app_out_dir "agents" "AIShell.Azure.Agent"
 $interpreter_out_dir = Join-Path $app_out_dir "agents" "AIShell.Interpreter.Agent"
 $ollama_out_dir =  Join-Path $app_out_dir "agents" "AIShell.Ollama.Agent"
 
