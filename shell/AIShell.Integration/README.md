@@ -1,12 +1,12 @@
 # Shell Integration Module
 
 The `AIShell` module is a PowerShell module that creates a connection between PowerShell 7 and the
-AIShell launched in a side car or your terminal. It allows for deeper integration with PowerShell
+AIShell launched in a side car of your terminal. It allows for deeper integration with PowerShell
 7's interactive ecosystem such as predictive intellisense. It also allows for cross pane
 communication between the AIShell agent and the PowerShell to send queries, errors, and results between
 the two shells. Here is a demo showing off its capabilities currently:
 
-![Shell Integration Module](./assets/ShellIntegrationDemo.gif)
+![Shell Integration Module](../../docs/media/ShellIntegrationDemo.gif)
 
 ## Installation and Usage
 
@@ -25,7 +25,7 @@ The module contains the following cmdlets:
 ### Start-AIShell
 
 This cmdlet starts an AIShell session in a split pane window of Windows Terminal or iTerm2 with a
-connected communication channel with the session that started it. This is necessary to do to get any
+connected communication channel to the PowerShell session that started it. This is necessary to do to get any
 of the shell integration features highlighted in the demo above.
 
 ### Resolve-Error
@@ -48,4 +48,4 @@ command called `post` which allows you to post the code to the working shell and
 intellisense buffer of your working shell. Meaning you can run the code in your working shell and
 get predictive intellisense the subsequent steps the agent provided.
 
-![Predictive Intellisense Demo](./assets/AIShellPredictiveIntelliSenseDemo.gif)
+![Predictive Intellisense Demo](../../docs/media/AIShellPredictiveIntelliSenseDemo.gif)

@@ -28,7 +28,7 @@ Invoke-AIShell [-Query] <String> [-Agent <String>] [-ContextFromClipboard] [<Com
 
 ## DESCRIPTION
 
-This cmdlet sends a query to the open AIShell agent and results
+This cmdlet sends a query to the open AIShell agent and results are shown in the AIShell window.
 
 ## EXAMPLES
 

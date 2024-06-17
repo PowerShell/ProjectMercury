@@ -10,7 +10,7 @@ schema: 2.0.0
 
 ## SYNOPSIS
 Starts an AIShell session in a split pane window of Windows Terminal with a connected communication
-channel with session that started it.
+channel to the PowerShell session that started it.
 
 ## SYNTAX
 
@@ -20,9 +20,9 @@ Start-AIShell [-Path <String>] [<CommonParameters>]
 
 ## DESCRIPTION
 
-Starts an AIShell session in a split pane window of Windows Terminal. The AIShell session is started
-in the right pane of the terminal window. The left pane is the current shell session. You must use
-these windows to interact with the AIShell session.
+Starts an AIShell session in a split pane window of Windows Terminal and iTerm2. The AIShell session
+is started in the right pane of the terminal window. The left pane is the current shell session. You
+must use these windows to interact with the AIShell session.
 
 ## EXAMPLES
 
@@ -42,7 +42,7 @@ Start-AIShell -PATH C:\Users\aish.exe
 
 ### -Path
 
-By default, the cmdlet looks for the`aish` executable in the locations listed in the `$env:PATH`
+By default, the cmdlet looks for the `aish` executable in the locations listed in the `$env:PATH`
 environment variable. Use this parameter to specify an alternate location for the `aish` executable.
 
 ```yaml
