@@ -50,7 +50,7 @@ $config = $Configuration.ToLower()
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
 $module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "AIShell"
-$doc_dir = Join-Path $PSScriptRoot "docs"
+$module_help_dir= Join-Path $PSScriptRoot "docs" "cmdlets"
 
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
 $interpreter_out_dir = Join-Path $app_out_dir "agents" "AIShell.Interpreter.Agent"
@@ -102,7 +102,14 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "`n[Build the AIShell module ...]`n" -ForegroundColor Green
     $aish_module_csproj = GetProjectFile $module_dir
     dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
-    New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
+    
+    if (-not (Get-Module -Name PlatyPS -ListAvailable)) {
+        Write-Host "PlatyPS module is not installed. Installing..."
+        Install-Module -Name platyPS -RequiredVersion 0.14.2
+        New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
+    } else {
+        Write-Host "Error installing PlatyPS for generating Get-Help documentation for AIShell PowerShell module."
+    }
 }
 
 if ($LASTEXITCODE -eq 0) {

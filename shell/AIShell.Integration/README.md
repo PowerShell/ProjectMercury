@@ -37,7 +37,9 @@ The `Start-AIShell` cmdlet must be run before this cmdlet can be used.
 
 ### Invoke-AIShell
 
-This cmdlet allows you to send a query to the AIShell agent to execute. This is useful in case you do not want o
+This cmdlet allows you to send a query to the AIShell agent to execute. This is useful in case you
+do not want to switch between the two panes but want to send a query to the agent. The
+`Start-AIShell` cmdlet must be run before this cmdlet can be used.
 
 
 ### /code post
