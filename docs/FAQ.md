@@ -45,4 +45,4 @@ documentation for your terminal application to see if it supports this feature.
 [02]: ../shell/agents/AIShell.Ollama.Agent/README.md
 [03]: ../shell/agents/AIShell.Interpreter.Agent/README.md
 [04]: ../shell/agents/AIShell.OpenAI.Agent/README.md
-[05]: ../shell/agents/ShellCopilot.Azure.Agent/README.md
+[05]: ../shell/agents/AIShell.Azure.Agent/README.md
