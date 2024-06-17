@@ -50,6 +50,7 @@ $config = $Configuration.ToLower()
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
 $module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "AIShell"
+$doc_dir = Join-Path $PSScriptRoot "docs"
 
 $open_ai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
 $interpreter_out_dir = Join-Path $app_out_dir "agents" "AIShell.Interpreter.Agent"
@@ -101,6 +102,8 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "`n[Build the AIShell module ...]`n" -ForegroundColor Green
     $aish_module_csproj = GetProjectFile $module_dir
     dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
+    $cmdlet_help_dir = Join-Path $doc_dir "cmdlets"
+    New-ExternalHelp -Path $cmdlet_help_dir -OutputPath $module_out_dir -Force
 }
 
 if ($LASTEXITCODE -eq 0) {

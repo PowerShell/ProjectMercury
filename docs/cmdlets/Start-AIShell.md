@@ -1,44 +1,41 @@
 ---
-external help file: ShellCopilot.Integration.dll-Help.xml
-Module Name: Aish
+external help file: AIShell.Integration.dll-Help.xml
+Module Name: AIShell
 online version:
 ms.date: 06/21/2021
 schema: 2.0.0
 ---
 
-# Start-Aish
+# Start-AIShell
 
 ## SYNOPSIS
-Starts an AISH session in a split pane window of Windows Terminal with a connected communication
+Starts an AIShell session in a split pane window of Windows Terminal with a connected communication
 channel with session that started it.
 
 ## SYNTAX
 
 ```
-Start-Aish [-Path <String>] [<CommonParameters>]
+Start-AIShell [-Path <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 
-Starts an AISH session in a split pane window of Windows Terminal. The AISH session is started in
-the right pane of the terminal window. The left pane is the current shell session. You must use
-these windows to interact with the AISH session.
+Starts an AIShell session in a split pane window of Windows Terminal. The AIShell session is started
+in the right pane of the terminal window. The left pane is the current shell session. You must use
+these windows to interact with the AIShell session.
 
 ## EXAMPLES
 
-### Example 1 - Start an AISH session
+### Example 1 - Start an AIShell session
 
 ```powershell
-Start-Aish
+Start-AIShell
 ```
 
-The cmdlet looks for the`aish` executable in the locations listed in the `$env:PATH` environment
-variable.
-
-### Example 2 - Start an AISH session with a specific path
+### Example 2 - Start an AIShell session with a specific path
 
 ```powershell
-Start-AISH -PATH C:\Users\aish.exe
+Start-AIShell -PATH C:\Users\aish.exe
 ```
 
 ## PARAMETERS
@@ -79,6 +76,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[Invoke-Aish](Invoke-Aish.md)
+[Invoke-AIShell](Invoke-AIShell.md)
 
 [Resolve-Error](Resolve-Error.md)

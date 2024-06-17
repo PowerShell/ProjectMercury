@@ -1,52 +1,53 @@
 ---
-external help file: ShellCopilot.Integration.dll-Help.xml
-Module Name: Aish
+external help file: AIShell.Integration.dll-Help.xml
+Module Name: AIShell
 online version:
 ms.date: 06/21/2021
 schema: 2.0.0
 ---
 
-# Invoke-Aish
+# Invoke-AIShell
 
 ## SYNOPSIS
-When an AISH session is available, this cmdlet sends a query to the AISH window. Results are shown in the AISH window.
+When an AIShell session is available, this cmdlet sends a query to the AIShell window. Results are
+shown in the AIShell window.
 
 ## SYNTAX
 
 ### Default (Default)
 
 ```
-Invoke-Aish [-Query] <String> [-Agent <String>] [[-Context] <PSObject>] [<CommonParameters>]
+Invoke-AIShell [-Query] <String> [-Agent <String>] [[-Context] <PSObject>] [<CommonParameters>]
 ```
 
 ### Clipboard
 
 ```
-Invoke-Aish [-Query] <String> [-Agent <String>] [-ContextFromClipboard] [<CommonParameters>]
+Invoke-AIShell [-Query] <String> [-Agent <String>] [-ContextFromClipboard] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 
-This cmdlet sends a query to the open AISH agent and results
+This cmdlet sends a query to the open AIShell agent and results
 
 ## EXAMPLES
 
-### Example 1 - Send a query to the AISH agent
+### Example 1 - Send a query to the AIShell agent
 
 ```powershell
-Start-AISH
-Invoke-AISH -Query "How do I list out the 5 most CPU intensive processes?"
+Start-AIShell
+Invoke-AIShell -Query "How do I list out the 5 most CPU intensive processes?"
 ```
 
-This example sends a query, "How do I list out the 5 most CPU intensive processes?" to the AISH
-agent. Responses are given in the AISH window.
+This example sends a query, "How do I list out the 5 most CPU intensive processes?" to the AIShell
+agent. Responses are given in the AIShell window.
 
 ## PARAMETERS
 
 ### -Agent
 
-Specifies the agent to use in the current AISH session. If not specified, AISH uses the currently
-selected agent.
+Specifies the agent to use in the current AIShell session. If not specified, AIShell uses the
+currently selected agent.
 
 ```yaml
 Type: System.String
@@ -62,7 +63,7 @@ Accept wildcard characters: False
 
 ### -Context
 
-Additional context informat you want to send to the AISH agent.
+Additional context information you want to send to the AIShell agent.
 
 ```yaml
 Type: System.Management.Automation.PSObject
@@ -78,7 +79,7 @@ Accept wildcard characters: False
 
 ### -ContextFromClipboard
 
-Use the content in your clipboard as context information for the AISH agent.
+Use the content in your clipboard as context information for the AIShell agent.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -94,7 +95,7 @@ Accept wildcard characters: False
 
 ### -Query
 
-The user input to send to the AISH agent.
+The user input to send to the AIShell agent.
 
 ```yaml
 Type: System.String
@@ -127,6 +128,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[Start-Aish](Start-Aish.md)
+[Start-AIShell](Start-AIShell.md)
 
 [Resolve-Error](Resolve-Error.md)

@@ -1,6 +1,6 @@
 ---
-external help file: ShellCopilot.Integration.dll-Help.xml
-Module Name: Aish
+external help file: AIShell.Integration.dll-Help.xml
+Module Name: AIShell
 online version:
 ms.date: 06/21/2021
 schema: 2.0.0
@@ -9,7 +9,7 @@ schema: 2.0.0
 # Resolve-Error
 
 ## SYNOPSIS
-Cmdlet to take the last error in the current session and send it to the open AISH window for
+Cmdlet to take the last error in the current session and send it to the open AIShell window for
 resolution.
 
 ## SYNTAX
@@ -20,8 +20,8 @@ Resolve-Error [-Agent <String>] [-IncludeOutputFromClipboard] [<CommonParameters
 
 ## DESCRIPTION
 
-When an error occurs in the current session, this cmdlet sends the error to the AISH agent for
-resolution. The command sends the full error object to the current AISH agent session, which
+When an error occurs in the current session, this cmdlet sends the error to the AIShell agent for
+resolution. The command sends the full error object to the current AIShell agent session, which
 attempts to provide a resolution.
 
 ## EXAMPLES
@@ -29,21 +29,21 @@ attempts to provide a resolution.
 ### Example 1 - Resolves the last error
 
 ```powershell
-PS> Start-AISH
+PS> Start-AIShell
 #User receives an error
 
 PS> Resolve-Error
 ```
 
-This example shows how to ask AISH to resolve the last error that occurred in the current AISH
-session. AISH analyzes the error and attempts to provide a solution in the AISH agent window.
+This example shows how to ask AIShell to resolve the last error that occurred in the current AIShell
+session. AIShell analyzes the error and attempts to provide a solution in the AIShell agent window.
 
 ## PARAMETERS
 
 ### -Agent
 
-Specifies the agent to use in the current AISH session. If not specified, AISH uses the currently
-selected agent.
+Specifies the agent to use in the current AIShell session. If not specified, AIShell uses the
+currently selected agent.
 
 ```yaml
 Type: System.String
@@ -60,7 +60,7 @@ Accept wildcard characters: False
 ### -IncludeOutputFromClipboard
 
 When this parameter is specified, the output copied to the clipboard is included in the error sent
-to AISH.
+to AIShell.
 
 ```yaml
 Type: System.Management.Automation.SwitchParameter
@@ -93,6 +93,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## RELATED LINKS
 
-[Invoke-Aish](Invoke-Aish.md)
+[Invoke-AIShell](Invoke-AIShell.md)
 
-[Start-Aish](Start-Aish.md)
+[Start-AIShell](Start-AIShell.md)
