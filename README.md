@@ -114,7 +114,7 @@ They are currently hard-coded, but custom key bindings will be supported in futu
 ### Configuration
 
 Currently, AI Shell supports very basic configuration. One can creates a file named `config.json` under `~/.aish` to configure AI Shell,
-but it only supports declaring the default agent to use at startup.
+but it only supports declaring the default agent to use at startup. This way you do not need to select agents everytime you run `aish.exe`
 
 Configuration of AI Shell will be improved in future releases to support custom key bindings, color themes and more.
 
