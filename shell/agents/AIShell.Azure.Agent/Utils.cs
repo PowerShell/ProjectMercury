@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace ShellCopilot.Azure;
+namespace AIShell.Azure;
 
 internal static class Utils
 {

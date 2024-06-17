@@ -1,8 +1,8 @@
 ﻿using Azure.Identity;
-using ShellCopilot.Abstraction;
+using AIShell.Abstraction;
 using System.Diagnostics;
 
-namespace ShellCopilot.Azure.PowerShell;
+namespace AIShell.Azure.PowerShell;
 
 public sealed class AzPSAgent : ILLMAgent
 {
