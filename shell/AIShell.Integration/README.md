@@ -22,6 +22,14 @@ The module contains the following cmdlets:
 - `Resolve-Error`
 - `Invoke-AIShell`
 
+We have also created aliases for each of these commands to make it easier to use. The aliases are:
+
+| Command | Alias |
+| :------- | :------: |
+| Start-AIShell | aish |
+| Invoke-AIShell | askai|
+| Resolve-Error | fixit |
+
 ### Start-AIShell
 
 This cmdlet starts an AIShell session in a split pane window of Windows Terminal or iTerm2 with a
