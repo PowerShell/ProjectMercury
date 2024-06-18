@@ -107,7 +107,7 @@ if ($LASTEXITCODE -eq 0) {
     if (Get-Module -Name PlatyPS -ListAvailable) {
         $installHelp = $true
     } else {
-        Write-Host "PlatyPS module is not installed. Installing..." -ForegroundColor Green
+        Write-Host "`n  The 'PlatyPS' module is not installed. Installing..." -ForegroundColor Green
         Install-Module -Name platyPS -RequiredVersion 0.14.2 -Repository PSGallery -Force
         if ($?) {
             $installHelp = $true
