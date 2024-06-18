@@ -117,7 +117,8 @@ if ($LASTEXITCODE -eq 0) {
     }
 
     if ($installHelp) {
-        New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
+        Write-Host "`n  Creating in-shell help for the 'AIShell' module" -ForegroundColor Green
+        $null = New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
     }
 }
 
