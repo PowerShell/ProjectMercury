@@ -50,6 +50,7 @@ $config = $Configuration.ToLower()
 $pkg_out_dir = Join-Path $PSScriptRoot "out" "package"
 $app_out_dir = Join-Path $PSScriptRoot "out" $config "app"
 $module_out_dir = Join-Path $PSScriptRoot "out" $config "module" "AIShell"
+$module_help_dir= Join-Path $PSScriptRoot "docs" "cmdlets"
 
 $openai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
 $interpreter_out_dir = Join-Path $app_out_dir "agents" "AIShell.Interpreter.Agent"
@@ -101,6 +102,24 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "`n[Build the AIShell module ...]`n" -ForegroundColor Green
     $aish_module_csproj = GetProjectFile $module_dir
     dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
+    
+    $installHelp = $false
+    if (Get-Module -Name PlatyPS -ListAvailable) {
+        $installHelp = $true
+    } else {
+        Write-Host "`n  The 'PlatyPS' module is not installed. Installing for creating in-shell help ..." -ForegroundColor Green
+        Install-Module -Name platyPS -RequiredVersion 0.14.2 -Repository PSGallery -Force
+        if ($?) {
+            $installHelp = $true
+        } else {
+            Write-Host "`n  Failed to install the 'PlatyPS' module. In-shell help for the 'AIShell' module will not be created." -ForegroundColor Red
+        }
+    }
+
+    if ($installHelp) {
+        $null = New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
+        Write-Host "  In-shell help for the 'AIShell' module has been created." -ForegroundColor Green
+    }
 }
 
 if ($LASTEXITCODE -eq 0) {
