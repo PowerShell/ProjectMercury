@@ -9,8 +9,8 @@ schema: 2.0.0
 # Start-AIShell
 
 ## SYNOPSIS
-Starts an AIShell session in a split pane window of Windows Terminal with a connected communication
-channel to the PowerShell session that started it.
+Starts an AIShell session in a split pane window of Windows Terminal and iTerm2 with a connected
+communication channel to the PowerShell session that started it.
 
 ## SYNTAX
 

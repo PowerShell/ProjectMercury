@@ -105,10 +105,12 @@ if ($LASTEXITCODE -eq 0) {
     
     if (-not (Get-Module -Name PlatyPS -ListAvailable)) {
         Write-Host "PlatyPS module is not installed. Installing..."
-        Install-Module -Name platyPS -RequiredVersion 0.14.2
-        New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
-    } else {
-        Write-Host "Error installing PlatyPS for generating Get-Help documentation for AIShell PowerShell module."
+        Install-Module -Name platyPS -RequiredVersion 0.14.2 -Repository PSGallery -Force
+        if (-not $?){
+            Write-Host "Error installing PlatyPS Module for the in shell help for AIShell"
+        } else {
+            New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
+        }
     }
 }
 

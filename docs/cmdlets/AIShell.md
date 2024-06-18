@@ -29,5 +29,5 @@ resolution.
 
 ### [Start-AIShell](Start-AIShell.md)
 
-Starts an AIShell session in a split pane window of Windows Terminal with a connected communication
-channel with session that started it.
+Starts an AIShell session in a split pane window of Windows Terminal and iTerm2 with a connected
+communication channel to the PowerShell session that started it.
