@@ -103,14 +103,21 @@ if ($LASTEXITCODE -eq 0) {
     $aish_module_csproj = GetProjectFile $module_dir
     dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
     
-    if (-not (Get-Module -Name PlatyPS -ListAvailable)) {
-        Write-Host "PlatyPS module is not installed. Installing..."
+    $installHelp = $false
+    if (Get-Module -Name PlatyPS -ListAvailable) {
+        $installHelp = $true
+    } else {
+        Write-Host "PlatyPS module is not installed. Installing..." -ForegroundColor Green
         Install-Module -Name platyPS -RequiredVersion 0.14.2 -Repository PSGallery -Force
-        if (-not $?){
-            Write-Host "Error installing PlatyPS Module for the in shell help for AIShell"
+        if ($?) {
+            $installHelp = $true
         } else {
-            New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
+            Write-Host "Error installing PlatyPS Module for the in-shell help for AIShell" -ForegroundColor Red
         }
+    }
+
+    if ($installHelp) {
+        New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
     }
 }
 
