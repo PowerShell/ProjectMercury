@@ -2,7 +2,7 @@
 external help file: AIShell.Integration.dll-Help.xml
 Module Name: AIShell
 online version:
-ms.date: 06/21/2021
+ms.date: 06/17/2024
 schema: 2.0.0
 ---
 
@@ -90,6 +90,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ### System.Object
 
 ## NOTES
+
+PowerShell includes the following alias for this cmdlet:
+
+- All platforms:
+  - `fixit`
 
 ## RELATED LINKS
 
