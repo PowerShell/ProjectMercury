@@ -21,7 +21,7 @@ This abstraction layer includes:
   security concerns.
 - `CommandBase`: represents a command that an agent can register to the shell when being loaded.
 
-The most important contact method in `ILLMAgent` is `Task<bool> Chat(string input, IShell shell)`,
+The most important interface method in `ILLMAgent` is `Task<bool> Chat(string input, IShell shell)`,
 which will be called by the shell when a query comes from the user. It gives extreme flexibility to
 the implementation of an agent. An agent can do whatever it wants targeting an arbitrary AI backend
 and render the output using the utilities provided by `IShell`.
