@@ -112,7 +112,7 @@ if ($LASTEXITCODE -eq 0) {
         if ($?) {
             $installHelp = $true
         } else {
-            Write-Host "Error installing PlatyPS Module for the in-shell help for AIShell" -ForegroundColor Red
+            Write-Host "`n  Failed to install the 'PlatyPS' module. In-shell help for the 'AIShell' module will not be created." -ForegroundColor Red
         }
     }
 
