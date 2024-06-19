@@ -106,10 +106,10 @@ They are currently hard-coded, but custom key bindings will be supported in futu
 
 | Key bindings              | Command          | Functionality |
 | ------------------------- | ---------------- | ------------- |
-| <kbd>Ctrl+d, Ctrl+c</kbd> | `/code copy`     | Copy _all_ the generated code snippets from the last response to clipboard |
-| <kbd>Ctrl+\<n\></kbd>     | `/code copy <n>` | Copy the _n-th_ generated code snippet from the last response to clipboard |
-| <kbd>Ctrl+d, Ctrl+d</kbd> | `/code post`     | Post _all_ the generated code snippets from the last response to the connected application |
-| <kbd>Ctrl+d, \<n\></kbd>  | `/code post <n>` | Post the _n-th_ generated code snippet from the last response to the connected application |
+| <kbd>Ctrl+d, Ctrl+c</kbd> | `/code copy`     | Copy _all_ the generated code snippets to clipboard |
+| <kbd>Ctrl+\<n\></kbd>     | `/code copy <n>` | Copy the _n-th_ generated code snippet to clipboard |
+| <kbd>Ctrl+d, Ctrl+d</kbd> | `/code post`     | Post _all_ the generated code snippets to the connected application |
+| <kbd>Ctrl+d, \<n\></kbd>  | `/code post <n>` | Post the _n-th_ generated code snippet to the connected application |
 
 ### Configuration
 
