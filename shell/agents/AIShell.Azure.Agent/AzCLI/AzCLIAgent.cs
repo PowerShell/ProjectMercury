@@ -125,45 +125,41 @@ public sealed class AzCLIAgent : ILLMAgent
             {
                 if (azResponse.Error is not null)
                 {
+                    _chatService.AddResponseToHistory(azResponse.Error);
                     host.WriteErrorLine(azResponse.Error);
                     return true;
                 }
 
-                if (azResponse.Data.Count is 0)
-                {
-                    host.WriteErrorLine("Sorry, no response received.");
-                    return true;
-                }
-
-                var data = azResponse.Data[0];
-                var history = _chatService.ChatHistory;
-                while (history.Count > Utils.HistoryCount - 2)
-                {
-                    history.RemoveAt(0);
-                }
-                history.Add(new ChatMessage { Role = "user", Content = input });
-                history.Add(new ChatMessage { Role = "assistant", Content = JsonSerializer.Serialize(data, Utils.JsonOptions) });
+                var data = azResponse.Data;
+                _chatService.AddResponseToHistory(JsonSerializer.Serialize(data, Utils.JsonOptions));
 
                 _text.Clear();
                 _text.AppendLine(data.Description).AppendLine();
 
                 if (data.CommandSet.Count > 0)
                 {
-                    _text.AppendLine("Action step(s):").AppendLine();
-
                     for (int i = 0; i < data.CommandSet.Count; i++)
                     {
-                        Action action = data.CommandSet[i];
-                        _text.AppendLine($"{i+1}. {action.Reason}")
+                        CommandItem action = data.CommandSet[i];
+                        _text.AppendLine($"{i+1}. {action.Desc}")
                             .AppendLine()
                             .AppendLine("```sh")
-                            .AppendLine($"# {action.Reason}")
-                            .AppendLine(action.Example)
+                            .AppendLine($"# {action.Desc}")
+                            .AppendLine(action.Script)
                             .AppendLine("```")
                             .AppendLine();
                     }
 
-                    _text.AppendLine("Make sure to replace the placeholder values with your specific details.");
+                    if (data.PlaceholderSet?.Count > 0)
+                    {
+                        _text.AppendLine("Please provide values for the following placeholder variables:").AppendLine();
+
+                        for (int i = 0; i < data.PlaceholderSet.Count; i++)
+                        {
+                            PlaceholderItem item = data.PlaceholderSet[i];
+                            _text.AppendLine($"- `{item.Name}`: {item.Desc}");
+                        }
+                    }
                 }
 
                 host.RenderFullResponse(_text.ToString());

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -9,7 +10,7 @@ namespace AIShell.Azure.CLI;
 
 internal class AzCLIChatService : IDisposable
 {
-    internal const string Endpoint = "https://azclitools-copilot-dogfood.azure-api.net/shell/azcli/copilot";
+    internal const string Endpoint = "https://cli-copilot-dev.azurewebsites.net/api/CopilotService";
 
     private readonly HttpClient _client;
     private readonly string[] _scopes;
@@ -33,6 +34,18 @@ internal class AzCLIChatService : IDisposable
     public void Dispose()
     {
         _client.Dispose();
+    }
+
+    internal void AddResponseToHistory(string response)
+    {
+        if (!string.IsNullOrEmpty(response))
+        {
+            while (_chatHistory.Count > Utils.HistoryCount - 1)
+            {
+                _chatHistory.RemoveAt(0);
+            }
+            _chatHistory.Add(new ChatMessage() { Role = "assistant", Content = response });
+        }
     }
 
     private string NewCorrelationID()
@@ -65,12 +78,10 @@ internal class AzCLIChatService : IDisposable
 
     private HttpRequestMessage PrepareForChat(string input)
     {
-        var requestData = new Query
-        {
-            Question = input,
-            History = _chatHistory,
-            Top_num = 1
-        };
+        List<ChatMessage> messages = _chatHistory;
+        messages.Add(new ChatMessage() { Role = "user", Content = input });
+
+        var requestData = new Query { Messages = messages };
         var json = JsonSerializer.Serialize(requestData, Utils.JsonOptions);
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -95,7 +106,12 @@ internal class AzCLIChatService : IDisposable
             context?.Status("Generating ...");
             HttpRequestMessage request = PrepareForChat(input);
             HttpResponseMessage response = await _client.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+
+            // The AzCLI handler returns status code 422 when the query is out of scope.
+            if (response.StatusCode is not HttpStatusCode.UnprocessableContent)
+            {
+                response.EnsureSuccessStatusCode();
+            }
 
             context?.Status("Receiving Payload ...");
             var content = await response.Content.ReadAsStreamAsync(cancellationToken);
