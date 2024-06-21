@@ -78,10 +78,9 @@ internal class AzCLIChatService : IDisposable
 
     private HttpRequestMessage PrepareForChat(string input)
     {
-        List<ChatMessage> messages = _chatHistory;
-        messages.Add(new ChatMessage() { Role = "user", Content = input });
+        _chatHistory.Add(new ChatMessage() { Role = "user", Content = input });
 
-        var requestData = new Query { Messages = messages };
+        var requestData = new Query { Messages = _chatHistory };
         var json = JsonSerializer.Serialize(requestData, Utils.JsonOptions);
 
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -107,9 +106,15 @@ internal class AzCLIChatService : IDisposable
             HttpRequestMessage request = PrepareForChat(input);
             HttpResponseMessage response = await _client.SendAsync(request, cancellationToken);
 
-            // The AzCLI handler returns status code 422 when the query is out of scope.
-            if (response.StatusCode is not HttpStatusCode.UnprocessableContent)
+            if (response.StatusCode is HttpStatusCode.UnprocessableContent)
             {
+                // The AzCLI handler returns status code 422 when the query is out of scope.
+                // In this case, we don't save the question to the history.
+                _chatHistory.RemoveAt(_chatHistory.Count - 1);
+            }
+            else
+            {
+                // Throws if it was not a success response.
                 response.EnsureSuccessStatusCode();
             }
 
@@ -117,9 +122,16 @@ internal class AzCLIChatService : IDisposable
             var content = await response.Content.ReadAsStreamAsync(cancellationToken);
             return JsonSerializer.Deserialize<AzCliResponse>(content, Utils.JsonOptions);
         }
-        catch (OperationCanceledException)
+        catch (Exception exception)
         {
-            // Operation was cancelled by user.
+            // We don't save the question to history when we failed to get a response.
+            _chatHistory.RemoveAt(_chatHistory.Count - 1);
+
+            // Re-throw unless the operation was cancelled by user.
+            if (exception is not OperationCanceledException)
+            {
+                throw;
+            }
         }
 
         return null;

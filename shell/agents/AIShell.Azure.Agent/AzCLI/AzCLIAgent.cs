@@ -125,8 +125,7 @@ public sealed class AzCLIAgent : ILLMAgent
             {
                 if (azResponse.Error is not null)
                 {
-                    _chatService.AddResponseToHistory(azResponse.Error);
-                    host.WriteErrorLine(azResponse.Error);
+                    host.WriteLine($"\n{azResponse.Error}\n");
                     return true;
                 }
 
