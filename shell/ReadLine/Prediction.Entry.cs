@@ -108,20 +108,31 @@ namespace Microsoft.PowerShell
                     return _listItemTextSelected;
                 }
 
-                // Calculate the 'SOURCE' portion to be rendered.
-                int sourceStrLen = Source.Length;
-                int sourceWidth = LengthInBufferCells(Source);
-                if (sourceWidth > PredictionListView.SourceMaxWidth)
+                int sourceStrLen, textWidth;
+                if (width >= 50)
                 {
-                    sourceWidth = PredictionListView.SourceMaxWidth;
-                    sourceStrLen = SubstringLengthByCells(Source, sourceWidth - ellipsisLength);
+                    // Calculate the 'SOURCE' portion to be rendered.
+                    sourceStrLen = Source.Length;
+                    int sourceWidth = LengthInBufferCells(Source);
+                    if (sourceWidth > PredictionListView.SourceMaxWidth)
+                    {
+                        sourceWidth = PredictionListView.SourceMaxWidth;
+                        sourceStrLen = SubstringLengthByCells(Source, sourceWidth - ellipsisLength);
+                    }
+
+                    // Calculate the remaining width after deducting the ' [SOURCE]' portion and the leading '> ' part.
+                    // 5 is the length of the decoration characters: "> ", " [", and ']'.
+                    textWidth = width - sourceWidth - 5;
+                }
+                else
+                {
+                    // We skip rendering the source part when width is too small.
+                    sourceStrLen = 0;
+                    // 2 is the length of decoration characters: "> ".
+                    textWidth = width - 2;
                 }
 
-                // Calculate the remaining width after deducting the ' [SOURCE]' portion and the leading '> ' part.
-                // 5 is the length of the decoration characters: "> ", " [", and ']'.
-                int textWidth = width - sourceWidth - 5;
                 string textMetadataColor = _singleton._options._listPredictionColor;
-
                 StringBuilder line = new StringBuilder(capacity: width)
                     .Append(selectionHighlighting)
                     .Append(textMetadataColor)
@@ -388,22 +399,25 @@ namespace Microsoft.PowerShell
                     }
                 }
 
-                line.Append(' ')
-                    .Append('[')
-                    .Append(textMetadataColor);
-
-                if (sourceStrLen == Source.Length)
+                if (sourceStrLen > 0)
                 {
-                    line.Append(Source);
-                }
-                else
-                {
-                    line.Append(Source, 0, sourceStrLen)
-                        .Append(Ellipsis);
-                }
+                    line.Append(' ')
+                        .Append('[')
+                        .Append(textMetadataColor);
 
-                line.EndColorSection(selectionHighlighting)
-                    .Append(']');
+                    if (sourceStrLen == Source.Length)
+                    {
+                        line.Append(Source);
+                    }
+                    else
+                    {
+                        line.Append(Source, 0, sourceStrLen)
+                            .Append(Ellipsis);
+                    }
+
+                    line.EndColorSection(selectionHighlighting)
+                        .Append(']');
+                }
 
                 if (selectionHighlighting is not null)
                 {

@@ -132,8 +132,16 @@ namespace Microsoft.PowerShell
             }
             if (options._predictionViewStyle.HasValue)
             {
-                Options.PredictionViewStyle = options.PredictionViewStyle;
-                _prediction.SetViewStyle(options.PredictionViewStyle);
+                var newStyle = options.PredictionViewStyle;
+                if (Options.PredictionViewStyle != newStyle)
+                {
+                    Options.PredictionViewStyle = newStyle;
+                    _prediction.SetViewStyle(newStyle);
+                }
+            }
+            if (options.ReadLineHelper is not null)
+            {
+                Options.ReadLineHelper = options.ReadLineHelper;
             }
             if (options.Colors != null)
             {

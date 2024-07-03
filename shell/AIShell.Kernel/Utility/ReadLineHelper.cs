@@ -225,6 +225,11 @@ internal class ReadLineHelper : IReadLineHelper
 
     private List<PredictionResult> PredictInput(string input)
     {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return null;
+        }
+
         CommandCompletion completion = CompleteInput(input, input.Length);
         if (completion is null || completion.CompletionMatches.Count is 0)
         {

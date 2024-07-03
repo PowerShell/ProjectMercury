@@ -172,9 +172,9 @@ namespace Microsoft.PowerShell
             /// <summary>
             /// Calls to the prediction API for suggestion results.
             /// </summary>
-            protected void PredictInput()
+            protected void PredictInput(string userInput)
             {
-                _predictionTask = _singleton._options.RenderHelper?.PredictInputAsync(_singleton._buffer.ToString());
+                _predictionTask = _singleton._options.ReadLineHelper?.PredictInputAsync(userInput);
             }
 
             /// <summary>
@@ -213,7 +213,7 @@ namespace Microsoft.PowerShell
             internal const int SourceMaxWidth = 15;
 
             // Minimal window size.
-            internal const int MinWindowWidth = 50;
+            internal const int MinWindowWidth = 30;
             internal const int MinWindowHeight = 5;
 
             // The items to be displayed in the list view.
@@ -390,10 +390,10 @@ namespace Microsoft.PowerShell
                 {
                     if (UsePlugin)
                     {
-                        PredictInput();
+                        PredictInput(userInput);
                     }
 
-                    if (UseHistory)
+                    if (UseHistory && userInput.Length > 0)
                     {
                         _listItems = GetHistorySuggestions(userInput, HistoryMaxCount);
                         if (_listItems?.Count > 0)
@@ -1227,7 +1227,6 @@ namespace Microsoft.PowerShell
                         || _lastInputText.Length > userInput.Length
                         || !_suggestionText.StartsWith(userInput, _singleton._options.HistoryStringComparison);
 
-
                     // The current suggestion was from history and it still applies to the new input. However, the plugin is in use,
                     // so we may need to force refreshing in case the plugin gives more relevant suggestion for the new input. This
                     // is because we favor plugin over history in the inline view.
@@ -1251,10 +1250,10 @@ namespace Microsoft.PowerShell
 
                         if (UsePlugin)
                         {
-                            PredictInput();
+                            PredictInput(userInput);
                         }
 
-                        if (UseHistory)
+                        if (UseHistory && userInput.Length > 0)
                         {
                             _suggestionText = currentSugText ?? GetOneHistorySuggestion(userInput);
                             _predictorId = Guid.Empty;

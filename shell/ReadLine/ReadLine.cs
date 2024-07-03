@@ -273,10 +273,18 @@ namespace Microsoft.PowerShell
                     if (firstTime)
                     {
                         firstTime = false;
-                        _singleton.Initialize();
+                        _singleton.Initialize(cancellationToken);
+
+                        // Render prediction, if there is any, before user input.
+                        if (_singleton._queuedKeys.Count is 0)
+                        {
+                            // Pass 'cancelWhenEmpty: true' to cancel the rendering if there's nothing to render.
+                            // It's safe to cancel when empty in this case because we know for sure there is no
+                            // existing rendering yet.
+                            _singleton.ForceRender(cancelWhenEmpty: true);
+                        }
                     }
 
-                    _singleton._cancelReadCancellationToken = cancellationToken;
                     return _singleton.InputLoop();
                 }
                 catch (OperationCanceledException)
@@ -298,7 +306,7 @@ namespace Microsoft.PowerShell
                     console.ForegroundColor = oldColor;
 
                     var lineBeforeCrash = _singleton._buffer.ToString();
-                    _singleton.Initialize();
+                    _singleton.Initialize(cancellationToken);
                     InvokePrompt();
                     Insert(lineBeforeCrash);
                 }
@@ -335,7 +343,7 @@ namespace Microsoft.PowerShell
                         ourVersion, osInfo, bufferWidth, bufferHeight,
                         _lastNKeys.Count, sb, e));
                     var lineBeforeCrash = _singleton._buffer.ToString();
-                    _singleton.Initialize();
+                    _singleton.Initialize(cancellationToken);
                     InvokePrompt();
                     Insert(lineBeforeCrash);
                 }
@@ -545,7 +553,7 @@ namespace Microsoft.PowerShell
             SetDefaultBindings(_options.EditMode);
         }
 
-        private void Initialize()
+        private void Initialize(CancellationToken cancellationToken)
         {
             if (!_delayedOneTimeInitCompleted)
             {
@@ -570,6 +578,7 @@ namespace Microsoft.PowerShell
             _previousRender.UpdateConsoleInfo(_console);
             _previousRender.initialY = _initialY;
             _statusIsErrorMessage = false;
+            _cancelReadCancellationToken = cancellationToken;
 
             _initialOutputEncoding = _console.OutputEncoding;
             _prediction.Reset();

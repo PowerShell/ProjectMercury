@@ -200,12 +200,17 @@ namespace Microsoft.PowerShell
             ForceRender();
         }
 
-        private void ForceRender()
+        private void ForceRender(bool cancelWhenEmpty = false)
         {
             var defaultColor = VTColorUtils.DefaultColor;
 
             // Geneate a sequence of logical lines with escape sequences for coloring.
             int logicalLineCount = GenerateRender(defaultColor);
+            if (cancelWhenEmpty && logicalLineCount is 1 && _consoleBufferLines[0].Length is 0)
+            {
+                // Nothing to render this time and it's okay to cancel.
+                return;
+            }
 
             // Now write that out (and remember what we did so we can clear previous renders
             // and minimize writing more than necessary on the next render.)
