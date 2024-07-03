@@ -164,7 +164,7 @@ public sealed class OpenAIAgent : ILLMAgent
         }
 
         GPT active = _settings.Active;
-        Description = $"Active GTP: {active.Name}. {active.Description}";
+        Description = $"Active GPT: {active.Name}. {active.Description}";
     }
 
     internal void ReloadSettings()
