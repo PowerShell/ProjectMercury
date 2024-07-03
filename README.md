@@ -134,8 +134,11 @@ For support, see our [Support][05] statement.
 
 ## Code of Conduct
 
-The project follows the Microsoft Open Source Code of Conduct. For more information, see the
-[Code of Conduct FAQ][01].
+Please see our [Code of Conduct][01] before participating in this project.
+
+## Security Policy
+
+For any security issues, please see our [Security Policy][12].
 
 ## Feedback
 
@@ -154,3 +157,4 @@ bugs, suggestions, or feedback.
 [09]: https://dotnet.microsoft.com/en-us/download
 [10]: https://github.com/PowerShell/ProjectMercury/issues
 [11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
+[12]: ./docs/SECURITY.md
