@@ -233,22 +233,6 @@ namespace Microsoft.PowerShell
                     }
                 }
             }
-
-            CommandsToValidateScriptBlockArguments = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "ForEach-Object", "%",
-                "Invoke-Command", "icm",
-                "Measure-Command",
-                "New-Module", "nmo",
-                "Register-EngineEvent",
-                "Register-ObjectEvent",
-                "Register-WMIEvent",
-                "Set-PSBreakpoint", "sbp",
-                "Start-Job", "sajb",
-                "Trace-Command", "trcm",
-                "Use-Transaction",
-                "Where-Object", "?", "where",
-            };
         }
 
         public EditMode EditMode { get; set; }
@@ -313,7 +297,7 @@ namespace Microsoft.PowerShell
         public int DingDuration { get; set; }
         public BellStyle BellStyle { get; set; }
 
-        public IReadLineHelper RenderHelper { get; set; }
+        public IReadLineHelper ReadLineHelper { get; set; }
 
         public bool HistorySearchCaseSensitive { get; set; }
         internal StringComparison HistoryStringComparison => HistorySearchCaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
@@ -727,6 +711,8 @@ namespace Microsoft.PowerShell
             set => _predictionViewStyle = value;
         }
         internal PredictionViewStyle? _predictionViewStyle;
+
+        public IReadLineHelper ReadLineHelper { get; set; }
 
         public Hashtable Colors { get; set; }
     }

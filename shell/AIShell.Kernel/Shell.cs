@@ -390,7 +390,7 @@ internal sealed class Shell : IShell
     private void SetReadLineExperience()
     {
         Utils.SetDefaultKeyHandlers();
-        PSConsoleReadLine.GetOptions().RenderHelper = new ReadLineHelper(CommandRunner);
+        PSConsoleReadLine.GetOptions().ReadLineHelper = new ReadLineHelper(CommandRunner);
     }
 
     /// <summary>
@@ -501,7 +501,8 @@ internal sealed class Shell : IShell
 
     private async Task<string> ReadUserInput(int count, CancellationToken cancellationToken)
     {
-        Host.Markup($"[bold green]{_prompt}[/]:{count}> ");
+        string newLine = Console.CursorLeft is 0 ? string.Empty : "\n";
+        Host.Markup($"{newLine}[bold green]{_prompt}[/]:{count}> ");
         string input = PSConsoleReadLine.ReadLine(cancellationToken);
 
         if (string.IsNullOrEmpty(input))
@@ -518,7 +519,8 @@ internal sealed class Shell : IShell
                     string command = $"/{name}";
                     bool confirmed = await Host.PromptForConfirmationAsync(
                         $"Do you mean to run the command {Formatter.InlineCode(command)} instead?",
-                        defaultValue: true);
+                        defaultValue: true,
+                        cancellationToken: CancellationToken.None);
 
                     if (confirmed)
                     {

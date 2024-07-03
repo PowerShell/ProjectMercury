@@ -405,12 +405,25 @@ namespace Microsoft.PowerShell
             /// </summary>
             internal void QueryForSuggestion(string userInput)
             {
+                bool IsUnapplicableInput(bool allowEmptyString)
+                {
+                    // When user input is an empty string, it is a prediction based on previous command lines
+                    // that can only be done with a plugin predictor. So don't bother proceeding when plugin
+                    // is currently disabled.
+                    if (allowEmptyString && ActiveView.UsePlugin && userInput == string.Empty)
+                    {
+                        return false;
+                    }
+
+                    return string.IsNullOrWhiteSpace(userInput) || userInput.Contains('\n');
+                }
+
                 if (IsPredictionOn && (_pauseQuery || ActiveView.HasPendingUpdate))
                 {
                     return;
                 }
 
-                if (!IsPredictionOn || string.IsNullOrWhiteSpace(userInput) || userInput.IndexOf('\n') != -1)
+                if (!IsPredictionOn || IsUnapplicableInput(allowEmptyString: true))
                 {
                     ActiveView.Reset();
                     return;

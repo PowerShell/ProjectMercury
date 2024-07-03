@@ -319,7 +319,7 @@ namespace Microsoft.PowerShell
             {
                 try
                 {
-                    _tabCompletions = _options.RenderHelper?.CompleteInput(_buffer.ToString(), _current);
+                    _tabCompletions = _options.ReadLineHelper?.CompleteInput(_buffer.ToString(), _current);
 
                     if (_tabCompletions is null || _tabCompletions.CompletionMatches.Count == 0)
                     {
