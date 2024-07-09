@@ -457,6 +457,29 @@ internal sealed class Host : IHost
             .ConfigureAwait(false);
     }
 
+    public async Task<string> PromptForTextAsync(string prompt, bool optional, IList<string> choices, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(prompt);
+        string operation = "prompt for text";
+
+        RequireStdin(operation);
+        RequireStdoutOrStderr(operation);
+
+        if (choices is null || !choices.Any())
+        {
+            throw new ArgumentException("No choice was specified.", nameof(choices));
+        }
+
+        IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
+        string promptToUse = optional ? $"[grey][[Optional]][/] {prompt}" : prompt;
+        return await new TextPrompt<string>(promptToUse) { AllowEmpty = optional }
+            .PromptStyle(new Style(Color.Teal))
+            .AddChoices(choices)
+            .InvalidChoiceMessage("[red]Please choose one from the choices![/]")
+            .ShowAsync(ansiConsole, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Render text content in the "for-reference" style.
     /// </summary>
