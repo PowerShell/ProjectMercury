@@ -45,7 +45,7 @@ internal class AzPSChatService : IDisposable
 
     internal void AddResponseToHistory(string response)
     {
-        if (!string.IsNullOrEmpty(response))
+        if (_interactive && !string.IsNullOrEmpty(response))
         {
             while (_chatHistory.Count > Utils.HistoryCount - 1)
             {
@@ -135,9 +135,19 @@ internal class AzPSChatService : IDisposable
                 context?.Status(chunk.Status);
             }
         }
-        catch (OperationCanceledException)
+        catch (Exception exception)
         {
-            // Operation was cancelled by user.
+            if (_interactive)
+            {
+                // We don't save the question to history when we failed to get a response.
+                _chatHistory.RemoveAt(_chatHistory.Count - 1);
+            }
+
+            // Re-throw unless the operation was cancelled by user.
+            if (exception is not OperationCanceledException)
+            {
+                throw;
+            }
         }
 
         return null;
