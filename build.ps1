@@ -94,12 +94,6 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {
     dotnet publish $az_csproj -c $Configuration -o $az_out_dir
 }
 
-if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {
-    Write-Host "`n[Build the Azure agents ...]`n" -ForegroundColor Green
-    $az_csproj = GetProjectFile $az_agent_dir
-    dotnet publish $az_csproj -c $Configuration -o $az_out_dir
-}
-
 if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter') {
     Write-Host "`n[Build the Interpreter agent ...]`n" -ForegroundColor Green
     $interpreter_csproj = GetProjectFile $interpreter_agent_dir
