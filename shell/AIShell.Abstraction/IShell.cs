@@ -1,5 +1,8 @@
 namespace AIShell.Abstraction;
 
+/// <summary>
+/// The shell interface to interact with the AIShell.
+/// </summary>
 public interface IShell
 {
     /// <summary>

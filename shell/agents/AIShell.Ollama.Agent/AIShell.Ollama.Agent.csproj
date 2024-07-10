@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AIShell.Abstraction" Version="0.1.0-alpha.11">
+    <PackageReference Include="AIShell.Abstraction" Version="0.1.0-alpha.12">
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
