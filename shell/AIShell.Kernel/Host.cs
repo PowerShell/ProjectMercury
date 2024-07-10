@@ -1,7 +1,9 @@
 ﻿using System.Reflection;
 using System.Text;
-using Markdig.Helpers;
+
 using AIShell.Abstraction;
+using Markdig.Helpers;
+using Microsoft.PowerShell;
 using Spectre.Console;
 
 namespace AIShell.Kernel;
@@ -441,22 +443,6 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
-    public async Task<string> PromptForTextAsync(string prompt, bool optional, CancellationToken cancellationToken)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(prompt);
-        string operation = "prompt for text";
-
-        RequireStdin(operation);
-        RequireStdoutOrStderr(operation);
-
-        IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
-        string promptToUse = optional ? $"[grey][[Optional]][/] {prompt}" : prompt;
-        return await new TextPrompt<string>(promptToUse) { AllowEmpty = optional }
-            .PromptStyle(new Style(Color.Teal))
-            .ShowAsync(ansiConsole, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
     public async Task<string> PromptForTextAsync(string prompt, bool optional, IList<string> choices, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(prompt);
@@ -465,19 +451,83 @@ internal sealed class Host : IHost
         RequireStdin(operation);
         RequireStdoutOrStderr(operation);
 
-        if (choices is null || !choices.Any())
-        {
-            throw new ArgumentException("No choice was specified.", nameof(choices));
-        }
-
         IAnsiConsole ansiConsole = _outputRedirected ? _stderrConsole : AnsiConsole.Console;
         string promptToUse = optional ? $"[grey][[Optional]][/] {prompt}" : prompt;
-        return await new TextPrompt<string>(promptToUse) { AllowEmpty = optional }
+        var textPrompt = new TextPrompt<string>(promptToUse) { AllowEmpty = optional };
+
+        if (choices?.Count > 0)
+        {
+            textPrompt.AddChoices(choices)
+                .InvalidChoiceMessage("[red]Please choose one from the choices![/]");
+        }
+
+        return await textPrompt
             .PromptStyle(new Style(Color.Teal))
-            .AddChoices(choices)
-            .InvalidChoiceMessage("[red]Please choose one from the choices![/]")
             .ShowAsync(ansiConsole, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public string PromptForArgument(ArgumentInfo argInfo, CancellationToken cancellationToken)
+    {
+        WriteLine($"{argInfo.Name}: {argInfo.Description}.");
+        if (!string.IsNullOrEmpty(argInfo.Restriction))
+        {
+            WriteLine(argInfo.Restriction);
+        }
+
+        if (argInfo.Type is ArgumentInfo.DataType.Bool || argInfo.Suggestions?.Count is 2)
+        {
+            return PromptForTextAsync(
+                prompt: ">",
+                optional: false,
+                choices: argInfo.Suggestions ?? ["ture", "flase"],
+                cancellationToken: cancellationToken).GetAwaiter().GetResult();
+        }
+
+        if (argInfo.MustChooseFromSuggestions)
+        {
+            string value = PromptForSelectionAsync(
+                title: "Choose the value from the below list:",
+                choices: argInfo.Suggestions,
+                cancellationToken: cancellationToken).GetAwaiter().GetResult();
+            WriteLine($"> {value}");
+            return value;
+        }
+
+        var options = PSConsoleReadLine.GetOptions();
+        var oldReadLineHelper = options.ReadLineHelper;
+        var oldPredictionView = options.PredictionViewStyle;
+        var oldPredictionSource = options.PredictionSource;
+
+        var newOptions = new SetPSReadLineOption
+        {
+            ReadLineHelper = new PromptHelper(argInfo.Suggestions),
+            PredictionSource = PredictionSource.Plugin,
+            PredictionViewStyle = PredictionViewStyle.ListView,
+        };
+
+        try
+        {
+            Write("> ");
+            PSConsoleReadLine.SetOptions(newOptions);
+            string value = PSConsoleReadLine.ReadLine();
+            if (Console.CursorLeft is not 0)
+            {
+                // Ctrl+c was pressed by the user.
+                WriteLine();
+                throw new OperationCanceledException();
+            }
+
+            return value;
+        }
+        finally
+        {
+            newOptions.ReadLineHelper = oldReadLineHelper;
+            newOptions.PredictionSource = oldPredictionSource;
+            newOptions.PredictionViewStyle = oldPredictionView;
+            PSConsoleReadLine.SetOptions(newOptions);
+        }
     }
 
     /// <summary>

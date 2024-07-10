@@ -6,7 +6,7 @@ using Spectre.Console;
 
 namespace AIShell.Kernel;
 
-internal partial class Shell : IShell
+internal sealed class Shell : IShell
 {
     private readonly bool _isInteractive;
     private readonly string _prompt;

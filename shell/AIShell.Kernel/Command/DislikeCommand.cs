@@ -35,7 +35,7 @@ internal sealed class DislikeCommand : FeedbackCommand
 
             host.MarkupLine($"The response was: [teal]{shortFeedback}[/]\n");
             string longFeedback = host
-                .PromptForTextAsync("What went wrong? ", optional: true, shell.CancellationToken)
+                .PromptForTextAsync("What went wrong? ", optional: true, choices: null, shell.CancellationToken)
                 .GetAwaiter()
                 .GetResult();
 

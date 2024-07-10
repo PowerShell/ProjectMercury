@@ -154,9 +154,28 @@ public interface IHost
     /// </summary>
     /// <param name="prompt">The prompt to use.</param>
     /// <param name="optional">Indicates if the text input request is optional.</param>
+    /// <param name="choices">The choices for the user to choose from.</param>
     /// <param name="cancellationToken">Token to cancel operation.</param>
     /// <returns></returns>
-    Task<string> PromptForTextAsync(string prompt, bool optional, CancellationToken cancellationToken);
+    Task<string> PromptForTextAsync(string prompt, bool optional, IList<string> choices, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Prompt for text input asynchronously with no choice provided.
+    /// </summary>
+    /// <param name="prompt">The prompt to use.</param>
+    /// <param name="optional">Indicates if the text input request is optional.</param>
+    /// <param name="cancellationToken">Token to cancel operation.</param>
+    /// <returns></returns>
+    Task<string> PromptForTextAsync(string prompt, bool optional, CancellationToken cancellationToken)
+        => PromptForTextAsync(prompt, optional, choices: null, cancellationToken);
+
+    /// <summary>
+    /// Prompt for the user to input the value for an argument placeholder.
+    /// </summary>
+    /// <param name="argInfo">Information about the argument placeholder.</param>
+    /// <param name="cancellationToken">Token to cancel operation.</param>
+    /// <returns></returns>
+    string PromptForArgument(ArgumentInfo argInfo, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -168,4 +187,81 @@ public interface IStatusContext
     /// Sets the new status.
     /// </summary>
     void Status(string status);
+}
+
+/// <summary>
+/// Information about an argument placeholder.
+/// </summary>
+public sealed class ArgumentInfo
+{
+    /// <summary>
+    /// Type of the argument data.
+    /// </summary>
+    public enum DataType
+    {
+        String,
+        Int,
+        Bool,
+    }
+
+    /// <summary>
+    /// Gets the placeholder name of the argument.
+    /// </summary>
+    public string Name { get; }
+
+    /// <summary>
+    /// Gets the description of the argument.
+    /// </summary>
+    public string Description { get; }
+
+    /// <summary>
+    /// Gets the restriction of the argument, such as allowed characters, length, etc.
+    /// </summary>
+    public string Restriction { get; }
+
+    /// <summary>
+    /// Gets the data type of the argument.
+    /// </summary>
+    public DataType Type { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the user must choose from the suggestions.
+    /// </summary>
+    public bool MustChooseFromSuggestions { get; }
+
+    /// <summary>
+    /// Gets the list of suggestions for the argument.
+    /// </summary>
+    public IList<string> Suggestions { get; }
+
+    public ArgumentInfo(string name, string description, DataType dataType)
+        : this(name, description, restriction: null, dataType, mustChooseFromSuggestions: false, suggestions: null)
+    {
+    }
+
+    public ArgumentInfo(
+        string name,
+        string description,
+        string restriction,
+        DataType dataType,
+        bool mustChooseFromSuggestions,
+        IList<string> suggestions)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(description);
+
+        if (mustChooseFromSuggestions && (suggestions is null || suggestions.Count < 2))
+        {
+            throw new ArgumentException(
+                $"A suggestion list with at least 2 items is required when '{nameof(MustChooseFromSuggestions)}' is true.",
+                nameof(suggestions));
+        }
+
+        Name = name;
+        Description = description;
+        Restriction = restriction;
+        Type = dataType;
+        MustChooseFromSuggestions = mustChooseFromSuggestions;
+        Suggestions = suggestions;
+    }
 }
