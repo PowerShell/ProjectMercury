@@ -36,18 +36,6 @@ internal class AzCLIChatService : IDisposable
         _client.Dispose();
     }
 
-    internal void AddResponseToHistory(string response)
-    {
-        if (!string.IsNullOrEmpty(response))
-        {
-            while (_chatHistory.Count > Utils.HistoryCount - 1)
-            {
-                _chatHistory.RemoveAt(0);
-            }
-            _chatHistory.Add(new ChatMessage() { Role = "assistant", Content = response });
-        }
-    }
-
     private string NewCorrelationID()
     {
         _correlationID = Guid.NewGuid().ToString();

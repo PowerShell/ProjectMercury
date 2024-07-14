@@ -310,6 +310,17 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
+    public void RenderDivider(string text)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(text);
+        RequireStdoutOrStderr(operation: "render divider");
+
+        AnsiConsole.Write(new Rule($"[yellow]{text.EscapeMarkup()}[/]")
+            .RuleStyle("grey")
+            .LeftJustified());
+    }
+
+    /// <inheritdoc/>
     public async Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status = null)
     {
         if (_outputRedirected && _errorRedirected)
@@ -476,32 +487,46 @@ internal sealed class Host : IHost
             WriteLine(argInfo.Restriction);
         }
 
-        if (argInfo.Type is ArgumentInfo.DataType.Bool || argInfo.Suggestions?.Count is 2)
+        try
         {
-            return PromptForTextAsync(
-                prompt: ">",
-                optional: false,
-                choices: argInfo.Suggestions ?? ["ture", "flase"],
-                cancellationToken: cancellationToken).GetAwaiter().GetResult();
-        }
+            if (argInfo.Type is ArgumentInfo.DataType.Bool)
+            {
+                return PromptForTextAsync(
+                    prompt: "value",
+                    optional: false,
+                    choices: argInfo.Suggestions ?? ["ture", "flase"],
+                    cancellationToken: cancellationToken).GetAwaiter().GetResult();
+            }
 
-        if (argInfo.MustChooseFromSuggestions)
+            if (argInfo.MustChooseFromSuggestions)
+            {
+                string value = PromptForSelectionAsync(
+                    title: "Choose the value from the below list:",
+                    choices: argInfo.Suggestions,
+                    cancellationToken: cancellationToken).GetAwaiter().GetResult();
+                WriteLine($"value: {value}");
+                return value;
+            }
+        }
+        catch (OperationCanceledException)
         {
-            string value = PromptForSelectionAsync(
-                title: "Choose the value from the below list:",
-                choices: argInfo.Suggestions,
-                cancellationToken: cancellationToken).GetAwaiter().GetResult();
-            WriteLine($"> {value}");
-            return value;
+            if (Console.CursorLeft is not 0)
+            {
+                WriteLine();
+            }
+
+            throw;
         }
 
         var options = PSConsoleReadLine.GetOptions();
+        var oldAddToHistoryHandler = options.AddToHistoryHandler;
         var oldReadLineHelper = options.ReadLineHelper;
         var oldPredictionView = options.PredictionViewStyle;
         var oldPredictionSource = options.PredictionSource;
 
         var newOptions = new SetPSReadLineOption
         {
+            AddToHistoryHandler = c => AddToHistoryOption.SkipAdding,
             ReadLineHelper = new PromptHelper(argInfo.Suggestions),
             PredictionSource = PredictionSource.Plugin,
             PredictionViewStyle = PredictionViewStyle.ListView,
@@ -509,9 +534,9 @@ internal sealed class Host : IHost
 
         try
         {
-            Write("> ");
+            Write("value: ");
             PSConsoleReadLine.SetOptions(newOptions);
-            string value = PSConsoleReadLine.ReadLine();
+            string value = PSConsoleReadLine.ReadLine(CancellationToken.None);
             if (Console.CursorLeft is not 0)
             {
                 // Ctrl+c was pressed by the user.
@@ -523,6 +548,7 @@ internal sealed class Host : IHost
         }
         finally
         {
+            newOptions.AddToHistoryHandler = oldAddToHistoryHandler;
             newOptions.ReadLineHelper = oldReadLineHelper;
             newOptions.PredictionSource = oldPredictionSource;
             newOptions.PredictionViewStyle = oldPredictionView;

@@ -94,6 +94,12 @@ public interface IHost
     void RenderList<T>(T source, IList<IRenderElement<T>> elements);
 
     /// <summary>
+    /// Render a divider with the passed-in text.
+    /// </summary>
+    /// <param name="text">A brief caption for the subsequent section.</param>
+    void RenderDivider(string text);
+
+    /// <summary>
     /// Run an asynchronouse task with a spinner on the console showing the task in progress.
     /// </summary>
     /// <typeparam name="T">The return type of the asynchronouse task.</typeparam>

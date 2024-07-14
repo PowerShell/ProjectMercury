@@ -18,6 +18,7 @@ public sealed class AzCLIAgent : ILLMAgent
     ];
     public Dictionary<string, string> LegalLinks { private set; get; } = null;
     public string SettingFile { private set; get; } = null;
+    internal PlaceholderInfo PlaceholderInfo { set; get; }
 
     private const string SettingFileName = "az-cli.agent.json";
     private readonly Stopwatch _watch = new();
@@ -54,9 +55,10 @@ public sealed class AzCLIAgent : ILLMAgent
     {
         // Reset the history so the subsequent chat can start fresh.
         _chatService.ChatHistory.Clear();
+        PlaceholderInfo = null;
     }
 
-    public IEnumerable<CommandBase> GetCommands() => null;
+    public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
 
     public bool CanAcceptFeedback(UserAction action) => !MetricHelper.TelemetryOptOut;
 
@@ -129,39 +131,13 @@ public sealed class AzCLIAgent : ILLMAgent
                     return true;
                 }
 
-                var data = azResponse.Data;
-                _chatService.AddResponseToHistory(JsonSerializer.Serialize(data, Utils.JsonOptions));
+                ResponseData data = azResponse.Data;
+                AddMessageToHistory(
+                    JsonSerializer.Serialize(data, Utils.JsonOptions),
+                    fromUser: false);
 
-                _text.Clear();
-                _text.AppendLine(data.Description).AppendLine();
-
-                if (data.CommandSet.Count > 0)
-                {
-                    for (int i = 0; i < data.CommandSet.Count; i++)
-                    {
-                        CommandItem action = data.CommandSet[i];
-                        _text.AppendLine($"{i+1}. {action.Desc}")
-                            .AppendLine()
-                            .AppendLine("```sh")
-                            .AppendLine($"# {action.Desc}")
-                            .AppendLine(action.Script)
-                            .AppendLine("```")
-                            .AppendLine();
-                    }
-
-                    if (data.PlaceholderSet?.Count > 0)
-                    {
-                        _text.AppendLine("Please provide values for the following placeholder variables:").AppendLine();
-
-                        for (int i = 0; i < data.PlaceholderSet.Count; i++)
-                        {
-                            PlaceholderItem item = data.PlaceholderSet[i];
-                            _text.AppendLine($"- `{item.Name}`: {item.Desc}");
-                        }
-                    }
-                }
-
-                host.RenderFullResponse(_text.ToString());
+                string answer = GenerateAnswer(input, data);
+                host.RenderFullResponse(answer);
 
                 // Measure time spent
                 _watch.Stop();
@@ -174,7 +150,7 @@ public sealed class AzCLIAgent : ILLMAgent
 
                     // Append last Q&A history in HistoryMessage
                     _historyForTelemetry.AddLast(new HistoryMessage("user", input, _chatService.CorrelationID));
-                    _historyForTelemetry.AddLast(new HistoryMessage("assistant", _text.ToString(), _chatService.CorrelationID));
+                    _historyForTelemetry.AddLast(new HistoryMessage("assistant", answer, _chatService.CorrelationID));
 
                     _metricHelper.LogTelemetry(
                         new AzTrace()
@@ -211,5 +187,60 @@ public sealed class AzCLIAgent : ILLMAgent
         }
 
         return true;
+    }
+
+    internal string GenerateAnswer(string input, ResponseData data)
+    {
+        _text.Clear();
+        _text.Append(data.Description).Append("\n\n");
+
+        PlaceholderInfo = null;
+        if (data.CommandSet.Count > 0)
+        {
+            for (int i = 0; i < data.CommandSet.Count; i++)
+            {
+                CommandItem action = data.CommandSet[i];
+                _text.Append($"{i+1}. {action.Desc}")
+                    .Append("\n\n")
+                    .Append("```sh\n")
+                    .Append($"# {action.Desc}\n")
+                    .Append(action.Script).Append('\n')
+                    .Append("```\n\n");
+            }
+
+            if (data.PlaceholderSet?.Count > 0)
+            {
+                PlaceholderInfo = new PlaceholderInfo(input, data);
+                _text.Append("Please provide values for the following placeholder variables:\n\n");
+
+                for (int i = 0; i < data.PlaceholderSet.Count; i++)
+                {
+                    PlaceholderItem item = data.PlaceholderSet[i];
+                    _text.Append($"- `{item.Name}`: {item.Desc}\n");
+                }
+
+                _text.Append("\nRun `/replace` to get assistance in placeholder replacement.\n");
+            }
+        }
+
+        return _text.ToString();
+    }
+
+    internal void AddMessageToHistory(string message, bool fromUser)
+    {
+        if (!string.IsNullOrEmpty(message))
+        {
+            var history = _chatService.ChatHistory;
+            while (history.Count > Utils.HistoryCount - 1)
+            {
+                history.RemoveAt(0);
+            }
+
+            history.Add(new ChatMessage()
+                {
+                    Role = fromUser ? "user" : "assistant",
+                    Content = message
+                });
+        }
     }
 }
