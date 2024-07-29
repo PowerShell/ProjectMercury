@@ -69,7 +69,7 @@ Modify the build script so that you can build and test your agent during develop
 agents. The following lines were added to the script to build the new agent.
 
 ```powershell
-$ollama_agent_dir = Join-Path $shell_dir "AIShell.Ollama.Agent"
+$ollama_agent_dir = Join-Path $agents_dir "AIShell.Ollama.Agent"
 
 $ollama_out_dir =  Join-Path $app_out_dir "agents" "AIShell.Ollama.Agent"
 
@@ -80,7 +80,7 @@ if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'ollama') {
 }
 ```
 
-Be sure to put this code after definition of the `$shell_dir`, `$app_out_dir`, and
+Be sure to put this code after definition of the `$agents_dir`, `$app_out_dir`, and
 `$AgentToInclude`. Also add the name of the agent to the `$AgentToInclude` array and parameter
 validation.
 
