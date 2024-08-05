@@ -18,7 +18,7 @@ public sealed class AzCLIAgent : ILLMAgent
     ];
     public Dictionary<string, string> LegalLinks { private set; get; } = null;
     public string SettingFile { private set; get; } = null;
-    internal PlaceholderInfo PlaceholderInfo { set; get; }
+    internal ArgumentPlaceholder ArgPlaceholder { set; get; }
 
     private const string SettingFileName = "az-cli.agent.json";
     private readonly Stopwatch _watch = new();
@@ -55,7 +55,7 @@ public sealed class AzCLIAgent : ILLMAgent
     {
         // Reset the history so the subsequent chat can start fresh.
         _chatService.ChatHistory.Clear();
-        PlaceholderInfo = null;
+        ArgPlaceholder = null;
     }
 
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
@@ -194,9 +194,22 @@ public sealed class AzCLIAgent : ILLMAgent
         _text.Clear();
         _text.Append(data.Description).Append("\n\n");
 
-        PlaceholderInfo = null;
+        // We keep 'ArgPlaceholder' unchanged when it's re-generating in '/replace' with only partial placeholders replaced.
+        if (!ReferenceEquals(ArgPlaceholder?.ResponseData, data) || data.PlaceholderSet is null)
+        {
+            ArgPlaceholder?.DataRetriever?.Dispose();
+            ArgPlaceholder = null;
+        }
+
         if (data.CommandSet.Count > 0)
         {
+            if (data.PlaceholderSet?.Count > 0)
+            {
+                // Create the data retriever for the placeholders ASAP, so it gets
+                // more time to run in background.
+                ArgPlaceholder ??= new ArgumentPlaceholder(input, data);
+            }
+
             for (int i = 0; i < data.CommandSet.Count; i++)
             {
                 CommandItem action = data.CommandSet[i];
@@ -208,9 +221,8 @@ public sealed class AzCLIAgent : ILLMAgent
                     .Append("```\n\n");
             }
 
-            if (data.PlaceholderSet?.Count > 0)
+            if (ArgPlaceholder is not null)
             {
-                PlaceholderInfo = new PlaceholderInfo(input, data);
                 _text.Append("Please provide values for the following placeholder variables:\n\n");
 
                 for (int i = 0; i < data.PlaceholderSet.Count; i++)

@@ -10,7 +10,7 @@ namespace AIShell.Azure.CLI;
 
 internal class AzCLIChatService : IDisposable
 {
-    internal const string Endpoint = "https://azclitools-copilot-dev.azure-api.net/azcli/copilot";
+    internal const string Endpoint = "https://azclitools-copilot-apim-temp.azure-api.net/azcli/copilot";
 
     private readonly HttpClient _client;
     private readonly string[] _scopes;

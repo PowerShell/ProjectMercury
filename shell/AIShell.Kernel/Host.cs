@@ -321,7 +321,7 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
-    public async Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status = null)
+    public async Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status = null, SpinnerKind? spinnerKind = null)
     {
         if (_outputRedirected && _errorRedirected)
         {
@@ -344,7 +344,7 @@ internal sealed class Host : IHost
             return await ansiConsole
                 .Status()
                 .AutoRefresh(true)
-                .Spinner(AsciiLetterSpinner.Default)
+                .Spinner(GetSpinner(spinnerKind))
                 .SpinnerStyle(new Style(Color.Olive))
                 .StartAsync(
                     $"[italic slowblink]{status.EscapeMarkup()}[/]",
@@ -358,7 +358,7 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
-    public async Task<T> RunWithSpinnerAsync<T>(Func<IStatusContext, Task<T>> func, string status)
+    public async Task<T> RunWithSpinnerAsync<T>(Func<IStatusContext, Task<T>> func, string status, SpinnerKind? spinnerKind = null)
     {
         if (_outputRedirected && _errorRedirected)
         {
@@ -381,7 +381,7 @@ internal sealed class Host : IHost
             return await ansiConsole
                 .Status()
                 .AutoRefresh(true)
-                .Spinner(AsciiLetterSpinner.Default)
+                .Spinner(GetSpinner(spinnerKind))
                 .SpinnerStyle(new Style(Color.Olive))
                 .StartAsync(
                     $"[italic slowblink]{status.EscapeMarkup()}[/]",
@@ -479,43 +479,24 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
-    public string PromptForArgument(ArgumentInfo argInfo, CancellationToken cancellationToken)
+    public string PromptForArgument(ArgumentInfo argInfo, bool printCaption)
     {
-        WriteLine($"{argInfo.Name}: {argInfo.Description}.");
-        if (!string.IsNullOrEmpty(argInfo.Restriction))
+        if (printCaption)
         {
-            WriteLine(argInfo.Restriction);
-        }
+            WriteLine(argInfo.Type is ArgumentInfo.DataType.@string
+                ? argInfo.Description
+                : $"{argInfo.Description}. Value type: {argInfo.Type}");
 
-        try
-        {
-            if (argInfo.Type is ArgumentInfo.DataType.Bool)
+            if (!string.IsNullOrEmpty(argInfo.Restriction))
             {
-                return PromptForTextAsync(
-                    prompt: "value",
-                    optional: false,
-                    choices: argInfo.Suggestions ?? ["ture", "flase"],
-                    cancellationToken: cancellationToken).GetAwaiter().GetResult();
-            }
-
-            if (argInfo.MustChooseFromSuggestions)
-            {
-                string value = PromptForSelectionAsync(
-                    title: "Choose the value from the below list:",
-                    choices: argInfo.Suggestions,
-                    cancellationToken: cancellationToken).GetAwaiter().GetResult();
-                WriteLine($"value: {value}");
-                return value;
+                WriteLine(argInfo.Restriction);
             }
         }
-        catch (OperationCanceledException)
-        {
-            if (Console.CursorLeft is not 0)
-            {
-                WriteLine();
-            }
 
-            throw;
+        var suggestions = argInfo.Suggestions;
+        if (argInfo.Type is ArgumentInfo.DataType.@bool)
+        {
+            suggestions ??= ["ture", "flase"];
         }
 
         var options = PSConsoleReadLine.GetOptions();
@@ -527,14 +508,14 @@ internal sealed class Host : IHost
         var newOptions = new SetPSReadLineOption
         {
             AddToHistoryHandler = c => AddToHistoryOption.SkipAdding,
-            ReadLineHelper = new PromptHelper(argInfo.Suggestions),
+            ReadLineHelper = new PromptHelper(suggestions),
             PredictionSource = PredictionSource.Plugin,
             PredictionViewStyle = PredictionViewStyle.ListView,
         };
 
         try
         {
-            Write("value: ");
+            Markup($"[lime]{argInfo.Name}[/]: ");
             PSConsoleReadLine.SetOptions(newOptions);
             string value = PSConsoleReadLine.ReadLine(CancellationToken.None);
             if (Console.CursorLeft is not 0)
@@ -573,6 +554,15 @@ internal sealed class Host : IHost
         AnsiConsole.WriteLine();
         AnsiConsole.Write(panel);
         AnsiConsole.WriteLine();
+    }
+
+    private static Spinner GetSpinner(SpinnerKind? kind)
+    {
+        return kind switch
+        {
+            SpinnerKind.Processing => Spinner.Known.Default,
+            _ => AsciiLetterSpinner.Default,
+        };
     }
 
     /// <summary>
