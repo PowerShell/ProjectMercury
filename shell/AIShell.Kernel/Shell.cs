@@ -562,7 +562,7 @@ internal sealed class Shell : IShell
                     {
                         // Write out the remote query, in the same style as user typing.
                         Host.Markup($"\n>> Remote Query Received:\n");
-                        Host.MarkupLine($"[teal]{input}[/]");
+                        Host.MarkupLine($"[teal]{input.EscapeMarkup()}[/]");
                     }
                     else
                     {
