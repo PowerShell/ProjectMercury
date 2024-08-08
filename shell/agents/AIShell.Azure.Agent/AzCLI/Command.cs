@@ -72,11 +72,14 @@ internal sealed class ReplaceCommand : CommandBase
             {
                 var item = items[i];
                 var (command, parameter) = dataRetriever.GetMappedCommand(item.Name);
-                var coloredCmd = SyntaxHighlightAzCommand(command, parameter, item.Name);
+
+                string desc = item.Desc.TrimEnd('.');
+                string coloredCmd = parameter is null ? null : SyntaxHighlightAzCommand(command, parameter, item.Name);
+                string cmdPart = coloredCmd is null ? null : $" [{coloredCmd}]";
 
                 host.WriteLine(item.Type is "string"
-                    ? $"{i+1}. {item.Desc} [{coloredCmd}]"
-                    : $"{i+1}. {item.Desc} [{coloredCmd}]. Value type: {item.Type}");
+                    ? $"{i+1}. {desc}{cmdPart}"
+                    : $"{i+1}. {desc}{cmdPart}. Value type: {item.Type}");
 
                 // Get the task for creating the 'ArgumentInfo' object and show a spinner
                 // if we have to wait for the task to complete.

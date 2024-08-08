@@ -257,7 +257,7 @@ internal class DataRetriever : IDisposable
 
             new("Virtual Machine",
                 "vm",
-                @"The name cannot contain special characters \/""[]:|<>+=;,?*@&#%, whitespace, or begin with '_' or end with '.' or '-'. Length: 1 to 64 chars.",
+                @"The name cannot contain special characters \/""[]:|<>+=;,?*@&#%, whitespace, or begin with '_' or end with '.' or '-'. Length: 1 to 15 chars for Windows; 1 to 64 chars for Linux.",
                 "az vm create --name",
                 "New-AzVM -Name"),
 
@@ -308,7 +308,7 @@ internal class DataRetriever : IDisposable
         _semaphore = new SemaphoreSlim(3, 3);
         _staticDataRoot = @"E:\yard\tmp\az-cli-out\az";
         _placeholders = new(capacity: data.PlaceholderSet.Count);
-        _placeholderMap = new(capacity: _placeholders.Count);
+        _placeholderMap = new(capacity: data.PlaceholderSet.Count);
 
         PairPlaceholders(data);
         _rootTask = Task.Run(StartProcessing);
@@ -325,23 +325,39 @@ internal class DataRetriever : IDisposable
             foreach (var cmd in data.CommandSet)
             {
                 string script = cmd.Script;
-                if (!cmds.TryGetValue(script, out command))
+
+                // Handle AzCLI commands.
+                if (script.StartsWith("az ", StringComparison.OrdinalIgnoreCase))
                 {
-                    int firstParamIndex = script.IndexOf("--");
-                    command = script.AsSpan(0, firstParamIndex).Trim().ToString();
-                    cmds.Add(script, command);
+                    if (!cmds.TryGetValue(script, out command))
+                    {
+                        int firstParamIndex = script.IndexOf("--");
+                        command = script.AsSpan(0, firstParamIndex).Trim().ToString();
+                        cmds.Add(script, command);
+                    }
+
+                    int argIndex = script.IndexOf(item.Name, StringComparison.OrdinalIgnoreCase);
+                    if (argIndex is -1)
+                    {
+                        continue;
+                    }
+
+                    int paramIndex = script.LastIndexOf("--", argIndex);
+                    parameter = script.AsSpan(paramIndex, argIndex - paramIndex).Trim().ToString();
+
+                    break;
                 }
 
-                int argIndex = script.IndexOf(item.Name, StringComparison.OrdinalIgnoreCase);
-                if (argIndex is -1)
+                // It's a non-AzCLI command, such as "ssh".
+                if (script.Contains(item.Name, StringComparison.OrdinalIgnoreCase))
                 {
-                    continue;
+                    // Leave the parameter to be null for non-AzCLI commands, as there is
+                    // no reliable way to parse an arbitrary command
+                    command = script;
+                    parameter = null;
+
+                    break;
                 }
-
-                int paramIndex = script.LastIndexOf("--", argIndex);
-                parameter = script.AsSpan(paramIndex, argIndex - paramIndex).Trim().ToString();
-
-                break;
             }
 
             ArgumentPair pair = new(item, command, parameter);
@@ -396,6 +412,12 @@ internal class DataRetriever : IDisposable
             return new ArgumentInfo(item.Name, item.Desc, restriction: null, dataType, item.ValidValues);
         }
 
+        // Handle non-AzCLI command.
+        if (pair.Parameter is null)
+        {
+            return new ArgumentInfo(item.Name, item.Desc, dataType);
+        }
+
         string cmdAndParam = $"{pair.Command} {pair.Parameter}";
         if (s_azNamingRules.TryGetValue(cmdAndParam, out NamingRule rule))
         {
@@ -411,7 +433,7 @@ internal class DataRetriever : IDisposable
         if (string.Equals(pair.Parameter, "--name", StringComparison.OrdinalIgnoreCase)
             && pair.Command.EndsWith(" create", StringComparison.OrdinalIgnoreCase))
         {
-            // Placeholder is for the new of a new resource to be created, but not in our cache.
+            // Placeholder is for the name of a new resource to be created, but not in our cache.
             return new ArgumentInfo(item.Name, item.Desc, dataType);
         }
 
