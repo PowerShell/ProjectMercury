@@ -9,6 +9,7 @@ internal sealed class ReplaceCommand : CommandBase
 {
     private readonly AzCLIAgent _agent;
     private readonly Dictionary<string, string> _values;
+    private readonly Dictionary<string, string> _pseudoValues;
     private readonly HashSet<string> _productNames;
     private readonly HashSet<string> _environmentNames;
 
@@ -17,6 +18,7 @@ internal sealed class ReplaceCommand : CommandBase
     {
         _agent = agent;
         _values = [];
+        _pseudoValues = [];
         _productNames = [];
         _environmentNames = [];
 
@@ -45,11 +47,13 @@ internal sealed class ReplaceCommand : CommandBase
     private void ReplaceAction()
     {
         _values.Clear();
+        _pseudoValues.Clear();
         _productNames.Clear();
         _environmentNames.Clear();
 
         IHost host = Shell.Host;
         ArgumentPlaceholder ap = _agent.ArgPlaceholder;
+        UserValueStore uvs = _agent.ValueStore;
 
         if (ap is null)
         {
@@ -62,7 +66,7 @@ internal sealed class ReplaceCommand : CommandBase
         string subText = items.Count > 1
             ? $"all {items.Count} argument placeholders"
             : "the argument placeholder";
-        host.WriteLine($"\nWe'll provide assistance in replacing {subText} and regenerating the result. You can press 'Ctrl+c' to exit the assistance.\n");
+        host.WriteLine($"\nWe'll provide assistance in replacing {subText} and regenerating the result. You can press 'Enter' to skip to the next parameter or press 'Ctrl+c' to exit the assistance.\n");
         host.RenderDivider("Input Values");
         host.WriteLine();
 
@@ -110,7 +114,9 @@ internal sealed class ReplaceCommand : CommandBase
                 string value = host.PromptForArgument(argInfo, printCaption: false);
                 if (!string.IsNullOrEmpty(value))
                 {
+                    string pseudoValue = uvs.SaveUserInputValue(value);
                     _values.Add(item.Name, value);
+                    _pseudoValues.Add(item.Name, pseudoValue);
 
                     if (nameArgInfo is not null && nameArgInfo.NamingRule.TryMatchName(value, out string prodName, out string envName))
                     {
@@ -216,13 +222,19 @@ internal sealed class ReplaceCommand : CommandBase
         return argInfoTask.Result;
     }
 
+    /// <summary>
+    /// We use the pseudo values to regenerate the response data, so that real values will never go off the user's box.
+    /// </summary>
+    /// <returns></returns>
     private async Task<string> RegenerateAsync()
     {
         ArgumentPlaceholder ap = _agent.ArgPlaceholder;
-        StringBuilder prompt = new(capacity: ap.Query.Length + _values.Count * 15);
+        StringBuilder prompt = new(capacity: ap.Query.Length + _pseudoValues.Count * 15);
         prompt.Append("Regenerate for the last query using the following values specified for the argument placeholders.\n\n");
 
-        foreach (var entry in _values)
+        // We use the pseudo values when building the new prompt, because the new prompt
+        // will be added to history, and we don't want real values to go off the box.
+        foreach (var entry in _pseudoValues)
         {
             prompt.Append($"{entry.Key}: {entry.Value}\n");
         }
@@ -233,23 +245,23 @@ internal sealed class ReplaceCommand : CommandBase
         ResponseData data = ap.ResponseData;
         foreach (CommandItem command in data.CommandSet)
         {
-            foreach (var entry in _values)
+            foreach (var entry in _pseudoValues)
             {
                 command.Script = command.Script.Replace(entry.Key, entry.Value, StringComparison.OrdinalIgnoreCase);
             }
         }
 
         List<PlaceholderItem> placeholders = data.PlaceholderSet;
-        if (placeholders.Count == _values.Count)
+        if (placeholders.Count == _pseudoValues.Count)
         {
             data.PlaceholderSet = null;
         }
-        else if (placeholders.Count > _values.Count)
+        else if (placeholders.Count > _pseudoValues.Count)
         {
-            List<PlaceholderItem> newList = new(placeholders.Count - _values.Count);
+            List<PlaceholderItem> newList = new(placeholders.Count - _pseudoValues.Count);
             foreach (PlaceholderItem item in placeholders)
             {
-                if (!_values.ContainsKey(item.Name))
+                if (!_pseudoValues.ContainsKey(item.Name))
                 {
                     newList.Add(item);
                 }

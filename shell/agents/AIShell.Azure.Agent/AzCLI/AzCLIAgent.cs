@@ -19,6 +19,7 @@ public sealed class AzCLIAgent : ILLMAgent
     public Dictionary<string, string> LegalLinks { private set; get; } = null;
     public string SettingFile { private set; get; } = null;
     internal ArgumentPlaceholder ArgPlaceholder { set; get; }
+    internal UserValueStore ValueStore { get; } = new();
 
     private const string SettingFileName = "az-cli.agent.json";
     private readonly Stopwatch _watch = new();
@@ -56,6 +57,7 @@ public sealed class AzCLIAgent : ILLMAgent
         // Reset the history so the subsequent chat can start fresh.
         _chatService.ChatHistory.Clear();
         ArgPlaceholder = null;
+        ValueStore.Clear();
     }
 
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
@@ -203,6 +205,8 @@ public sealed class AzCLIAgent : ILLMAgent
 
         if (data.CommandSet.Count > 0)
         {
+            // AzCLI handler incorrectly include pseudo values in the placeholder set, so we need to filter them out.
+            UserValueStore.FilterOutPseudoValues(data);
             if (data.PlaceholderSet?.Count > 0)
             {
                 // Create the data retriever for the placeholders ASAP, so it gets
@@ -213,11 +217,14 @@ public sealed class AzCLIAgent : ILLMAgent
             for (int i = 0; i < data.CommandSet.Count; i++)
             {
                 CommandItem action = data.CommandSet[i];
+                // Replace the pseudo values with the real values.
+                string script = ValueStore.ReplacePseudoValues(action.Script);
+
                 _text.Append($"{i+1}. {action.Desc}")
                     .Append("\n\n")
                     .Append("```sh\n")
                     .Append($"# {action.Desc}\n")
-                    .Append(action.Script).Append('\n')
+                    .Append(script).Append('\n')
                     .Append("```\n\n");
             }
 
