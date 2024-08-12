@@ -9,7 +9,6 @@ namespace AIShell.Kernel;
 internal sealed class Shell : IShell
 {
     private readonly bool _isInteractive;
-    private readonly string _prompt;
     private readonly string _version;
     private readonly List<LLMAgent> _agents;
     private readonly Stack<LLMAgent> _activeAgentStack;
@@ -87,7 +86,6 @@ internal sealed class Shell : IShell
     {
         _isInteractive = interactive;
         _wrapper = args.ShellWrapper;
-        _prompt = _wrapper?.Prompt ?? Utils.DefaultPrompt;
 
         // Create the channel if the args is specified.
         // The channel object starts the connection initialization on a background thread,
@@ -271,6 +269,10 @@ internal sealed class Shell : IShell
                 {
                     Host.MarkupWarningLine($"The configured active agent '{active}' is not available.\n");
                 }
+                else if (_wrapper?.Prompt is not null)
+                {
+                    chosenAgent.Prompt = _wrapper.Prompt;
+                }
             }
 
             // If there is only 1 agent available, use it as the active one.
@@ -390,7 +392,8 @@ internal sealed class Shell : IShell
     private void SetReadLineExperience()
     {
         Utils.SetDefaultKeyHandlers();
-        PSConsoleReadLine.GetOptions().ReadLineHelper = new ReadLineHelper(CommandRunner);
+        ReadLineHelper helper = new(this, CommandRunner);
+        PSConsoleReadLine.GetOptions().ReadLineHelper = helper;
     }
 
     /// <summary>
@@ -414,6 +417,46 @@ internal sealed class Shell : IShell
         {
             Host.WriteErrorLine(e.Message);
         }
+    }
+
+    private string TaggingAgent(string input, ref LLMAgent agent)
+    {
+        input = input.TrimEnd();
+        int index = input.IndexOf(' ');
+
+        string targetName = index is -1 ? input[1..] : input[1..index];
+        if (string.IsNullOrEmpty(targetName))
+        {
+            Host.WriteErrorLine("No target agent specified after '@'.");
+            return null;
+        }
+
+        if (_agents.Count is 0)
+        {
+            Host.WriteErrorLine("No agent is available.");
+            return null;
+        }
+
+        LLMAgent targetAgent = AgentCommand.FindAgent(targetName, this);
+        if (targetAgent is null)
+        {
+            AgentCommand.AgentNotFound(targetName, this);
+            return null;
+        }
+
+        agent = targetAgent;
+        SwitchActiveAgent(targetAgent);
+
+        if (index is -1)
+        {
+            // Display the landing page when there is no query following the tagging.
+            Host.MarkupLine($"Using the agent [green]{targetAgent.Impl.Name}[/]:");
+            targetAgent.Display(Host);
+
+            return null;
+        }
+
+        return input[index..].TrimStart();
     }
 
     private void IgnoreStaleClipboardContent()
@@ -499,10 +542,10 @@ internal sealed class Shell : IShell
         }
     }
 
-    private async Task<string> ReadUserInput(int count, CancellationToken cancellationToken)
+    private async Task<string> ReadUserInput(string prompt, CancellationToken cancellationToken)
     {
         string newLine = Console.CursorLeft is 0 ? string.Empty : "\n";
-        Host.Markup($"{newLine}[bold green]{_prompt}[/]:{count}> ");
+        Host.Markup($"{newLine}[bold green]{prompt}[/]> ");
         string input = PSConsoleReadLine.ReadLine(cancellationToken);
 
         if (string.IsNullOrEmpty(input))
@@ -540,7 +583,6 @@ internal sealed class Shell : IShell
     /// </summary>
     internal async Task RunREPLAsync()
     {
-        int count = 1;
         IgnoreStaleClipboardContent();
 
         while (!Exit)
@@ -566,7 +608,7 @@ internal sealed class Shell : IShell
                     }
                     else
                     {
-                        input = await ReadUserInput(count, readlineCancelToken);
+                        input = await ReadUserInput(agent?.Prompt ?? Utils.DefaultPrompt, readlineCancelToken);
                         if (input is null)
                         {
                             continue;
@@ -574,11 +616,19 @@ internal sealed class Shell : IShell
                     }
                 }
 
-                count++;
                 if (input.StartsWith('/'))
                 {
                     RunCommand(input);
                     continue;
+                }
+
+                if (input.StartsWith('@'))
+                {
+                    input = TaggingAgent(input, ref agent);
+                    if (input is null)
+                    {
+                        continue;
+                    }
                 }
 
                 string copiedText = await GetClipboardContent(input);

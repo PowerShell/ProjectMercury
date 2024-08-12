@@ -199,6 +199,12 @@ internal sealed class AgentCommand : CommandBase
         }
     }
 
+    private IEnumerable<string> AgentCompleter(CompletionContext context)
+    {
+        var shell = (Shell)Shell;
+        return shell.Agents.Select(AgentName);
+    }
+
     private static bool HasAnyAgent(Shell shell, Host host)
     {
         if (shell.Agents.Count is 0)
@@ -215,21 +221,15 @@ internal sealed class AgentCommand : CommandBase
         return agent.Impl.Name;
     }
 
-    private static LLMAgent FindAgent(string name, Shell shell)
+    internal static LLMAgent FindAgent(string name, Shell shell)
     {
         return shell.Agents.FirstOrDefault(a => string.Equals(name, a.Impl.Name, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static void AgentNotFound(string name, Shell shell)
+    internal static void AgentNotFound(string name, Shell shell)
     {
         string availableAgentNames = string.Join(", ", shell.Agents.Select(AgentName));
         shell.Host.WriteErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}.");
-    }
-
-    private IEnumerable<string> AgentCompleter(CompletionContext context)
-    {
-        var shell = (Shell)Shell;
-        return shell.Agents.Select(AgentName);
     }
 }
 
