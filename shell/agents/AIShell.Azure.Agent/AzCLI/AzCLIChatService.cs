@@ -10,7 +10,7 @@ namespace AIShell.Azure.CLI;
 
 internal class AzCLIChatService : IDisposable
 {
-    internal const string Endpoint = "https://azclitools-copilot-dev.azure-api.net/azcli/copilot";
+    internal const string Endpoint = "https://azclitools-copilot-apim-temp.azure-api.net/azcli/copilot";
 
     private readonly HttpClient _client;
     private readonly string[] _scopes;
@@ -34,18 +34,6 @@ internal class AzCLIChatService : IDisposable
     public void Dispose()
     {
         _client.Dispose();
-    }
-
-    internal void AddResponseToHistory(string response)
-    {
-        if (!string.IsNullOrEmpty(response))
-        {
-            while (_chatHistory.Count > Utils.HistoryCount - 1)
-            {
-                _chatHistory.RemoveAt(0);
-            }
-            _chatHistory.Add(new ChatMessage() { Role = "assistant", Content = response });
-        }
     }
 
     private string NewCorrelationID()

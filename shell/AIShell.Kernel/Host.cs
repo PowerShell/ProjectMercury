@@ -310,7 +310,18 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
-    public async Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status = null)
+    public void RenderDivider(string text)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(text);
+        RequireStdoutOrStderr(operation: "render divider");
+
+        AnsiConsole.Write(new Rule($"[yellow]{text.EscapeMarkup()}[/]")
+            .RuleStyle("grey")
+            .LeftJustified());
+    }
+
+    /// <inheritdoc/>
+    public async Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status = null, SpinnerKind? spinnerKind = null)
     {
         if (_outputRedirected && _errorRedirected)
         {
@@ -333,7 +344,7 @@ internal sealed class Host : IHost
             return await ansiConsole
                 .Status()
                 .AutoRefresh(true)
-                .Spinner(AsciiLetterSpinner.Default)
+                .Spinner(GetSpinner(spinnerKind))
                 .SpinnerStyle(new Style(Color.Olive))
                 .StartAsync(
                     $"[italic slowblink]{status.EscapeMarkup()}[/]",
@@ -347,7 +358,7 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
-    public async Task<T> RunWithSpinnerAsync<T>(Func<IStatusContext, Task<T>> func, string status)
+    public async Task<T> RunWithSpinnerAsync<T>(Func<IStatusContext, Task<T>> func, string status, SpinnerKind? spinnerKind = null)
     {
         if (_outputRedirected && _errorRedirected)
         {
@@ -370,7 +381,7 @@ internal sealed class Host : IHost
             return await ansiConsole
                 .Status()
                 .AutoRefresh(true)
-                .Spinner(AsciiLetterSpinner.Default)
+                .Spinner(GetSpinner(spinnerKind))
                 .SpinnerStyle(new Style(Color.Olive))
                 .StartAsync(
                     $"[italic slowblink]{status.EscapeMarkup()}[/]",
@@ -468,50 +479,45 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
-    public string PromptForArgument(ArgumentInfo argInfo, CancellationToken cancellationToken)
+    public string PromptForArgument(ArgumentInfo argInfo, bool printCaption)
     {
-        WriteLine($"{argInfo.Name}: {argInfo.Description}.");
-        if (!string.IsNullOrEmpty(argInfo.Restriction))
+        if (printCaption)
         {
-            WriteLine(argInfo.Restriction);
+            WriteLine(argInfo.Type is ArgumentInfo.DataType.@string
+                ? argInfo.Description
+                : $"{argInfo.Description}. Value type: {argInfo.Type}");
+
+            if (!string.IsNullOrEmpty(argInfo.Restriction))
+            {
+                WriteLine(argInfo.Restriction);
+            }
         }
 
-        if (argInfo.Type is ArgumentInfo.DataType.Bool || argInfo.Suggestions?.Count is 2)
+        var suggestions = argInfo.Suggestions;
+        if (argInfo.Type is ArgumentInfo.DataType.@bool)
         {
-            return PromptForTextAsync(
-                prompt: ">",
-                optional: false,
-                choices: argInfo.Suggestions ?? ["ture", "flase"],
-                cancellationToken: cancellationToken).GetAwaiter().GetResult();
-        }
-
-        if (argInfo.MustChooseFromSuggestions)
-        {
-            string value = PromptForSelectionAsync(
-                title: "Choose the value from the below list:",
-                choices: argInfo.Suggestions,
-                cancellationToken: cancellationToken).GetAwaiter().GetResult();
-            WriteLine($"> {value}");
-            return value;
+            suggestions ??= ["ture", "flase"];
         }
 
         var options = PSConsoleReadLine.GetOptions();
+        var oldAddToHistoryHandler = options.AddToHistoryHandler;
         var oldReadLineHelper = options.ReadLineHelper;
         var oldPredictionView = options.PredictionViewStyle;
         var oldPredictionSource = options.PredictionSource;
 
         var newOptions = new SetPSReadLineOption
         {
-            ReadLineHelper = new PromptHelper(argInfo.Suggestions),
+            AddToHistoryHandler = c => AddToHistoryOption.SkipAdding,
+            ReadLineHelper = new PromptHelper(suggestions),
             PredictionSource = PredictionSource.Plugin,
             PredictionViewStyle = PredictionViewStyle.ListView,
         };
 
         try
         {
-            Write("> ");
+            Markup($"[lime]{argInfo.Name}[/]: ");
             PSConsoleReadLine.SetOptions(newOptions);
-            string value = PSConsoleReadLine.ReadLine();
+            string value = PSConsoleReadLine.ReadLine(CancellationToken.None);
             if (Console.CursorLeft is not 0)
             {
                 // Ctrl+c was pressed by the user.
@@ -523,6 +529,7 @@ internal sealed class Host : IHost
         }
         finally
         {
+            newOptions.AddToHistoryHandler = oldAddToHistoryHandler;
             newOptions.ReadLineHelper = oldReadLineHelper;
             newOptions.PredictionSource = oldPredictionSource;
             newOptions.PredictionViewStyle = oldPredictionView;
@@ -547,6 +554,15 @@ internal sealed class Host : IHost
         AnsiConsole.WriteLine();
         AnsiConsole.Write(panel);
         AnsiConsole.WriteLine();
+    }
+
+    private static Spinner GetSpinner(SpinnerKind? kind)
+    {
+        return kind switch
+        {
+            SpinnerKind.Processing => Spinner.Known.Default,
+            _ => AsciiLetterSpinner.Default,
+        };
     }
 
     /// <summary>

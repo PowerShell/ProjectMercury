@@ -371,7 +371,7 @@ internal class PromptHelper : IReadLineHelper
     internal PromptHelper(IList<string> candidates)
     {
         _candidates = candidates;
-        _predictorName = "completion";
+        _predictorName = "suggestion";
         _predictorId = new Guid(GUID);
     }
 
