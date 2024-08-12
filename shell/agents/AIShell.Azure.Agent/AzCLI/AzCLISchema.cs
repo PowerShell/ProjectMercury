@@ -36,3 +36,20 @@ internal class AzCliResponse
     public string Error { get; set; }
     public ResponseData Data { get; set; }
 }
+
+internal class ArgumentPlaceholder
+{
+    internal ArgumentPlaceholder(string query, ResponseData data)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(query);
+        ArgumentNullException.ThrowIfNull(data);
+
+        Query = query;
+        ResponseData = data;
+        DataRetriever = new(data);
+    }
+
+    public string Query { get; set; }
+    public ResponseData ResponseData { get; set; }
+    public DataRetriever DataRetriever { get; }
+}
