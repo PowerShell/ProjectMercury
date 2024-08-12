@@ -241,14 +241,14 @@ namespace Microsoft.PowerShell
             var text = _buffer.ToString();
             _prediction.QueryForSuggestion(text);
 
-            string color = defaultColor;
+            string color;
             string activeColor = string.Empty;
             int currentLogicalLine = 0;
             bool inSelectedRegion = false;
 
             void UpdateColorsIfNecessary(string newColor)
             {
-                if (!object.ReferenceEquals(newColor, activeColor))
+                if (!ReferenceEquals(newColor, activeColor))
                 {
                     if (!inSelectedRegion)
                     {
@@ -338,6 +338,7 @@ namespace Microsoft.PowerShell
                     inSelectedRegion = false;
                 }
 
+                color = _options.ReadLineHelper?.GetSyntaxHighlightingColor(text, i) ?? defaultColor;
                 var charToRender = text[i];
                 var toEmphasize = i >= _emphasisStart && i < (_emphasisStart + _emphasisLength);
 
