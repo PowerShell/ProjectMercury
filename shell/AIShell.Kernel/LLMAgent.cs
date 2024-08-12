@@ -9,6 +9,7 @@ internal class LLMAgent
     internal AgentAssemblyLoadContext LoadContext { get; }
     internal bool OrchestratorRoleDisabled { set; get; }
     internal bool AnalyzerRoleDisabled { set; get; }
+    internal string Prompt { set; get; }
 
     internal LLMAgent(ILLMAgent agent, AgentAssemblyLoadContext loadContext)
     {
@@ -17,6 +18,7 @@ internal class LLMAgent
 
         OrchestratorRoleDisabled = false;
         AnalyzerRoleDisabled = false;
+        Prompt = agent.Name;
     }
 
     internal void Display(Host host, string description = null)

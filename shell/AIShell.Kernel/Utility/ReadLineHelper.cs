@@ -11,6 +11,7 @@ namespace AIShell.Kernel;
 
 internal class ReadLineHelper : IReadLineHelper
 {
+    private readonly Shell _shell;
     private readonly CommandRunner _cmdRunner;
     private readonly Comparison<CompletionResult> _comparison;
     private readonly HashSet<string> _commonOptions;
@@ -19,8 +20,9 @@ internal class ReadLineHelper : IReadLineHelper
     private readonly Guid _predictorId;
     private readonly EnumerationOptions _enumerationOptions;
 
-    internal ReadLineHelper(CommandRunner commandRunner)
+    internal ReadLineHelper(Shell shell, CommandRunner commandRunner)
     {
+        _shell = shell;
         _cmdRunner = commandRunner;
         _comparison = new(Compare);
         _commonOptions = new(StringComparer.OrdinalIgnoreCase) { "--help", "-h" };
@@ -127,11 +129,54 @@ internal class ReadLineHelper : IReadLineHelper
 
     public CommandCompletion CompleteInput(string input, int cursorIndex)
     {
-        if (!input.StartsWith('/') || cursorIndex is 0)
+        if (cursorIndex is 0)
         {
             return null;
         }
 
+        if (input.StartsWith('@'))
+        {
+            return CompleteForAgent(input, cursorIndex);
+        }
+        else if (input.StartsWith('/'))
+        {
+            return CompleteForCommand(input, cursorIndex);
+        }
+
+        return null;
+    }
+
+    private CommandCompletion CompleteForAgent(string input, int cursorIndex)
+    {
+        int index = input.IndexOf(' ');
+        if (index is not -1 && cursorIndex > index)
+        {
+            return null;
+        }
+
+        string targetName = index is -1 ? input[1..] : input[1..index];
+        List<CompletionResult> matches = null;
+
+        foreach (var a in _shell.Agents)
+        {
+            string agentName = a.Impl.Name;
+            if (agentName.StartsWith(targetName, StringComparison.OrdinalIgnoreCase))
+            {
+                matches ??= [];
+                matches.Add(new CompletionResult(agentName, agentName, CompletionResultType.ParameterValue, a.Impl.Description));
+            }
+        }
+
+        if (matches is not null)
+        {
+            return new CommandCompletion(matches, -1, replacementIndex: 1, replacementLength: targetName.Length);
+        }
+
+        return null;
+    }
+
+    private CommandCompletion CompleteForCommand(string input, int cursorIndex)
+    {
         string cmdLine = input[1..].Trim();
         if (cmdLine.Length is 0)
         {
