@@ -14,6 +14,7 @@ namespace Microsoft.PowerShell
     {
         CommandCompletion CompleteInput(string input, int cursorIndex);
         Task<List<PredictionResult>> PredictInputAsync(string input);
+        string GetSyntaxHighlightingColor(string input, int index);
     }
 
     namespace Internal

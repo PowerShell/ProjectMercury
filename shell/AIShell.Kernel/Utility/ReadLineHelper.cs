@@ -11,6 +11,12 @@ namespace AIShell.Kernel;
 
 internal class ReadLineHelper : IReadLineHelper
 {
+    // TODO: these colors should be made configurable.
+    const string Agent = "\x1b[96m";
+    const string Command = "\x1b[93m";
+    const string Parameter = "\x1b[90m";
+    const string Argument = "\x1b[39;49m";
+
     private readonly Shell _shell;
     private readonly CommandRunner _cmdRunner;
     private readonly Comparison<CompletionResult> _comparison;
@@ -127,6 +133,11 @@ internal class ReadLineHelper : IReadLineHelper
         }
     }
 
+    /// <summary>
+    /// Get tab completion results.
+    /// </summary>
+    /// <param name="input">The input from user.</param>
+    /// <param name="cursorIndex">The current cursor index.</param>
     public CommandCompletion CompleteInput(string input, int cursorIndex)
     {
         if (cursorIndex is 0)
@@ -294,9 +305,58 @@ internal class ReadLineHelper : IReadLineHelper
         };
     }
 
+    /// <summary>
+    /// Predict based on user's input.
+    /// </summary>
+    /// <param name="input">The input from user.</param>
     public Task<List<PredictionResult>> PredictInputAsync(string input)
     {
         return Task.Run(() => PredictInput(input));
+    }
+
+    /// <summary>
+    /// Get the syntax highlighting color for the character at the specified <paramref name="index"/>.
+    /// </summary>
+    /// <param name="input">The input from user.</param>
+    /// <param name="index">The index of the char to be rendered.</param>
+    /// <returns>VT sequence of the color.</returns>
+    public string GetSyntaxHighlightingColor(string input, int index)
+    {
+        if (input.StartsWith('@'))
+        {
+            int spaceIndex = input.IndexOf(' ');
+            if (spaceIndex is -1 || index < spaceIndex)
+            {
+                return Agent;
+            }
+
+            return null;
+        }
+        else if (input.StartsWith('/'))
+        {
+            // TODO: we should try tokenizing the command to cover single-quoted and double-quoted strings.
+            // The tokenization state should be cached so that it can be reused when the input is unchanged.
+            if (char.IsWhiteSpace(input[index]))
+            {
+                return null;
+            }
+
+            int spaceIndex = input.IndexOf(' ');
+            if (spaceIndex is -1 || index < spaceIndex)
+            {
+                return Command;
+            }
+
+            spaceIndex = input.LastIndexOf(' ', index);
+            if (input[spaceIndex + 1] is '-')
+            {
+                return Parameter;
+            }
+
+            return Argument;
+        }
+
+        return null;
     }
 }
 
@@ -374,5 +434,10 @@ internal class PromptHelper : IReadLineHelper
         }
 
         return suggestions is null ? null : [new(_predictorId, _predictorName, session: null, suggestions)];
+    }
+
+    public string GetSyntaxHighlightingColor(string buffer, int index)
+    {
+        return null;
     }
 }
