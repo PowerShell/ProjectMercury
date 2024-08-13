@@ -12,9 +12,9 @@ internal class CodeInlineRenderer : VTObjectRenderer<CodeInline>
 {
     // Use extended color for background.
     // See https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#extended-colors
-    private const string VTStyle = "\x1b[92;48;5;236m";
+    private const string VTStyle = "\x1b[39;48;5;236m";
     private const string VTReset = "\x1b[0m";
-    private const string MarkupStyle = "[rgb(0,195,0) on rgb(48,48,48)]";
+    private const string MarkupStyle = "[default on rgb(48,48,48)]";
     private const string MarkupReset = "[/]";
 
     protected override void Write(VTRenderer renderer, CodeInline obj)

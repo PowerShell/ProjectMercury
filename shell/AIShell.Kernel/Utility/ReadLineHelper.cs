@@ -13,7 +13,7 @@ internal class ReadLineHelper : IReadLineHelper
 {
     // TODO: these colors should be made configurable.
     const string Agent = "\x1b[96m";
-    const string Command = "\x1b[93m";
+    const string Command = "\x1b[92m";
     const string Parameter = "\x1b[90m";
     const string Argument = "\x1b[39;49m";
 
