@@ -149,7 +149,7 @@ internal sealed class Shell : IShell
         }
 
         // Write out help.
-        Host.MarkupLine($"Type {Formatter.Command("/help")} for more instructions.")
+        Host.MarkupLine($"Run {Formatter.Command("/help")} for more instructions.")
             .WriteLine();
     }
 
@@ -646,7 +646,7 @@ internal sealed class Shell : IShell
 
                     Host.WriteLine()
                         .MarkupWarningLine("No active agent selected, chat is disabled.")
-                        .MarkupWarningLine($"Run {agentCommand} to select an agent. Type {helpCommand} for more instructions.")
+                        .MarkupWarningLine($"Run {agentCommand} to select an agent, or {helpCommand} for more instructions.")
                         .WriteLine();
                     continue;
                 }
