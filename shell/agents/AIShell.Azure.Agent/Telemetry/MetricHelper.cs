@@ -41,7 +41,7 @@ public class MetricHelper
         // Hence connection string must be specified here.
         services.AddApplicationInsightsTelemetryWorkerService((ApplicationInsightsServiceOptions options) =>
             {
-                options.ConnectionString = "InstrumentationKey=c7d054ff-9f40-43e8-bf8e-7d76c58cc1af";
+                options.ConnectionString = "InstrumentationKey=eea660a1-d969-44f8-abe4-96666e7fb159";
                 options.EnableHeartbeat = false;
                 options.EnableDiagnosticsTelemetryModule = false;
             }
