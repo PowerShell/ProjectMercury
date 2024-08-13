@@ -651,9 +651,10 @@ internal sealed class AsciiLetterSpinner : Spinner
 
 internal static class Formatter
 {
-    internal static string InlineCode(string code)
+    internal static string Command(string code)
     {
-        return $"[indianred1 on grey19] {code} [/]";
+        // Green on grey for command format.
+        return $"[rgb(0,195,0) on rgb(48,48,48)] {code} [/]";
     }
 
     internal static string Error(string message)
