@@ -240,7 +240,7 @@ internal sealed class ReplaceCommand : CommandBase
         }
 
         // We are doing the replacement locally, but want to fake the regeneration.
-        await Task.Delay(2500, Shell.CancellationToken);
+        await Task.Delay(2000, Shell.CancellationToken);
 
         ResponseData data = ap.ResponseData;
         foreach (CommandItem command in data.CommandSet)
