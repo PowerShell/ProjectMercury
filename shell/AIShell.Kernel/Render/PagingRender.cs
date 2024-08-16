@@ -42,16 +42,14 @@ internal class Pager
         {
             if (_specifiedByUser)
             {
-                string inline = Formatter.InlineCode(EnvVarName);
-                AnsiConsole.MarkupLine(Formatter.Error($"Command specified in the environment variable {inline} cannot be resolved."));
+                AnsiConsole.MarkupLine(Formatter.Error($"Command specified in the environment variable '{EnvVarName}' cannot be resolved."));
                 AnsiConsole.MarkupLine(Formatter.Error("Paging functionality is disabled."));
                 AnsiConsole.WriteLine();
             }
             else
             {
-                string inline = Formatter.InlineCode(DefaultPager);
-                AnsiConsole.MarkupLine(Formatter.Warning($"Default paging utility {inline} cannot be found in PATH. Paging functionality is disabled."));
-                AnsiConsole.MarkupLine(Formatter.Warning($"It's recommended to enable paging when using the alternate screen buffer. Please consider install {inline} to your PATH"));
+                AnsiConsole.MarkupLine(Formatter.Warning($"Default paging utility '{DefaultPager}' cannot be found in PATH. Paging functionality is disabled."));
+                AnsiConsole.MarkupLine(Formatter.Warning($"It's recommended to enable paging when using the alternate screen buffer. Please consider install '{DefaultPager}' to your PATH"));
                 AnsiConsole.WriteLine();
             }
         }

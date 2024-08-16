@@ -27,6 +27,8 @@ internal class ResponseData
 {
     public string Description { get; set; }
     public List<CommandItem> CommandSet { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<PlaceholderItem> PlaceholderSet { get; set; }
 }
 
