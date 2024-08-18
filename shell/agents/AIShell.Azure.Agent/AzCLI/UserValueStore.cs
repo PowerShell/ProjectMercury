@@ -4,7 +4,7 @@ namespace AIShell.Azure.CLI;
 
 internal class UserValueStore
 {
-    const string PseudoValuePrefix = "__replace_";
+    const string PseudoValuePrefix = "__pseudo_";
     const string PseudoValueSuffix = "_v__";
     private int _counter;
     private readonly Dictionary<string, string> _pseudoToRealValueMap;

@@ -149,7 +149,7 @@ internal sealed class Shell : IShell
         }
 
         // Write out help.
-        Host.MarkupLine($"Type {Formatter.InlineCode("/help")} for more instructions.")
+        Host.MarkupLine($"Run {Formatter.Command("/help")} for more instructions.")
             .WriteLine();
     }
 
@@ -561,7 +561,7 @@ internal sealed class Shell : IShell
                 {
                     string command = $"/{name}";
                     bool confirmed = await Host.PromptForConfirmationAsync(
-                        $"Do you mean to run the command {Formatter.InlineCode(command)} instead?",
+                        $"Do you mean to run the command {Formatter.Command(command)} instead?",
                         defaultValue: true,
                         cancellationToken: CancellationToken.None);
 
@@ -641,12 +641,12 @@ internal sealed class Shell : IShell
                 if (agent is null)
                 {
                     // No agent to serve the query. Print the warning and go back to read-line prompt.
-                    string agentCommand = Formatter.InlineCode($"/agent use");
-                    string helpCommand = Formatter.InlineCode("/help");
+                    string agentCommand = Formatter.Command($"/agent use");
+                    string helpCommand = Formatter.Command("/help");
 
                     Host.WriteLine()
                         .MarkupWarningLine("No active agent selected, chat is disabled.")
-                        .MarkupWarningLine($"Run {agentCommand} to select an agent. Type {helpCommand} for more instructions.")
+                        .MarkupWarningLine($"Run {agentCommand} to select an agent, or {helpCommand} for more instructions.")
                         .WriteLine();
                     continue;
                 }
@@ -677,7 +677,7 @@ internal sealed class Shell : IShell
                                 token: CancellationToken).WaitAsync(CancellationToken);
 
                             int selected = await Host.RunWithSpinnerAsync(find_agent_op, status: "Thinking...");
-                            string agentCommand = Formatter.InlineCode($"/agent pop");
+                            string agentCommand = Formatter.Command($"/agent pop");
 
                             if (selected >= 0)
                             {
@@ -724,7 +724,7 @@ internal sealed class Shell : IShell
                     {
                         Host.WriteLine()
                             .MarkupWarningLine($"[[{Utils.AppName}]]: Agent self-check failed. Resolve the issue as instructed and try again.")
-                            .MarkupWarningLine($"[[{Utils.AppName}]]: Run {Formatter.InlineCode($"/agent config {agent.Impl.Name}")} to edit the settings for the agent.");
+                            .MarkupWarningLine($"[[{Utils.AppName}]]: Run {Formatter.Command($"/agent config {agent.Impl.Name}")} to edit the settings for the agent.");
                     }
                 }
                 catch (Exception ex)
