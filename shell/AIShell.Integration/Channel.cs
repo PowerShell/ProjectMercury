@@ -51,7 +51,7 @@ public class Channel : IDisposable
         return Singleton ??= new Channel(runspace, psConsoleReadLineType);
     }
 
-    internal static Channel Singleton { get; private set; }
+    public static Channel Singleton { get; private set; }
 
     internal string PSVersion => _runspace.Version.ToString();
 
@@ -79,7 +79,7 @@ public class Channel : IDisposable
         return false;
     }
 
-    internal string StartChannelSetup()
+    public string StartChannelSetup()
     {
         if (_serverPipe is not null)
         {
