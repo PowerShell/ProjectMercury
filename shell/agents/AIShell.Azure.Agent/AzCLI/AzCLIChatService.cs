@@ -113,7 +113,11 @@ internal class AzCLIChatService : IDisposable
         catch (Exception exception)
         {
             // We don't save the question to history when we failed to get a response.
-            _chatHistory.RemoveAt(_chatHistory.Count - 1);
+            // Check on history count in case the exception is thrown from token refreshing at the very beginning.
+            if (_chatHistory.Count > 0)
+            {
+                _chatHistory.RemoveAt(_chatHistory.Count - 1);
+            }
 
             // Re-throw unless the operation was cancelled by user.
             if (exception is not OperationCanceledException)
