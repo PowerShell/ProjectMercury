@@ -736,7 +736,7 @@ internal sealed class Shell : IShell
                     }
 
                     Host.WriteErrorLine()
-                        .WriteErrorLine($"Agent failed to generate a response: {ex.Message}")
+                        .WriteErrorLine($"Agent failed to generate a response: {ex.Message}\n{ex.StackTrace}")
                         .WriteErrorLine();
                 }
             }

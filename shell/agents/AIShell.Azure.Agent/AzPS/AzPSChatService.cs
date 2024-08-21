@@ -137,7 +137,9 @@ internal class AzPSChatService : IDisposable
         }
         catch (Exception exception)
         {
-            if (_interactive)
+            // We don't save the question to history when we failed to get a response.
+            // Check on history count in case the exception is thrown from token refreshing at the very beginning.
+            if (_interactive && _chatHistory.Count > 0)
             {
                 // We don't save the question to history when we failed to get a response.
                 _chatHistory.RemoveAt(_chatHistory.Count - 1);
