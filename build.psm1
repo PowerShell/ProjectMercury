@@ -432,4 +432,30 @@ function Copy-SignedFileBack
     $dests | Write-Verbose -Verbose
 }
 
-Export-ModuleMember -Function Start-Build, Find-Dotnet, Install-Dotnet, Set-NuGetSourceCred, Start-Bootstrap, Copy-1PFilesToSign, Copy-3PFilesToSign, Copy-SignedFileBack
+<#
+.SYNOPSIS
+    Run 'dotnet restore' for all the target runtime that we are interested in to
+    update packages on the CFS feed.
+    This needs to be run on a MS employee's dev machine whenever there is update
+    to the NuGet packages used in PSReadLine repo, so that the package and all its
+    dependencies can be pull into the CFS feed from upstream feed.
+#>
+function Update-CFSFeed
+{
+    $rids = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')
+
+    Write-Host "1. clear all NuGet caches on the local machine." -ForegroundColor Green
+    dotnet nuget locals all -c
+
+    $projFiles = Get-ChildItem $PSScriptRoot/*.csproj -Recurse | ForEach-Object FullName
+
+    Write-Host "2. restore for target runtimes." -ForegroundColor Green
+    foreach ($rid in $rids) {
+        Write-Host "  - $rid" -ForegroundColor Green
+        foreach ($file in $projFiles) {
+            dotnet restore -r $rid $file
+        }
+    }
+}
+
+Export-ModuleMember -Function Start-Build, Find-Dotnet, Install-Dotnet, Set-NuGetSourceCred, Start-Bootstrap, Copy-1PFilesToSign, Copy-3PFilesToSign, Copy-SignedFileBack, Update-CFSFeed
