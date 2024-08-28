@@ -19,10 +19,12 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 8.0.400
     - name: Build
       shell: pwsh
-      run: ./build.ps1 -Verbose
+      run: |
+        Import-Module ./build.psm1 -Force
+        Start-Build -Verbose
 
   build-windows:
 
@@ -33,10 +35,12 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 8.0.400
     - name: Build
       shell: pwsh
-      run: ./build.ps1 -Verbose
+      run: |
+        Import-Module ./build.psm1 -Force
+        Start-Build -Verbose
 
   build-macos:
 
@@ -47,7 +51,9 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 8.0.400
     - name: Build
       shell: pwsh
-      run: ./build.ps1 -Verbose
+      run: |
+        Import-Module ./build.psm1 -Force
+        Start-Build -Verbose
