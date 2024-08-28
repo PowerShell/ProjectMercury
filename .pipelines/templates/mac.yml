@@ -65,8 +65,8 @@ jobs:
         $moduleArtifact = "$artifactName-module"
 
         # Since we are using custom pool for macOS, we need to use artifact.upload to publish the artifacts
-        Write-Host "##vso[artifact.upload containerfolder=$appArtifact;artifactname=$appArtifact]$result.App"
-        Write-Host "##vso[artifact.upload containerfolder=$moduleArtifact;artifactname=$moduleArtifact]$result.Module"
+        Write-Host "##vso[artifact.upload containerfolder=$appArtifact;artifactname=$appArtifact]$($result.App)"
+        Write-Host "##vso[artifact.upload containerfolder=$moduleArtifact;artifactname=$moduleArtifact]$($result.Module)"
       }
     displayName: 'Build macOS'
 

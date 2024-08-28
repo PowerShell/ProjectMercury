@@ -73,11 +73,11 @@ jobs:
         Write-Verbose "App path: $($result.App)" -Verbose
         Write-Verbose "Module path: $($result.Module)" -Verbose
 
-        $vstsCommandString = "vso[task.setvariable variable=AppDir]$result.App"
+        $vstsCommandString = "vso[task.setvariable variable=AppDir]$($result.App)"
         Write-Host ("sending " + $vstsCommandString)
         Write-Host "##$vstsCommandString"
 
-        $vstsCommandString = "vso[task.setvariable variable=ModuleDir]$result.Module"
+        $vstsCommandString = "vso[task.setvariable variable=ModuleDir]$($result.Module)"
         Write-Host ("sending " + $vstsCommandString)
         Write-Host "##$vstsCommandString"
       }

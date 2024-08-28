@@ -125,7 +125,7 @@ function Start-Build
             $installHelp = $true
         } else {
             Write-Host "`n  The 'PlatyPS' module is not installed. Installing for creating in-shell help ..." -ForegroundColor Green
-            Install-Module -Name platyPS -RequiredVersion 0.14.2 -Repository PSGallery -Force
+            Install-Module -Name platyPS -RequiredVersion 0.14.2 -Repository PSGallery -Force -Verbose:$false
             if ($?) {
                 $installHelp = $true
             } else {
