@@ -24,13 +24,15 @@ function Start-Build
         [string[]] $AgentToInclude,
 
         [Parameter()]
-        [switch] $Clean,
-
-        [Parameter()]
-        [switch] $PassThru
+        [switch] $Clean
     )
 
     $ErrorActionPreference = 'Stop'
+    $IsReleaseBuild = (Test-Path env:\BUILD_BUILDID) -and (Test-Path env:\BUILD_BUILDNUMBER)
+
+    if ($IsReleaseBuild) {
+        Write-Verbose "Building in a OneBranch release pipeline. Non-interactive."
+    }
 
     if (-not $AgentToInclude) {
         $agents = $metadata.AgentsToInclude
@@ -139,16 +141,18 @@ function Start-Build
 
     if ($LASTEXITCODE -eq 0) {
         $shell_path = Join-Path $app_out_dir ($IsWindows ? "aish.exe" : "aish")
-        Set-Clipboard $shell_path
-        Write-Host "`nBuild was successful, output path: $shell_path " -NoNewline -ForegroundColor Green
-        Write-Host "(copied to clipboard)`n" -ForegroundColor Cyan
 
-        if ($PassThru) {
-            return [PSCustomObject]@{
+        if ($IsReleaseBuild) {
+            Write-Host "`nBuild was successful, output path: $shell_path" -ForegroundColor Green
+            [PSCustomObject]@{
                 Out = $out_dir
                 App = $app_out_dir
                 Module = $module_out_dir
-            }
+            } | ConvertTo-Json | Out-File "$PSScriptRoot/_build_output_.json"
+        } else {
+            Set-Clipboard $shell_path
+            Write-Host "`nBuild was successful, output path: $shell_path " -NoNewline -ForegroundColor Green
+            Write-Host "(copied to clipboard)`n" -ForegroundColor Cyan
         }
     }
 }

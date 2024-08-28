@@ -42,6 +42,12 @@ jobs:
     env:
       ob_restore_phase: true
 
+  - pwsh: |
+      Get-ChildItem Env:
+    displayName: Capture environment variables
+    env:
+      ob_restore_phase: true
+
   - template: /.pipelines/templates/update-nuget-config.yml@self
     parameters:
       repoRoot: $(repoRoot)
@@ -59,10 +65,15 @@ jobs:
       Install-Dotnet
 
       $runtime = '$(Runtime)'
-      Write-Verbose -Message "Building with Runtime: $runtime"
-      $result = Start-Build -Runtime $runtime -Configuration Release -Clean -PassThru -Verbose
+      Write-Verbose "Building with Runtime: $runtime" -Verbose
+      Start-Build -Runtime $runtime -Configuration Release -Clean -PassThru -Verbose
 
-      if ($result) {
+      $outputJson = '$(repoRoot)/_build_output_.json'
+      if (Test-Path $outputJson) {
+        $result = Get-Content $outputJson | ConvertFrom-Json
+        Write-Verbose "App path: $($result.App)" -Verbose
+        Write-Verbose "Module path: $($result.Module)" -Verbose
+
         $vstsCommandString = "vso[task.setvariable variable=AppDir]$result.App"
         Write-Host ("sending " + $vstsCommandString)
         Write-Host "##$vstsCommandString"
