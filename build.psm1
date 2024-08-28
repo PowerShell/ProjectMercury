@@ -47,7 +47,8 @@ function Start-Build
         Select-Object -First 1 |
         ForEach-Object { $_.Matches.Groups[1].Value })
 
-    Write-Verbose "Runtime: $RID `nAgents: $($AgentToInclude -join ",")"
+    Write-Verbose "Runtime: $RID"
+    Write-Verbose "Agents: $($AgentToInclude -join ",")"
 
     $shell_dir = Join-Path $PSScriptRoot "shell"
     $agent_dir = Join-Path $shell_dir "agents"
