@@ -106,9 +106,9 @@ extends:
     - stage: windows
       displayName: windows - build and sign
       jobs:
-      - template: /.pipelines/templates/windows-hosted-build.yml@self
+      - template: /.pipelines/templates/windows.yml@self
         parameters:
           Architecture: x64
-      - template: /.pipelines/templates/windows-hosted-build.yml@self
+      - template: /.pipelines/templates/windows.yml@self
         parameters:
           Architecture: arm64
