@@ -1,0 +1,97 @@
+parameters:
+  appPath: ''
+  modulePath: ''
+  repoRoot: ''
+
+steps:
+- pwsh: |
+    $appPath = '${{ parameters.appPath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $singing1P = "$(Pipeline.Workspace)/singing1P"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-1PFilesToSign -SourceRoot $appPath -TargetRoot $singing1P
+  displayName: 'Prepare AIShell app 1st party files for signing'
+
+- task: onebranch.pipeline.signing@1
+  displayName: Sign AIShell app 1st party files
+  inputs:
+    command: 'sign'
+    signing_profile: external_distribution
+    files_to_sign: '**\*.psd1;**\*.psm1;**\*.ps1xml;**\*.ps1;**\*.dll;**\*.exe'
+    search_root: $(Pipeline.Workspace)/singing1P
+
+- pwsh: |
+    $appPath = '${{ parameters.appPath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $singing1P = "$(Pipeline.Workspace)/singing1P"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-SignedFileBack -SourceRoot $singing1P -TargetRoot $appPath
+  displayName: 'Copy AIShell app signed 1st party files back'
+
+- pwsh: |
+    $appPath = '${{ parameters.appPath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $singing3P = "$(Pipeline.Workspace)/singing3P"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-3PFilesToSign -SourceRoot $appPath -TargetRoot $singing3P
+  displayName: 'Prepare AIShell app 3rd party files for signing'
+
+- task: onebranch.pipeline.signing@1
+  displayName: Sign AIShell app 3rd Party files
+  inputs:
+    command: 'sign'
+    signing_profile: $(msft_3rd_party_cert_id)
+    files_to_sign: '**\*.dll;**\*.exe'
+    search_root: $(Pipeline.Workspace)/singing3P
+
+- pwsh: |
+    $appPath = '${{ parameters.appPath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $singing3P = "$(Pipeline.Workspace)/singing3P"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-SignedFileBack -SourceRoot $singing3P -TargetRoot $appPath
+  displayName: 'Copy AIShell app signed 3rd party files back'
+
+- pwsh: |
+    $modulePath = '${{ parameters.modulePath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $moduleSign = "$(Pipeline.Workspace)/moduleSign"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-1PFilesToSign -SourceRoot $modulePath -TargetRoot $moduleSign
+  displayName: 'Prepare AIShell module 1st party files for signing'
+
+- task: onebranch.pipeline.signing@1
+  displayName: Sign AIShell module 1st party files
+  inputs:
+    command: 'sign'
+    signing_profile: external_distribution
+    files_to_sign: '**\*.psd1;**\*.psm1;**\*.ps1xml;**\*.ps1;**\*.dll;**\*.exe'
+    search_root: $(Pipeline.Workspace)/moduleSign
+
+- pwsh: |
+    $modulePath = '${{ parameters.modulePath }}'
+    $repoRoot = '${{ parameters.repoRoot }}'
+    $moduleSign = "$(Pipeline.Workspace)/moduleSign"
+
+    Import-Module $repoRoot/build.psm1 -Force
+    Copy-SignedFileBack -SourceRoot $moduleSign -TargetRoot $modulePath
+  displayName: 'Copy AIShell module signed 1st party files back'
+
+- pwsh: |
+    $uploadAppPath = mkdir '$(ob_outputDirectory)/signed-app' -Force
+    Write-Verbose -Verbose -Message "uploadAppPath: $uploadAppPath"
+    Copy-Item -Path '${{ parameters.appPath }}\*' -Destination $uploadAppPath -Recurse -Force -Verbose
+    Write-Verbose -Verbose -Message "Files copied to $uploadAppPath"
+
+    $uploadModulePath = mkdir '$(ob_outputDirectory)/signed-module' -Force
+    Write-Verbose -Verbose -Message "uploadModulePath: $uploadModulePath"
+    Copy-Item -Path '${{ parameters.modulePath }}\*' -Destination $uploadModulePath -Recurse -Force -Verbose
+    Write-Verbose -Verbose -Message "Files copied to $uploadModulePath"
+  displayName: 'Upload signed app and module files'
+
+- template: /.pipelines/templates/finalize.yml@self

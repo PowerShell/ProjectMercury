@@ -1,0 +1,27 @@
+parameters:
+- name: "repoRoot"
+  default: $(REPOROOT)
+
+steps:
+- task: NuGetAuthenticate@1
+  displayName: Install Azure Artifacts Credential Provider
+  inputs:
+    forceReinstallCredentialProvider: true
+
+- pwsh: |
+    Import-Module ${{ parameters.repoRoot }}/tools/ReleaseTools.psm1 -Force
+    Write-Verbose -Verbose "Running: Set-NuGetSourceCred -UserName '$(AzDevopsFeedUserNameKVPAT)' -ClearTextPAT '$(powershellPackageReadPat)'"
+    Set-NuGetSourceCred -UserName '$(AzDevopsFeedUserNameKVPAT)' -ClearTextPAT '$(powershellPackageReadPat)'
+  displayName: 'Add AzFeed package source credential'
+  env:
+    ob_restore_phase: true
+
+- pwsh: |
+    Get-ChildItem ${{ parameters.repoRoot }}/nuget.config -Recurse | Foreach-Object {
+      Write-Verbose -Verbose "--- START $($_.fullname) ---"
+      Get-Content $_.fullname  | Out-String -width 500 -Stream | write-Verbose -Verbose
+      Write-Verbose -Verbose "--- END $($_.fullname) ---"
+    }
+  displayName: 'Capture all nuget.config files'
+  env:
+    ob_restore_phase: true
