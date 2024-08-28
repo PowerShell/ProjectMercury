@@ -93,4 +93,4 @@ jobs:
       modulePath: '$(ModuleDir)'
       repoRoot: '$(repoRoot)'
 
-  - template: /.pipelines/templates/step/finalize.yml@self
+  - template: /.pipelines/templates/finalize.yml@self
