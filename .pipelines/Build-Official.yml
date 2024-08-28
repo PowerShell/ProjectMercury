@@ -1,0 +1,114 @@
+name: AIShell-Build-$(Build.BuildId)
+trigger: none
+
+parameters:
+  - name: SKIP_SIGNING
+    displayName: Skip Signing
+    type: string
+    default: 'NO'
+
+resources:
+  repositories:
+  - repository: ComplianceRepo
+    type: github
+    endpoint: ComplianceGHRepo
+    name: PowerShell/compliance
+    ref: master
+  - repository: onebranchTemplates
+    type: git
+    name: OneBranch.Pipelines/GovernedTemplates
+    ref: refs/heads/main
+
+variables:
+  - name: DOTNET_CLI_TELEMETRY_OPTOUT
+    value: 1
+  - name: POWERSHELL_TELEMETRY_OPTOUT
+    value: 1
+  - name: nugetMultiFeedWarnLevel
+    value: none
+  - name: NugetSecurityAnalysisWarningLevel
+    value: none
+  - name: skipNugetSecurityAnalysis
+    value: true
+  - name: branchCounterKey
+    value: $[format('{0:yyyyMMdd}-{1}', pipeline.startTime,variables['Build.SourceBranch'])]
+  - name: branchCounter
+    value: $[counter(variables['branchCounterKey'], 1)]
+  - name: BUILDSECMON_OPT_IN
+    value: true
+  - name: LinuxContainerImage
+    value: onebranch.azurecr.io/linux/ubuntu-2004:latest
+  - name: WindowsContainerImage
+    value: onebranch.azurecr.io/windows/ltsc2019/vse2022:latest
+  - name: CDP_DEFINITION_BUILD_COUNT
+    value: $[counter('', 0)]
+  - name: SKIP_SIGNING
+    value: ${{ parameters.SKIP_SIGNING }}
+  - group: mscodehub-feed-read-general
+  - group: mscodehub-feed-read-akv
+
+extends:
+  template: v2/OneBranch.Official.CrossPlat.yml@onebranchTemplates
+  parameters:
+    customTags: 'ES365AIMigrationTooling'
+    featureFlags:
+      LinuxHostVersion:
+          Network: KS3
+      WindowsHostVersion:
+          Network: KS3
+    globalSdl:
+      disableLegacyManifest: true
+      # disabled Armorty as we dont have any ARM templates to scan. It fails on some sample ARM templates.
+      armory:
+        enabled: false
+      sbom:
+        enabled: true
+        buildComponentPath: $(Build.SourcesDirectory)\ProjectMercury\shell
+      codeql:
+        compiled:
+          enabled: true
+      cg:
+        enabled: true
+        ignoreDirectories: 'docs,test,tools'
+      asyncSdl:
+        enabled: true
+        forStages: [prep, macos, linux, windows]
+        credscan:
+          enabled: true
+          scanFolder: $(Build.SourcesDirectory)\ProjectMercury\shell
+        binskim:
+          enabled: false
+        apiscan:
+          enabled: false
+        tsaOptionsFile: $(Build.SourcesDirectory)\ProjectMercury\.config\tsaoptions.json
+
+    stages:
+    - stage: macos
+      displayName: macOS - build and sign
+      jobs:
+      - template: /.pipelines/templates/mac.yml@self
+        parameters:
+          Architecture: x64
+      - template: /.pipelines/templates/mac.yml@self
+        parameters:
+          Architecture: arm64
+
+    - stage: linux
+      displayName: linux - build and sign
+      jobs:
+      - template: /.pipelines/templates/linux.yml@self
+        parameters:
+          Architecture: x64
+      - template: /.pipelines/templates/linux.yml@self
+        parameters:
+          Architecture: arm64
+
+    - stage: windows
+      displayName: windows - build and sign
+      jobs:
+      - template: /.pipelines/templates/windows-hosted-build.yml@self
+        parameters:
+          Architecture: x64
+      - template: /.pipelines/templates/windows-hosted-build.yml@self
+        parameters:
+          Architecture: arm64

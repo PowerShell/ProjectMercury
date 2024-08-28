@@ -11,43 +11,52 @@ on:
 
 jobs:
   build-linux:
-
     runs-on: ubuntu-latest
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 8.0.400
     - name: Build
       shell: pwsh
-      run: ./build.ps1 -Verbose
+      run: |
+        Import-Module ./build.psm1 -Force
+        Start-Build -Verbose
 
   build-windows:
-
     runs-on: windows-latest
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 8.0.400
     - name: Build
       shell: pwsh
-      run: ./build.ps1 -Verbose
+      run: |
+        Import-Module ./build.psm1 -Force
+        Start-Build -Verbose
 
   build-macos:
-
     runs-on: macos-latest
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 8.0.400
     - name: Build
       shell: pwsh
-      run: ./build.ps1 -Verbose
+      run: |
+        Import-Module ./build.psm1 -Force
+        Start-Build -Verbose
