@@ -203,6 +203,9 @@ function Test-DotnetSDK
             ($_ -split '\s',2)[0]
         }
 
+        Write-Verbose "Installed .NET SDK versions:" -Verbose
+        $installedVersions | Write-Verbose -Verbose
+
         return $installedVersions -contains $dotnetSDKVersion
     }
 
@@ -215,23 +218,13 @@ function Test-DotnetSDK
 #>
 function Install-Dotnet
 {
-    [CmdletBinding()]
-    param(
-        [string] $Version = $dotnetSDKVersion
-    )
-
     try {
         Find-Dotnet
-        return  # Simply return if we find dotnet SDk with the correct version
+        # Simply return if we find dotnet SDk with the correct version.
+        return
     } catch { }
 
-    $logMsg = if (Get-Command 'dotnet' -ErrorAction Ignore) {
-        "dotnet SDK out of date. Require '$dotnetSDKVersion' but found '$dotnetSDKVersion'. Updating dotnet."
-    } else {
-        "dotent SDK is not present. Installing dotnet SDK."
-    }
-
-    Write-Log $logMsg -Warning
+    Write-Verbose "Require .NET SDK '$dotnetSDKVersion' was not found" -Verbose
     $obtainUrl = "https://dotnet.microsoft.com/download/dotnet/scripts/v1"
 
     try {
@@ -240,30 +233,16 @@ function Install-Dotnet
         Invoke-WebRequest -Uri $obtainUrl/$installScript -OutFile $installScript
 
         if ($IsWindows) {
-            & .\$installScript -Version $Version
+            & .\$installScript -Version $dotnetSDKVersion
         } else {
-            bash ./$installScript -v $Version
+            bash ./$installScript -v $dotnetSDKVersion
         }
+
+        # Try to find the right .NET SDK again.
+        Find-Dotnet
     } finally {
         Remove-Item $installScript -Force -ErrorAction Ignore
     }
-}
-
-<#
-.SYNOPSIS
-    Write log message for the build.
-#>
-function Write-Log
-{
-    param(
-        [string] $Message,
-        [switch] $Warning,
-        [switch] $Indent
-    )
-
-    $foregroundColor = if ($Warning) { "Yellow" } else { "Green" }
-    $indentPrefix = if ($Indent) { "    " } else { "" }
-    Write-Host -ForegroundColor $foregroundColor "${indentPrefix}${Message}"
 }
 
 <#

@@ -65,7 +65,7 @@ jobs:
 
       $runtime = '$(Runtime)'
       Write-Verbose "Building with Runtime: $runtime" -Verbose
-      Start-Build -Runtime $runtime -Configuration Release -Clean -PassThru -Verbose
+      Start-Build -Runtime $runtime -Configuration Release -Clean -Verbose
 
       $outputJson = '$(repoRoot)/_build_output_.json'
       if (Test-Path $outputJson) {

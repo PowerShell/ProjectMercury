@@ -14,6 +14,8 @@ jobs:
   variables:
   - name: HOMEBREW_NO_ANALYTICS
     value: 1
+  - name: DOTNET_SKIP_FIRST_TIME_EXPERIENCE
+    value: 1
   - name: runCodesignValidationInjection
     value: false
   - name: NugetSecurityAnalysisWarningLevel
@@ -50,7 +52,7 @@ jobs:
 
       $runtime = '$(Runtime)'
       Write-Verbose "Building with Runtime: $runtime" -Verbose
-      Start-Build -Runtime $runtime -Configuration Release -Clean -PassThru -Verbose
+      Start-Build -Runtime $runtime -Configuration Release -Clean -Verbose
 
       $outputJson = '$(repoRoot)/_build_output_.json'
       if (Test-Path $outputJson) {
@@ -79,6 +81,8 @@ jobs:
   variables:
   - name: NugetSecurityAnalysisWarningLevel
     value: none
+  - name: DOTNET_SKIP_FIRST_TIME_EXPERIENCE
+    value: 1
   - group: DotNetPrivateBuildAccess
   - group: certificate_logical_to_actual
   - name: ob_outputDirectory
