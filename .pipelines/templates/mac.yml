@@ -100,7 +100,7 @@ jobs:
   - name: ob_sdl_codeql_compiled_enabled
     value: false
   - name: ob_sdl_sbom_packageName
-    value: 'AIShell.MacOS.${{parameters.Architecture}}'
+    value: 'AIShell.MacOS.$(Architecture)'
 
   steps:
   - checkout: self

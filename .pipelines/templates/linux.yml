@@ -31,8 +31,6 @@ jobs:
     value: ${{ parameters.Architecture }}
   - name: Runtime
     value: 'linux-$(Architecture)'
-  - name: ob_sdl_sbom_packageName
-    value: 'AIShell.Linux.${{ parameters.Architecture }}'
   #CodeQL tasks added manually to workaround signing failures
   - name: ob_sdl_codeql_compiled_enabled
     value: false
@@ -135,6 +133,8 @@ jobs:
     value: 'linux-$(Architecture)'
   - name: ob_sdl_codeql_compiled_enabled
     value: false
+  - name: ob_sdl_sbom_packageName
+    value: 'AIShell.Linux.$(Architecture)'
 
   steps:
   - checkout: self
@@ -150,7 +150,7 @@ jobs:
 
   - task: DownloadPipelineArtifact@2
     inputs:
-      artifact: drop_linux_build_${{ parameters.Architecture }}
+      artifact: drop_linux_build_$(Architecture)
       path: $(Pipeline.Workspace)/drop_linux_build
     displayName: Download build
 
