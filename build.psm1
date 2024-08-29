@@ -330,7 +330,7 @@ function Copy-1PFilesToSign
     }
     Pop-Location
 
-    Write-Verbose "Copy is done. List all files that were copied:"
+    Write-Verbose "Copy is done. List all files that were copied:" -Verbose
     Get-ChildItem $TargetRoot -Recurse -File | Out-String -Width 500 -Stream | Write-Verbose -Verbose
 }
 
@@ -370,7 +370,7 @@ function Copy-3PFilesToSign
     }
     Pop-Location
 
-    Write-Verbose "Copy is done. List all files that were copied:"
+    Write-Verbose "Copy is done. List all files that were copied:" -Verbose
     Get-ChildItem $TargetRoot -Recurse -File | Out-String -Width 500 -Stream | Write-Verbose -Verbose
 }
 
