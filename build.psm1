@@ -3,7 +3,7 @@
 
 #Requires -Version 7.2
 
-$metadata = Get-Content $PSScriptRoot/tools/Metadata.json | ConvertFrom-Json
+$metadata = Get-Content $PSScriptRoot/tools/metadata.json | ConvertFrom-Json
 $dotnetSDKVersion = $(Get-Content $PSScriptRoot/global.json | ConvertFrom-Json).Sdk.Version
 $dotnetLocalDir = if ($IsWindows) { "$env:LocalAppData\Microsoft\dotnet" } else { "$env:HOME/.dotnet" }
 

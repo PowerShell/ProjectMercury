@@ -75,12 +75,12 @@ extends:
         forStages: [prep, macos, linux, windows]
         credscan:
           enabled: true
-          scanFolder: $(Build.SourcesDirectory)\ProjectMercury\shell
+          scanFolder: $(Build.SourcesDirectory)
         binskim:
           enabled: false
         apiscan:
           enabled: false
-        tsaOptionsFile: $(Build.SourcesDirectory)\ProjectMercury\.config\tsaoptions.json
+        tsaOptionsFile: .config\tsaoptions.json
 
     stages:
     - stage: macos
