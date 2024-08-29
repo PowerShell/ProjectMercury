@@ -276,6 +276,37 @@ function Set-NuGetSourceCred
 "@
 
     Move-Item -Path $tempFile -Destination $nugetPath -Force
+
+    ## Send pipeline variable to suppress credential scan of the nuget.config file.
+    $xml = [xml](Get-Content -Path $nugetPath -Raw)
+    $url = $xml.configuration.packageSources.add | Where-Object { $_.key -eq 'PowerShell_PublicPackages' } | ForEach-Object value
+
+    $json = @{
+        endpointCredentials = @(
+            @{
+                endpoint = $url
+                username = $UserName
+                password = $ClearTextPAT
+            }
+        )
+    } | ConvertTo-Json -Compress
+    Set-PipelineVariable -Name 'VSS_NUGET_EXTERNAL_FEED_ENDPOINTS' -Value $json
+}
+
+function Set-PipelineVariable {
+    param(
+        [parameter(Mandatory)]
+        [string] $Name,
+        [parameter(Mandatory)]
+        [string] $Value
+    )
+
+    $vstsCommandString = "vso[task.setvariable variable=$Name]$Value"
+    Write-Verbose -Verbose -Message ("sending " + $vstsCommandString)
+    Write-Host "##$vstsCommandString"
+
+    # Also set in the current session
+    Set-Item -Path "env:$Name" -Value $Value
 }
 
 <#
