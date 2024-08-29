@@ -348,6 +348,9 @@ function Copy-3PFilesToSign
     }
     $null = New-Item -ItemType Directory -Path $TargetRoot -Force
 
+    $SourceRoot = (Resolve-Path $SourceRoot).Path
+    $TargetRoot = (Resolve-Path $TargetRoot).Path
+
     Push-Location $SourceRoot
     $unsigned = Get-ChildItem *.dll, *.exe -Recurse | Where-Object {
         $signature = Get-AuthenticodeSignature -FilePath $_.FullName
