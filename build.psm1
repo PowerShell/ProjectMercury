@@ -177,7 +177,7 @@ function Find-Dotnet
     $foundRequiredSDK = $dotnetInPath ? (Test-DotnetSDK $dotnetInPath.Source) : $false
 
     if (-not $foundRequiredSDK) {
-        if (Test-DotnetSDK $dotnetPath) {
+        if ($dotnetInPath.Source -ne $dotnetPath -and (Test-DotnetSDK $dotnetPath)) {
             Write-Warning "Prepending '$dotnetLocalDir' to PATH for the required .NET SDK $dotnetSDKVersion."
             $env:PATH = $dotnetLocalDir + [IO.Path]::PathSeparator + $env:PATH
         } else {
@@ -203,6 +203,7 @@ function Test-DotnetSDK
             ($_ -split '\s',2)[0]
         }
 
+        Write-Verbose "Testing $dotnetPath ..." -Verbose
         Write-Verbose "Installed .NET SDK versions:" -Verbose
         $installedVersions | Write-Verbose -Verbose
 
@@ -330,7 +331,7 @@ function Copy-1PFilesToSign
     Pop-Location
 
     Write-Verbose "Copy is done. List all files that were copied:"
-    Get-ChildItem $TargetRoot -Recurse | Out-String -Width 500 -Stream | Write-Verbose -Verbose
+    Get-ChildItem $TargetRoot -Recurse -File | Out-String -Width 500 -Stream | Write-Verbose -Verbose
 }
 
 function Copy-3PFilesToSign
@@ -370,7 +371,7 @@ function Copy-3PFilesToSign
     Pop-Location
 
     Write-Verbose "Copy is done. List all files that were copied:"
-    Get-ChildItem $TargetRoot -Recurse | Out-String -Width 500 -Stream | Write-Verbose -Verbose
+    Get-ChildItem $TargetRoot -Recurse -File | Out-String -Width 500 -Stream | Write-Verbose -Verbose
 }
 
 <#
@@ -390,7 +391,7 @@ function Copy-SignedFileBack
     $TargetRoot = (Resolve-Path $TargetRoot).Path
 
     Push-Location $SourceRoot
-    $signedFiles = Get-ChildItem -Recurse
+    $signedFiles = Get-ChildItem -Recurse -File
 
     Write-Verbose "List all signed files:" -Verbose
     $signedFiles | Out-String -Width 500 -Stream | Write-Verbose -Verbose
