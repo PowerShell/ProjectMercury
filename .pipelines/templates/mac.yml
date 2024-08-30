@@ -52,21 +52,16 @@ jobs:
 
       $runtime = '$(Runtime)'
       Write-Verbose "Building with Runtime: $runtime" -Verbose
-      Start-Build -Runtime $runtime -Configuration Release -Clean -Verbose
+      Start-Build -Runtime $runtime -Configuration Release -Clean -NotIncludeModule -Verbose
 
       $outputJson = '$(repoRoot)/_build_output_.json'
       if (Test-Path $outputJson) {
         $result = Get-Content $outputJson | ConvertFrom-Json
         Write-Verbose "App path: $($result.App)" -Verbose
-        Write-Verbose "Module path: $($result.Module)" -Verbose
 
         $artifactName = 'macBuild-$(Architecture)'
-        $appArtifact = "$artifactName-app"
-        $moduleArtifact = "$artifactName-module"
-
         # Since we are using custom pool for macOS, we need to use artifact.upload to publish the artifacts
-        Write-Host "##vso[artifact.upload containerfolder=$appArtifact;artifactname=$appArtifact]$($result.App)"
-        Write-Host "##vso[artifact.upload containerfolder=$moduleArtifact;artifactname=$moduleArtifact]$($result.Module)"
+        Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName]$($result.App)"
       }
     displayName: 'Build macOS'
 
@@ -116,18 +111,12 @@ jobs:
 
   - task: DownloadPipelineArtifact@2
     inputs:
-      artifact: 'macBuild-$(Architecture)-app'
+      artifact: 'macBuild-$(Architecture)'
       path: '$(Pipeline.Workspace)\macApp'
     displayName: Download app build
 
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      artifact: 'macBuild-$(Architecture)-module'
-      path: '$(Pipeline.Workspace)\macModule'
-    displayName: Download module build
-
   - pwsh: |
-        Get-ChildItem "$(Pipeline.Workspace)\*" -Recurse
+      Get-ChildItem '$(Pipeline.Workspace)\macApp' -Recurse
     displayName: 'List Downloaded Artifacts'
     # Diagnostics is not critical it passes every time it runs
     continueOnError: true
@@ -135,7 +124,6 @@ jobs:
   - template: /.pipelines/templates/sign-files.yml@self
     parameters:
       appPath: '$(Pipeline.Workspace)\macApp'
-      modulePath: '$(Pipeline.Workspace)\macModule'
       repoRoot: '$(repoRoot)'
 
   - template: /.pipelines/templates/finalize.yml@self

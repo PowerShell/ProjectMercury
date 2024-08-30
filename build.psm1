@@ -24,7 +24,10 @@ function Start-Build
         [string[]] $AgentToInclude,
 
         [Parameter()]
-        [switch] $Clean
+        [switch] $Clean,
+
+        [Parameter()]
+        [switch] $NotIncludeModule
     )
 
     $ErrorActionPreference = 'Stop'
@@ -115,11 +118,11 @@ function Start-Build
         dotnet publish $ollama_csproj -c $Configuration -o $ollama_out_dir
     }
 
-    if ($LASTEXITCODE -eq 0) {
+    if ($LASTEXITCODE -eq 0 -and -not $NotIncludeModule) {
         Write-Host "`n[Build the AIShell module ...]`n" -ForegroundColor Green
         $aish_module_csproj = GetProjectFile $module_dir
         dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
-        
+
         $installHelp = $false
         if (Get-Module -Name PlatyPS -ListAvailable) {
             $installHelp = $true
@@ -145,7 +148,6 @@ function Start-Build
         if ($IsReleaseBuild) {
             Write-Host "`nBuild was successful, output path: $shell_path" -ForegroundColor Green
             [PSCustomObject]@{
-                Out = $out_dir
                 App = $app_out_dir
                 Module = $module_out_dir
             } | ConvertTo-Json | Out-File "$PSScriptRoot/_build_output_.json"
