@@ -54,6 +54,7 @@ function Start-Build
 
     Write-Verbose "Runtime: $RID"
     Write-Verbose "Agents: $($AgentToInclude -join ",")"
+    Write-Verbose "Build AIShell module? $(-not $NotIncludeModule)"
 
     $shell_dir = Join-Path $PSScriptRoot "shell"
     $agent_dir = Join-Path $shell_dir "agents"

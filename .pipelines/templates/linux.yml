@@ -85,13 +85,19 @@ jobs:
     env:
       ob_restore_phase: true
 
+  - pwsh: |
+      Get-ChildItem $(AppDir) -Recurse
+    displayName: "List AIShell app files"
+    env:
+      ob_restore_phase: true
+
   - task: CopyFiles@2
     displayName: "Upload unsigned app files"
     env:
       ob_restore_phase: true
     inputs:
       SourceFolder: $(AppDir)
-      Contents: '**\*'
+      Contents: '**/*'
       TargetFolder: $(ob_outputDirectory)
 
   - template: /.pipelines/templates/finalize.yml@self
