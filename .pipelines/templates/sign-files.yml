@@ -10,10 +10,10 @@ steps:
 
     Import-Module $repoRoot/build.psm1 -Force
     Copy-1PFilesToSign -SourceRoot $appPath -TargetRoot $singing1P
-  displayName: 'Prepare 1st party files for signing'
+  displayName: 'Prepare 1st-party files for signing'
 
 - task: onebranch.pipeline.signing@1
-  displayName: Sign 1st party files
+  displayName: Sign 1st-party files
   inputs:
     command: 'sign'
     signing_profile: external_distribution
@@ -27,7 +27,7 @@ steps:
 
     Import-Module $repoRoot/build.psm1 -Force
     Copy-SignedFileBack -SourceRoot $singing1P -TargetRoot $appPath
-  displayName: 'Copy signed 1st party files back'
+  displayName: 'Copy signed 1st-party files back'
 
 - pwsh: |
     $appPath = '${{ parameters.appPath }}'
@@ -36,10 +36,10 @@ steps:
 
     Import-Module $repoRoot/build.psm1 -Force
     Copy-3PFilesToSign -SourceRoot $appPath -TargetRoot $singing3P
-  displayName: 'Prepare 3rd party files for signing'
+  displayName: 'Prepare 3rd-party files for signing'
 
 - task: onebranch.pipeline.signing@1
-  displayName: Sign 3rd Party files
+  displayName: Sign 3rd-party files
   inputs:
     command: 'sign'
     signing_profile: $(msft_3rd_party_cert_id)
@@ -53,10 +53,10 @@ steps:
 
     Import-Module $repoRoot/build.psm1 -Force
     Copy-SignedFileBack -SourceRoot $singing3P -TargetRoot $appPath
-  displayName: 'Copy signed 3rd party files back'
+  displayName: 'Copy signed 3rd-party files back'
 
 - task: CopyFiles@2
-  displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
+  displayName: "Upload signed files"
   inputs:
     SourceFolder: ${{ parameters.appPath }}
     Contents: '**\*'
