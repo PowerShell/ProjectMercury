@@ -85,9 +85,12 @@ jobs:
     env:
       ob_restore_phase: true
 
-  - pwsh: |
-      Copy-Item -Path '$(AppDir)/*' -Destination $(ob_outputDirectory) -Recurse -Force -Verbose
-    displayName: 'Upload unsigned app files'
+  - task: CopyFiles@2
+    displayName: "Upload unsigned app files"
+    inputs:
+      SourceFolder: $(AppDir)
+      Contents: '**\*'
+      TargetFolder: $(ob_outputDirectory)
 
   - template: /.pipelines/templates/finalize.yml@self
 

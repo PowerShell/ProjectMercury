@@ -55,9 +55,11 @@ steps:
     Copy-SignedFileBack -SourceRoot $singing3P -TargetRoot $appPath
   displayName: 'Copy signed 3rd party files back'
 
-- pwsh: |
-    Copy-Item -Path '${{ parameters.appPath }}\*' -Destination $(ob_outputDirectory) -Recurse -Force -Verbose
-    Write-Verbose -Verbose -Message "Files copied to $(ob_outputDirectory)"
-  displayName: 'Upload signed files'
+- task: CopyFiles@2
+  displayName: "Copy signed files to ob_outputDirectory - '$(ob_outputDirectory)'"
+  inputs:
+    SourceFolder: ${{ parameters.appPath }}
+    Contents: '**\*'
+    TargetFolder: $(ob_outputDirectory)
 
 - template: /.pipelines/templates/finalize.yml@self
