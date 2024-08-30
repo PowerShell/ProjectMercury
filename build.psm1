@@ -265,22 +265,8 @@ function Set-NuGetSourceCred
     )
 
     $nugetPath = "$PSScriptRoot/shell/nuget.config"
-    $tempFile = [System.IO.Path]::GetTempFileName()
 
-    Get-Content $nugetPath | Where-Object { $_ -ne "</configuration>" } | Out-File $tempFile -Encoding utf8
-    Add-Content $tempFile -Value @"
-  <packageSourceCredentials>
-    <PowerShell_PublicPackages>
-      <add key="Username" value="$UserName" />
-      <add key="ClearTextPassword" value="$ClearTextPAT" />
-    </PowerShell_PublicPackages>
-  </packageSourceCredentials>
-</configuration>
-"@
-
-    Move-Item -Path $tempFile -Destination $nugetPath -Force
-
-    ## Send pipeline variable to suppress credential scan of the nuget.config file.
+    ## Send pipeline variable to enable the UserName and PAT for the 'PowerShell_PublicPackages' feed.
     $xml = [xml](Get-Content -Path $nugetPath -Raw)
     $url = $xml.configuration.packageSources.add | Where-Object { $_.key -eq 'PowerShell_PublicPackages' } | ForEach-Object value
 
