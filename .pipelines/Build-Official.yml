@@ -114,7 +114,7 @@ extends:
           Architecture: arm64
 
     - stage: module
-      displayName: AIShell module
+      displayName: module - build and sign
       jobs:
       - job: build
         displayName: Build AIShell module
