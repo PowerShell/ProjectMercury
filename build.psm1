@@ -3,7 +3,7 @@
 
 #Requires -Version 7.2
 
-$metadata = Get-Content $PSScriptRoot/tools/Metadata.json | ConvertFrom-Json
+$metadata = Get-Content $PSScriptRoot/tools/metadata.json | ConvertFrom-Json
 $dotnetSDKVersion = $(Get-Content $PSScriptRoot/global.json | ConvertFrom-Json).Sdk.Version
 $dotnetLocalDir = if ($IsWindows) { "$env:LocalAppData\Microsoft\dotnet" } else { "$env:HOME/.dotnet" }
 
@@ -27,10 +27,15 @@ function Start-Build
         [switch] $Clean,
 
         [Parameter()]
-        [switch] $PassThru
+        [switch] $NotIncludeModule
     )
 
     $ErrorActionPreference = 'Stop'
+    $IsReleaseBuild = (Test-Path env:\BUILD_BUILDID) -and (Test-Path env:\BUILD_BUILDNUMBER)
+
+    if ($IsReleaseBuild) {
+        Write-Verbose "Building in a OneBranch release pipeline. Non-interactive."
+    }
 
     if (-not $AgentToInclude) {
         $agents = $metadata.AgentsToInclude
@@ -49,6 +54,7 @@ function Start-Build
 
     Write-Verbose "Runtime: $RID"
     Write-Verbose "Agents: $($AgentToInclude -join ",")"
+    Write-Verbose "Build AIShell module? $(-not $NotIncludeModule)"
 
     $shell_dir = Join-Path $PSScriptRoot "shell"
     $agent_dir = Join-Path $shell_dir "agents"
@@ -113,17 +119,17 @@ function Start-Build
         dotnet publish $ollama_csproj -c $Configuration -o $ollama_out_dir
     }
 
-    if ($LASTEXITCODE -eq 0) {
+    if ($LASTEXITCODE -eq 0 -and -not $NotIncludeModule) {
         Write-Host "`n[Build the AIShell module ...]`n" -ForegroundColor Green
         $aish_module_csproj = GetProjectFile $module_dir
         dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
-        
+
         $installHelp = $false
         if (Get-Module -Name PlatyPS -ListAvailable) {
             $installHelp = $true
         } else {
             Write-Host "`n  The 'PlatyPS' module is not installed. Installing for creating in-shell help ..." -ForegroundColor Green
-            Install-Module -Name platyPS -RequiredVersion 0.14.2 -Repository PSGallery -Force
+            Install-Module -Name platyPS -RequiredVersion 0.14.2 -Repository PSGallery -Force -Verbose:$false
             if ($?) {
                 $installHelp = $true
             } else {
@@ -139,16 +145,17 @@ function Start-Build
 
     if ($LASTEXITCODE -eq 0) {
         $shell_path = Join-Path $app_out_dir ($IsWindows ? "aish.exe" : "aish")
-        Set-Clipboard $shell_path
-        Write-Host "`nBuild was successful, output path: $shell_path " -NoNewline -ForegroundColor Green
-        Write-Host "(copied to clipboard)`n" -ForegroundColor Cyan
 
-        if ($PassThru) {
-            return [PSCustomObject]@{
-                Out = $out_dir
+        if ($IsReleaseBuild) {
+            Write-Host "`nBuild was successful, output path: $shell_path" -ForegroundColor Green
+            [PSCustomObject]@{
                 App = $app_out_dir
                 Module = $module_out_dir
-            }
+            } | ConvertTo-Json | Out-File "$PSScriptRoot/_build_output_.json"
+        } else {
+            Set-Clipboard $shell_path
+            Write-Host "`nBuild was successful, output path: $shell_path " -NoNewline -ForegroundColor Green
+            Write-Host "(copied to clipboard)`n" -ForegroundColor Cyan
         }
     }
 }
@@ -173,7 +180,7 @@ function Find-Dotnet
     $foundRequiredSDK = $dotnetInPath ? (Test-DotnetSDK $dotnetInPath.Source) : $false
 
     if (-not $foundRequiredSDK) {
-        if (Test-DotnetSDK $dotnetPath) {
+        if ($dotnetInPath.Source -ne $dotnetPath -and (Test-DotnetSDK $dotnetPath)) {
             Write-Warning "Prepending '$dotnetLocalDir' to PATH for the required .NET SDK $dotnetSDKVersion."
             $env:PATH = $dotnetLocalDir + [IO.Path]::PathSeparator + $env:PATH
         } else {
@@ -199,6 +206,10 @@ function Test-DotnetSDK
             ($_ -split '\s',2)[0]
         }
 
+        Write-Verbose "Testing $dotnetPath ..." -Verbose
+        Write-Verbose "Installed .NET SDK versions:" -Verbose
+        $installedVersions | Write-Verbose -Verbose
+
         return $installedVersions -contains $dotnetSDKVersion
     }
 
@@ -211,23 +222,13 @@ function Test-DotnetSDK
 #>
 function Install-Dotnet
 {
-    [CmdletBinding()]
-    param(
-        [string] $Version = $dotnetSDKVersion
-    )
-
     try {
         Find-Dotnet
-        return  # Simply return if we find dotnet SDk with the correct version
+        # Simply return if we find dotnet SDk with the correct version.
+        return
     } catch { }
 
-    $logMsg = if (Get-Command 'dotnet' -ErrorAction Ignore) {
-        "dotnet SDK out of date. Require '$dotnetSDKVersion' but found '$dotnetSDKVersion'. Updating dotnet."
-    } else {
-        "dotent SDK is not present. Installing dotnet SDK."
-    }
-
-    Write-Log $logMsg -Warning
+    Write-Verbose "Require .NET SDK '$dotnetSDKVersion' was not found" -Verbose
     $obtainUrl = "https://dotnet.microsoft.com/download/dotnet/scripts/v1"
 
     try {
@@ -236,30 +237,16 @@ function Install-Dotnet
         Invoke-WebRequest -Uri $obtainUrl/$installScript -OutFile $installScript
 
         if ($IsWindows) {
-            & .\$installScript -Version $Version
+            & .\$installScript -Version $dotnetSDKVersion
         } else {
-            bash ./$installScript -v $Version
+            bash ./$installScript -v $dotnetSDKVersion
         }
+
+        # Try to find the right .NET SDK again.
+        Find-Dotnet
     } finally {
         Remove-Item $installScript -Force -ErrorAction Ignore
     }
-}
-
-<#
-.SYNOPSIS
-    Write log message for the build.
-#>
-function Write-Log
-{
-    param(
-        [string] $Message,
-        [switch] $Warning,
-        [switch] $Indent
-    )
-
-    $foregroundColor = if ($Warning) { "Yellow" } else { "Green" }
-    $indentPrefix = if ($Indent) { "    " } else { "" }
-    Write-Host -ForegroundColor $foregroundColor "${indentPrefix}${Message}"
 }
 
 <#
@@ -278,20 +265,37 @@ function Set-NuGetSourceCred
     )
 
     $nugetPath = "$PSScriptRoot/shell/nuget.config"
-    $tempFile = [System.IO.Path]::GetTempFileName()
 
-    Get-Content $nugetPath | Where-Object { $_ -ne "</configuration>" } | Out-File $tempFile -Encoding utf8
-    Add-Content $tempFile -Value @"
-  <packageSourceCredentials>
-    <PowerShell_PublicPackages>
-      <add key="Username" value="$UserName" />
-      <add key="ClearTextPassword" value="$ClearTextPAT" />
-    </PowerShell_PublicPackages>
-  </packageSourceCredentials>
-</configuration>
-"@
+    ## Send pipeline variable to enable the UserName and PAT for the 'PowerShell_PublicPackages' feed.
+    $xml = [xml](Get-Content -Path $nugetPath -Raw)
+    $url = $xml.configuration.packageSources.add | Where-Object { $_.key -eq 'PowerShell_PublicPackages' } | ForEach-Object value
 
-    Move-Item -Path $tempFile -Destination $nugetPath -Force
+    $json = @{
+        endpointCredentials = @(
+            @{
+                endpoint = $url
+                username = $UserName
+                password = $ClearTextPAT
+            }
+        )
+    } | ConvertTo-Json -Compress
+    Set-PipelineVariable -Name 'VSS_NUGET_EXTERNAL_FEED_ENDPOINTS' -Value $json
+}
+
+function Set-PipelineVariable {
+    param(
+        [parameter(Mandatory)]
+        [string] $Name,
+        [parameter(Mandatory)]
+        [string] $Value
+    )
+
+    $vstsCommandString = "vso[task.setvariable variable=$Name]$Value"
+    Write-Verbose -Verbose -Message ("sending " + $vstsCommandString)
+    Write-Host "##$vstsCommandString"
+
+    # Also set in the current session
+    Set-Item -Path "env:$Name" -Value $Value
 }
 
 <#
@@ -346,8 +350,8 @@ function Copy-1PFilesToSign
     }
     Pop-Location
 
-    Write-Verbose "Copy is done. List all files that were copied:"
-    Get-ChildItem $TargetRoot -Recurse | Out-String -Width 500 -Stream | Write-Verbose -Verbose
+    Write-Verbose "Copy is done. List all files that were copied:" -Verbose
+    Get-ChildItem $TargetRoot -Recurse -File | Out-String -Width 500 -Stream | Write-Verbose -Verbose
 }
 
 function Copy-3PFilesToSign
@@ -363,6 +367,9 @@ function Copy-3PFilesToSign
         Remove-Item -Path $TargetRoot -Recurse -Force
     }
     $null = New-Item -ItemType Directory -Path $TargetRoot -Force
+
+    $SourceRoot = (Resolve-Path $SourceRoot).Path
+    $TargetRoot = (Resolve-Path $TargetRoot).Path
 
     Push-Location $SourceRoot
     $unsigned = Get-ChildItem *.dll, *.exe -Recurse | Where-Object {
@@ -386,8 +393,8 @@ function Copy-3PFilesToSign
     }
     Pop-Location
 
-    Write-Verbose "Copy is done. List all files that were copied:"
-    Get-ChildItem $TargetRoot -Recurse | Out-String -Width 500 -Stream | Write-Verbose -Verbose
+    Write-Verbose "Copy is done. List all files that were copied:" -Verbose
+    Get-ChildItem $TargetRoot -Recurse -File | Out-String -Width 500 -Stream | Write-Verbose -Verbose
 }
 
 <#
@@ -407,7 +414,7 @@ function Copy-SignedFileBack
     $TargetRoot = (Resolve-Path $TargetRoot).Path
 
     Push-Location $SourceRoot
-    $signedFiles = Get-ChildItem -Recurse
+    $signedFiles = Get-ChildItem -Recurse -File
 
     Write-Verbose "List all signed files:" -Verbose
     $signedFiles | Out-String -Width 500 -Stream | Write-Verbose -Verbose

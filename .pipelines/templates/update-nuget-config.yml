@@ -9,10 +9,10 @@ steps:
     forceReinstallCredentialProvider: true
 
 - pwsh: |
-    Import-Module ${{ parameters.repoRoot }}/tools/ReleaseTools.psm1 -Force
+    Import-Module ${{ parameters.repoRoot }}/build.psm1 -Force
     Write-Verbose -Verbose "Running: Set-NuGetSourceCred -UserName '$(AzDevopsFeedUserNameKVPAT)' -ClearTextPAT '$(powershellPackageReadPat)'"
     Set-NuGetSourceCred -UserName '$(AzDevopsFeedUserNameKVPAT)' -ClearTextPAT '$(powershellPackageReadPat)'
-  displayName: 'Add AzFeed package source credential'
+  displayName: 'Add AzFeed credential'
   env:
     ob_restore_phase: true
 

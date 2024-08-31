@@ -12,7 +12,7 @@ jobs:
     value: false
   - name: NugetSecurityAnalysisWarningLevel
     value: none
-  - name: DOTNET_SKIP_FIRST_TIME_EXPERIENCE
+  - name: DOTNET_NOLOGO
     value: 1
   - group: DotNetPrivateBuildAccess
   - group: certificate_logical_to_actual
@@ -42,6 +42,12 @@ jobs:
     env:
       ob_restore_phase: true
 
+  - pwsh: |
+      Get-ChildItem Env:
+    displayName: Capture environment variables
+    env:
+      ob_restore_phase: true
+
   - template: /.pipelines/templates/update-nuget-config.yml@self
     parameters:
       repoRoot: $(repoRoot)
@@ -59,15 +65,15 @@ jobs:
       Install-Dotnet
 
       $runtime = '$(Runtime)'
-      Write-Verbose -Message "Building with Runtime: $runtime"
-      $result = Start-Build -Runtime $runtime -Configuration Release -Clean -PassThru -Verbose
+      Write-Verbose "Building with Runtime: $runtime" -Verbose
+      Start-Build -Runtime $runtime -Configuration Release -Clean -NotIncludeModule -Verbose
 
-      if ($result) {
-        $vstsCommandString = "vso[task.setvariable variable=AppDir]$result.App"
-        Write-Host ("sending " + $vstsCommandString)
-        Write-Host "##$vstsCommandString"
+      $outputJson = '$(repoRoot)/_build_output_.json'
+      if (Test-Path $outputJson) {
+        $result = Get-Content $outputJson | ConvertFrom-Json
+        Write-Verbose "App path: $($result.App)" -Verbose
 
-        $vstsCommandString = "vso[task.setvariable variable=ModuleDir]$result.Module"
+        $vstsCommandString = "vso[task.setvariable variable=AppDir]$($result.App)"
         Write-Host ("sending " + $vstsCommandString)
         Write-Host "##$vstsCommandString"
       }
@@ -82,7 +88,6 @@ jobs:
 
   - pwsh: |
       Get-ChildItem $(AppDir) | Out-String -width 500 -Stream
-      Get-ChildItem $(ModuleDir) | Out-String -width 500 -Stream
     displayName: 'List build artifacts'
     env:
       ob_restore_phase: true
@@ -90,7 +95,6 @@ jobs:
   - template: /.pipelines/templates/sign-files.yml@self
     parameters:
       appPath: '$(AppDir)'
-      modulePath: '$(ModuleDir)'
       repoRoot: '$(repoRoot)'
 
-  - template: /.pipelines/templates/step/finalize.yml@self
+  - template: /.pipelines/templates/finalize.yml@self

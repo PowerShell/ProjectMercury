@@ -12,13 +12,15 @@ jobs:
     value: false
   - name: NugetSecurityAnalysisWarningLevel
     value: none
-  - name: DOTNET_SKIP_FIRST_TIME_EXPERIENCE
+  - name: DOTNET_NOLOGO
     value: 1
   - group: DotNetPrivateBuildAccess
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
   - name: repoRoot
     value: $(Build.SourcesDirectory)\ProjectMercury
+  - name: ob_sdl_sbom_enabled
+    value: false
   - name: ob_sdl_codeSignValidation_enabled
     value: false
   - name: ob_sdl_binskim_enabled
@@ -29,8 +31,6 @@ jobs:
     value: ${{ parameters.Architecture }}
   - name: Runtime
     value: 'linux-$(Architecture)'
-  - name: ob_sdl_sbom_packageName
-    value: 'AIShell.Linux.${{ parameters.Architecture }}'
   #CodeQL tasks added manually to workaround signing failures
   - name: ob_sdl_codeql_compiled_enabled
     value: false
@@ -38,6 +38,12 @@ jobs:
   steps:
   - checkout: self
     clean: true
+    env:
+      ob_restore_phase: true
+
+  - pwsh: |
+      Get-ChildItem Env:
+    displayName: Capture environment variables
     env:
       ob_restore_phase: true
 
@@ -58,15 +64,15 @@ jobs:
       Install-Dotnet
 
       $runtime = '$(Runtime)'
-      Write-Verbose -Message "Building with Runtime: $runtime"
-      $result = Start-Build -Runtime $runtime -Configuration Release -Clean -PassThru -Verbose
+      Write-Verbose "Building with Runtime: $runtime" -Verbose
+      Start-Build -Runtime $runtime -Configuration Release -Clean -NotIncludeModule -Verbose
 
-      if ($result) {
-        $vstsCommandString = "vso[task.setvariable variable=AppDir]$result.App"
-        Write-Host ("sending " + $vstsCommandString)
-        Write-Host "##$vstsCommandString"
+      $outputJson = '$(repoRoot)/_build_output_.json'
+      if (Test-Path $outputJson) {
+        $result = Get-Content $outputJson | ConvertFrom-Json
+        Write-Verbose "App path: $($result.App)" -Verbose
 
-        $vstsCommandString = "vso[task.setvariable variable=ModuleDir]$result.Module"
+        $vstsCommandString = "vso[task.setvariable variable=AppDir]$($result.App)"
         Write-Host ("sending " + $vstsCommandString)
         Write-Host "##$vstsCommandString"
       }
@@ -80,14 +86,19 @@ jobs:
       ob_restore_phase: true
 
   - pwsh: |
-      $uploadAppPath = New-Item -ItemType Directory -Path '$(ob_outputDirectory)/unsigned-app' -Force
-      Write-Verbose -Verbose -Message "uploadAppPath: $uploadAppPath"
-      Copy-Item -Path '$(AppDir)/*' -Destination $uploadAppPath -Recurse -Force -Verbose
+      Get-ChildItem $(AppDir) -Recurse
+    displayName: "List AIShell app files"
+    env:
+      ob_restore_phase: true
 
-      $uploadModulePath = New-Item -ItemType Directory -Path '$(ob_outputDirectory)/unsigned-module' -Force
-      Write-Verbose -Verbose -Message "uploadModulePath: $uploadModulePath"
-      Copy-Item -Path '$(ModuleDir)/*' -Destination $uploadModulePath -Recurse -Force -Verbose
-    displayName: 'Upload unsigned app and module files'
+  - task: CopyFiles@2
+    displayName: "Upload unsigned app files"
+    env:
+      ob_restore_phase: true
+    inputs:
+      SourceFolder: $(AppDir)
+      Contents: '**/*'
+      TargetFolder: $(ob_outputDirectory)
 
   - template: /.pipelines/templates/finalize.yml@self
 
@@ -102,7 +113,7 @@ jobs:
     value: false
   - name: NugetSecurityAnalysisWarningLevel
     value: none
-  - name: DOTNET_SKIP_FIRST_TIME_EXPERIENCE
+  - name: DOTNET_NOLOGO
     value: 1
   - group: DotNetPrivateBuildAccess
   - group: certificate_logical_to_actual
@@ -122,6 +133,8 @@ jobs:
     value: 'linux-$(Architecture)'
   - name: ob_sdl_codeql_compiled_enabled
     value: false
+  - name: ob_sdl_sbom_packageName
+    value: 'AIShell.Linux.$(Architecture)'
 
   steps:
   - checkout: self
@@ -129,9 +142,15 @@ jobs:
     env:
       ob_restore_phase: true
 
+  - pwsh: |
+      Get-ChildItem Env:
+    displayName: Capture environment variables
+    env:
+      ob_restore_phase: true
+
   - task: DownloadPipelineArtifact@2
     inputs:
-      artifact: drop_linux_build_${{ parameters.Architecture }}
+      artifact: drop_linux_build_$(Architecture)
       path: $(Pipeline.Workspace)/drop_linux_build
     displayName: Download build
 
@@ -141,8 +160,7 @@ jobs:
 
   - template: /.pipelines/templates/sign-files.yml@self
     parameters:
-      appPath: '$(Pipeline.Workspace)/drop_linux_build/unsigned-app'
-      modulePath: '$(Pipeline.Workspace)/drop_linux_build/unsigned-module'
+      appPath: '$(Pipeline.Workspace)/drop_linux_build'
       repoRoot: '$(repoRoot)'
 
   - template: /.pipelines/templates/finalize.yml@self

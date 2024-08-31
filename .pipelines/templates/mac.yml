@@ -14,6 +14,8 @@ jobs:
   variables:
   - name: HOMEBREW_NO_ANALYTICS
     value: 1
+  - name: DOTNET_NOLOGO
+    value: 1
   - name: runCodesignValidationInjection
     value: false
   - name: NugetSecurityAnalysisWarningLevel
@@ -34,6 +36,12 @@ jobs:
     env:
       ob_restore_phase: true
 
+  - pwsh: |
+      Get-ChildItem Env:
+    displayName: Capture environment variables
+    env:
+      ob_restore_phase: true
+
   - template: /.pipelines/templates/update-nuget-config.yml@self
     parameters:
       repoRoot: $(repoRoot)
@@ -43,17 +51,17 @@ jobs:
       Install-Dotnet
 
       $runtime = '$(Runtime)'
-      Write-Verbose -Message "Building with Runtime: $runtime"
-      $result = Start-Build -Runtime $runtime -Configuration Release -Clean -PassThru -Verbose
+      Write-Verbose "Building with Runtime: $runtime" -Verbose
+      Start-Build -Runtime $runtime -Configuration Release -Clean -NotIncludeModule -Verbose
 
-      if ($result) {
+      $outputJson = '$(repoRoot)/_build_output_.json'
+      if (Test-Path $outputJson) {
+        $result = Get-Content $outputJson | ConvertFrom-Json
+        Write-Verbose "App path: $($result.App)" -Verbose
+
         $artifactName = 'macBuild-$(Architecture)'
-        $appArtifact = "$artifactName-app"
-        $moduleArtifact = "$artifactName-module"
-
         # Since we are using custom pool for macOS, we need to use artifact.upload to publish the artifacts
-        Write-Host "##vso[artifact.upload containerfolder=$appArtifact;artifactname=$appArtifact]$result.App"
-        Write-Host "##vso[artifact.upload containerfolder=$moduleArtifact;artifactname=$moduleArtifact]$result.Module"
+        Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName]$($result.App)"
       }
     displayName: 'Build macOS'
 
@@ -68,6 +76,8 @@ jobs:
   variables:
   - name: NugetSecurityAnalysisWarningLevel
     value: none
+  - name: DOTNET_NOLOGO
+    value: 1
   - group: DotNetPrivateBuildAccess
   - group: certificate_logical_to_actual
   - name: ob_outputDirectory
@@ -85,7 +95,7 @@ jobs:
   - name: ob_sdl_codeql_compiled_enabled
     value: false
   - name: ob_sdl_sbom_packageName
-    value: 'AIShell.MacOS.${{parameters.Architecture}}'
+    value: 'AIShell.MacOS.$(Architecture)'
 
   steps:
   - checkout: self
@@ -93,20 +103,20 @@ jobs:
     env:
       ob_restore_phase: true
 
+  - pwsh: |
+      Get-ChildItem Env:
+    displayName: Capture environment variables
+    env:
+      ob_restore_phase: true
+
   - task: DownloadPipelineArtifact@2
     inputs:
-      artifact: 'macBuild-$(Architecture)-app'
+      artifact: 'macBuild-$(Architecture)'
       path: '$(Pipeline.Workspace)\macApp'
     displayName: Download app build
 
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      artifact: 'macBuild-$(Architecture)-module'
-      path: '$(Pipeline.Workspace)\macModule'
-    displayName: Download module build
-
   - pwsh: |
-        Get-ChildItem "$(Pipeline.Workspace)\*" -Recurse
+      Get-ChildItem '$(Pipeline.Workspace)\macApp' -Recurse
     displayName: 'List Downloaded Artifacts'
     # Diagnostics is not critical it passes every time it runs
     continueOnError: true
@@ -114,7 +124,6 @@ jobs:
   - template: /.pipelines/templates/sign-files.yml@self
     parameters:
       appPath: '$(Pipeline.Workspace)\macApp'
-      modulePath: '$(Pipeline.Workspace)\macModule'
       repoRoot: '$(repoRoot)'
 
   - template: /.pipelines/templates/finalize.yml@self
