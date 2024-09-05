@@ -1,0 +1,147 @@
+trigger: none
+
+parameters: # parameters are shown up in ADO UI in a build queue time
+  - name: ForceAzureBlobDelete
+    displayName: Delete Azure Blob
+    type: string
+    values:
+    - true
+    - false
+    default: false
+  - name: 'debug'
+    displayName: 'Enable debug output'
+    type: boolean
+    default: false
+
+variables:
+  - name: CDP_DEFINITION_BUILD_COUNT
+    value: $[counter('', 0)] # needed for onebranch.pipeline.version task
+  - name: system.debug
+    value: ${{ parameters.debug }}
+  - name: ENABLE_PRS_DELAYSIGN
+    value: 1
+  - name: ROOT
+    value: $(Build.SourcesDirectory)
+  - name: ForceAzureBlobDelete
+    value: ${{ parameters.ForceAzureBlobDelete }}
+  - name: NUGET_XMLDOC_MODE
+    value: none
+  - name: nugetMultiFeedWarnLevel
+    value: none
+  - name: NugetSecurityAnalysisWarningLevel
+    value: none
+  - name: skipNugetSecurityAnalysis
+    value: true
+  - name: ob_outputDirectory
+    value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+  - name: WindowsContainerImage
+    value: 'onebranch.azurecr.io/windows/ltsc2019/vse2022:latest' # Docker image which is used to build the project
+  - name: LinuxContainerImage
+    value: mcr.microsoft.com/onebranch/cbl-mariner/build:2.0
+  - group: mscodehub-feed-read-general
+  - group: mscodehub-feed-read-akv
+  - name: branchCounterKey
+    value: $[format('{0:yyyyMMdd}-{1}', pipeline.startTime,variables['Build.SourceBranch'])]
+  - name: branchCounter
+    value: $[counter(variables['branchCounterKey'], 1)]
+
+resources:
+  pipelines:
+    - pipeline: AIShellBuildPipeline
+      source: 'AIShell-Build-Official'
+      trigger:
+        branches:
+          include:
+            - main
+            - obp-*
+            - release-*
+
+  repositories:
+    - repository: templates
+      type: git
+      name: OneBranch.Pipelines/GovernedTemplates
+      ref: refs/heads/main
+
+extends:
+  template: v2/OneBranch.Official.CrossPlat.yml@templates
+  parameters:
+    cloudvault:
+      enabled: false
+    featureFlags:
+      linuxEsrpSigning: true
+    globalSdl:
+      disableLegacyManifest: true
+      # disabled Armorty as we dont have any ARM templates to scan. It fails on some sample ARM templates.
+      armory:
+        enabled: false
+      sbom:
+        enabled: true
+      compiled:
+        enabled: false
+      cg:
+        enabled: true
+        ignoreDirectories: 'docs,shell,test,tools'
+      asyncSdl:
+        enabled: true
+        forStages: ['build']
+        credscan:
+          enabled: true
+          scanFolder:  $(Build.SourcesDirectory)
+        binskim:
+          enabled: false
+        apiscan:
+          enabled: false
+        tsaOptionsFile: .config\tsaoptions.json
+
+    stages:
+    - stage: prep
+      jobs:
+      - template: /.pipelines/templates/check-Azure-container.yml@self
+
+    - stage: mac
+      dependsOn: [prep]
+      jobs:
+      - template: /.pipelines/templates/mac-package.yml@self
+        parameters:
+          architecture: x64
+      - template: /.pipelines/templates/mac-package.yml@self
+        parameters:
+          architecture: arm64
+
+    - stage: windows
+      dependsOn: [prep]
+      jobs:
+      - template: /.pipelines/templates/windows-package.yml@self
+        parameters:
+          architecture: x86
+      - template: /.pipelines/templates/windows-package.yml@self
+        parameters:
+          architecture: x64
+      - template: /.pipelines/templates/windows-package.yml@self
+        parameters:
+          architecture: arm64
+
+    - stage: linux
+      dependsOn: [prep]
+      jobs:
+      - template: /.pipelines/templates/linux-package.yml@self
+        parameters:
+          architecture: x64
+      - template: /.pipelines/templates/linux-package.yml@self
+        parameters:
+          architecture: arm64
+
+    - stage: module
+      dependsOn: [prep]
+      jobs:
+      - template: /.pipelines/templates/module-package.yml@self
+
+    - stage: nupkg
+      dependsOn: [prep]
+      jobs:
+      - template: /.pipelines/templates/nupkg-package.yml@self
+
+    - stage: upload
+      dependsOn: [mac_package, windows_package, linux_package, module, nupkg]
+      jobs:
+      - template: /.pipelines/templates/upload-to-Azure.yml@self

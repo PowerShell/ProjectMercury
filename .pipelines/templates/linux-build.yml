@@ -1,12 +1,12 @@
 parameters:
-  Architecture: 'x64'
+  architecture: 'x64'
 
 jobs:
-- job: build_${{ parameters.Architecture }}
-  displayName: Build Windows ${{ parameters.Architecture }}
+- job: build_${{ parameters.architecture }}
+  displayName: Build Linux ${{ parameters.architecture }}
   condition: succeeded()
   pool:
-    type: windows
+    type: linux
   variables:
   - name: runCodesignValidationInjection
     value: false
@@ -15,11 +15,12 @@ jobs:
   - name: DOTNET_NOLOGO
     value: 1
   - group: DotNetPrivateBuildAccess
-  - group: certificate_logical_to_actual
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
   - name: repoRoot
     value: $(Build.SourcesDirectory)\ProjectMercury
+  - name: ob_sdl_sbom_enabled
+    value: false
   - name: ob_sdl_codeSignValidation_enabled
     value: false
   - name: ob_sdl_binskim_enabled
@@ -27,11 +28,9 @@ jobs:
   - name: ob_sdl_tsa_configFile
     value: $(repoRoot)\.config\tsaoptions.json
   - name: Architecture
-    value: ${{ parameters.Architecture }}
+    value: ${{ parameters.architecture }}
   - name: Runtime
-    value: 'win-$(Architecture)'
-  - name: ob_sdl_sbom_packageName
-    value: 'AIShell.Windows.${{ parameters.Architecture }}'
+    value: 'linux-$(Architecture)'
   #CodeQL tasks added manually to workaround signing failures
   - name: ob_sdl_codeql_compiled_enabled
     value: false
@@ -77,7 +76,7 @@ jobs:
         Write-Host ("sending " + $vstsCommandString)
         Write-Host "##$vstsCommandString"
       }
-    displayName: 'Build Windows-$(Architecture)'
+    displayName: 'Build Linux - $(Architecture)'
     env:
       ob_restore_phase: true
 
@@ -87,14 +86,81 @@ jobs:
       ob_restore_phase: true
 
   - pwsh: |
-      Get-ChildItem $(AppDir) | Out-String -width 500 -Stream
-    displayName: 'List build artifacts'
+      Get-ChildItem $(AppDir) -Recurse
+    displayName: "List AIShell app files"
     env:
       ob_restore_phase: true
 
+  - task: CopyFiles@2
+    displayName: "Upload unsigned app files"
+    env:
+      ob_restore_phase: true
+    inputs:
+      SourceFolder: $(AppDir)
+      Contents: '**/*'
+      TargetFolder: $(ob_outputDirectory)
+
+  - template: /.pipelines/templates/finalize.yml@self
+
+- job: sign_${{ parameters.architecture }}
+  displayName: Sign Linux ${{ parameters.architecture }}
+  condition: succeeded()
+  dependsOn: build_${{ parameters.architecture }}
+  pool:
+    type: windows
+  variables:
+  - name: runCodesignValidationInjection
+    value: false
+  - name: NugetSecurityAnalysisWarningLevel
+    value: none
+  - name: DOTNET_NOLOGO
+    value: 1
+  - group: DotNetPrivateBuildAccess
+  - group: certificate_logical_to_actual
+  - name: ob_outputDirectory
+    value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+  - name: repoRoot
+    value: $(Build.SourcesDirectory)\ProjectMercury
+  - name: ob_sdl_codeSignValidation_enabled
+    value: false
+  - name: ob_sdl_binskim_enabled
+    value: false
+  - name: ob_sdl_tsa_configFile
+    value: $(repoRoot)\.config\tsaoptions.json
+  - name: Architecture
+    value: ${{ parameters.architecture }}
+  - name: Runtime
+    value: 'linux-$(Architecture)'
+  - name: ob_sdl_codeql_compiled_enabled
+    value: false
+  - name: ob_sdl_sbom_packageName
+    value: 'AIShell.Linux.$(Architecture)'
+
+  steps:
+  - checkout: self
+    clean: true
+    env:
+      ob_restore_phase: true
+
+  - pwsh: |
+      Get-ChildItem Env:
+    displayName: Capture environment variables
+    env:
+      ob_restore_phase: true
+
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      artifact: drop_linux_build_$(Architecture)
+      path: $(Pipeline.Workspace)/drop_linux_build
+    displayName: Download build
+
+  - pwsh: |
+      Get-ChildItem -Path $(Pipeline.Workspace)/drop_linux_build -Recurse
+    displayName: 'List downloaded files'
+
   - template: /.pipelines/templates/sign-files.yml@self
     parameters:
-      appPath: '$(AppDir)'
+      appPath: '$(Pipeline.Workspace)/drop_linux_build'
       repoRoot: '$(repoRoot)'
 
   - template: /.pipelines/templates/finalize.yml@self

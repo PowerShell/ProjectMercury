@@ -1,0 +1,100 @@
+jobs:
+- job: package
+  displayName: Package NuPkgs
+  condition: succeeded()
+  pool:
+    type: windows
+
+  variables:
+    - name: runCodesignValidationInjection
+      value: false
+    - name: nugetMultiFeedWarnLevel
+      value: none
+    - name: NugetSecurityAnalysisWarningLevel
+      value: none
+    - name: skipNugetSecurityAnalysis
+      value: true
+    - name: ob_outputDirectory
+      value: '$(Build.ArtifactStagingDirectory)\ONEBRANCH_ARTIFACT'
+    - name: repoRoot
+      value: $(Build.SourcesDirectory)\ProjectMercury
+    - name: ob_sdl_binskim_enabled
+      value: true
+    - name: ob_sdl_tsa_configFile
+      value: $(repoRoot)\.config\tsaoptions.json
+    - group: mscodehub-feed-read-general
+    - group: mscodehub-feed-read-akv
+    - group: DotNetPrivateBuildAccess
+
+  steps:
+  - checkout: self
+    clean: true
+    env:
+      ob_restore_phase: true
+
+  - pwsh: |
+      Get-ChildItem -Path env:
+    displayName: Capture environment
+    env:
+      ob_restore_phase: true
+
+  - download: AIShellBuildPipeline
+    artifact: drop_windows_build_x64
+    displayName: 'Download drop_windows_build_x64'
+    env:
+      ob_restore_phase: true
+
+  - pwsh: |
+      $signedFilesPath = "$(Pipeline.Workspace)\AIShellBuildPipeline\drop_windows_build_x64"
+      Write-Verbose -Verbose "Downloaded artifacts: "
+      Get-ChildItem $signedFilesPath -Recurse
+
+      $version = (Get-Item "$signedFilesPath\AIShell.Abstraction.dll").VersionInfo.ProductVersion
+      $vstsCommandString = "vso[task.setvariable variable=PackageVersion]$version"
+      Write-Host ("sending " + $vstsCommandString)
+      Write-Host "##$vstsCommandString"
+    displayName: 'Capture download artifacts'
+    env:
+      ob_restore_phase: true
+
+  - task: NuGetToolInstaller@1
+    displayName: 'Install NuGet.exe'
+    env:
+      ob_restore_phase: true
+
+  - pwsh: |
+      Import-Module $(repoRoot)\tools\packaging -Force
+      $signedFilesPath = "$(Pipeline.Workspace)\AIShellBuildPipeline\drop_windows_build_x64"
+      $outDir = "$(Pipeline.Workspace)\AIShellBuildPipeline\pkgs"
+
+      $null = New-Item -ItemType Directory $outDir
+      New-NugetPackage -PackageSourcePath $signedFilesPath -Version $(PackageVersion) -PackageDestinationPath $outDir
+
+      $vstsCommandString = "vso[task.setvariable variable=PackagePath]$outDir"
+      Write-Host ("sending " + $vstsCommandString)
+      Write-Host "##$vstsCommandString"
+    displayName: 'Create NuGet Package for single file'
+    env:
+      ob_restore_phase: true
+
+  - task: onebranch.pipeline.signing@1
+    displayName: Sign nupkg files
+    inputs:
+      command: 'sign'
+      cp_code: 'CP-401405'
+      files_to_sign: '**\*.nupkg'
+      search_root: $(PackagePath)
+
+  - pwsh: |
+      if (-not (Test-Path '$(ob_outputDirectory)')) {
+        New-Item -ItemType Directory -Path '$(ob_outputDirectory)' -Force
+      }
+
+      Write-Verbose -Verbose "Copying nupkgs to output directory"
+      Get-ChildItem -Path $(PackagePath) -Recurse | Copy-Item -Destination '$(ob_outputDirectory)' -Force -Verbose
+    displayName: Copy artifacts to output directory
+
+  - pwsh: |
+      $nupkgOutputPath = '$(ob_outputDirectory)'
+      Get-ChildItem -Path $nupkgOutputPath | Out-String | Write-Verbose -Verbose
+    displayName: List artifacts

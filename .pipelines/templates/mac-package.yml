@@ -1,0 +1,80 @@
+parameters:
+  architecture: x64
+
+jobs:
+- job: package_${{ parameters.architecture }}
+  displayName: Package macOS ${{ parameters.architecture }}
+  condition: succeeded()
+  pool:
+    type: linux
+    isCustom: true
+    name: Azure Pipelines
+    vmImage: 'macOS-latest'
+
+  variables:
+    - name: HOMEBREW_NO_ANALYTICS
+      value: 1
+    - name: runCodesignValidationInjection
+      value: false
+    - name: nugetMultiFeedWarnLevel
+      value: none
+    - name: NugetSecurityAnalysisWarningLevel
+      value: none
+    - name: skipNugetSecurityAnalysis
+      value: true
+    - group: DotNetPrivateBuildAccess
+    - name: ob_sdl_sbom_enabled
+      value: false
+    - name: ob_sdl_codeql_compiled_enabled
+      value: false
+    - name: ob_outputDirectory
+      value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+    - name: ob_sdl_binskim_enabled
+      value: true
+    - name: repoRoot
+      value: $(Build.SourcesDirectory)
+    - name: Architecture
+      value: ${{ parameters.architecture }}
+
+  steps:
+  - checkout: self
+    clean: true
+
+  - pwsh: |
+      Get-ChildItem -Path env:
+    displayName: Capture environment
+
+  - download: AIShellBuildPipeline
+    artifact: drop_macos_sign_$(Architecture)
+
+  - pwsh: |
+      $signedFilesPath = "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_macos_sign_$(Architecture)"
+      Write-Verbose -Verbose "Downloaded artifacts:"
+      Get-ChildItem $signedFilesPath -Recurse
+
+      $version = (Get-Item "$signedFilesPath/AIShell.Abstraction.dll").VersionInfo.ProductVersion
+      $vstsCommandString = "vso[task.setvariable variable=PackageVersion]$version"
+      Write-Host ("sending " + $vstsCommandString)
+      Write-Host "##$vstsCommandString"
+    displayName: 'List downloaded files'
+    # Diagnostics is not critical it passes every time it runs
+    continueOnError: true
+
+  - pwsh: |
+      Import-Module $(repoRoot)/tools/packaging -Force
+      $signedFilesPath = "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_macos_sign_$(Architecture)"
+
+      Write-Verbose -Message "Checking 'aish' exists in '$signedFilesPath'" -Verbose
+      if (-not (Test-Path $signedFilesPath/aish)) {
+        throw "aish not found in $signedFilesPath"
+      }
+
+      $macosRuntime = "osx-$(Architecture)"
+      $outDir = "$(Pipeline.Workspace)/AIShellBuildPipeline/pkgs"
+      $null = New-Item -ItemType Directory $outDir
+
+      New-TarballPackage -PackageSourcePath $signedFilesPath -Version $(PackageVersion) -Architecture $(Architecture) -CurrentLocation $outDir -Force
+      $tarPkgNameFilter = "AIShell-*$macosRuntime.tar.gz"
+      $tarPkgPath = Get-ChildItem -Path $outDir -Filter $tarPkgNameFilter -Recurse -File | ForEach-Object FullName
+      Write-Host "##vso[artifact.upload containerfolder=macos-pkgs;artifactname=macos-pkgs]$tarPkgPath"
+    displayName: 'Package $(Architecture)'

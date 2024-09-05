@@ -1,0 +1,97 @@
+jobs:
+- job: DeleteBlob
+  variables:
+  - group: Azure Blob variable group
+  - group: AzureBlobServiceConnection
+  - name: ob_outputDirectory
+    value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+  - name: repoRoot
+    value: $(Build.SourcesDirectory)\ProjectMercury
+  - name: ob_sdl_sbom_enabled
+    value: false
+  - name: ob_sdl_codeSignValidation_enabled
+    value: false
+  - name: ob_sdl_tsa_configFile
+    value: $(repoRoot)\.config\tsaoptions.json
+  - name: ob_sdl_codeql_compiled_enabled
+    value: false
+
+  displayName: Delete blob if exists
+  pool:
+    type: windows
+  steps:
+  - checkout: self
+    clean: true
+    env:
+      ob_restore_phase: true
+
+  - template: /.pipelines/templates/update-nuget-config.yml@self
+    parameters:
+      repoRoot: $(repoRoot)
+
+  - download: AIShellBuildPipeline
+    artifact: drop_module_sign
+
+  - pwsh: |
+      Write-Verbose -Verbose "Downloaded artifacts:"
+      Get-ChildItem "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_module_sign" -Recurse
+
+      $version = (Get-Item "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_module_sign/AIShell.Abstraction.dll").VersionInfo.ProductVersion
+      $vstsCommandString = "vso[task.setvariable variable=PackageVersion]$version"
+      Write-Host ("sending " + $vstsCommandString)
+      Write-Host "##$vstsCommandString"
+    displayName: 'List Downloaded Artifacts'
+    # Diagnostics is not critical it passes every time it runs
+    continueOnError: true
+
+  # Needed as per FAQ here: https://eng.ms/docs/products/onebranch/build/troubleshootingfaqs
+  - task: PowerShell@2
+    displayName: 'Update Az.Storage Module'
+    inputs:
+      targetType: 'inline'
+      script: |
+        Get-PackageProvider -Name NuGet -ForceBootstrap
+        Install-Module -Name Az.Storage -Verbose -Force -AllowClobber
+        Uninstall-AzureRm -Verbose
+
+  - task: AzurePowerShell@5
+    displayName: Check if blob exists and delete if specified
+    inputs:
+      azureSubscription: az-blob-cicd-infra
+      scriptType: inlineScript
+      azurePowerShellVersion: latestVersion
+      inline: |
+        $context = New-AzStorageContext -StorageAccountName '$(PSInfraStorageAccount)'
+        $containersToDelete = @{
+          '$web' = 'aish/$(PackageVersion)'
+          'aish' = '$(PackageVersion)'
+        }
+
+        foreach ($entry in $containersToDelete.GetEnumerator()) {
+          try {
+            $container = $entry.Key
+            $blobPrefix = $entry.Value
+            $virtualContainer = "$container/$blobPrefix"
+
+            $blobs = Get-AzStorageBlob -Container $container -Context $context | Where-Object Name -Like "$blobPrefix/*" -ErrorAction Stop
+            if ($null -ne $blobs) {
+              if ('$(ForceAzureBlobDelete)' -eq 'true') {
+                Write-Verbose -Verbose "Removing container '$virtualContainer' due to 'ForceAzureBlobDelete' parameter"
+                foreach ($blob in $blobs) {
+                  Remove-AzStorageBlob -Blob $blob.Name -Container $container -Context $context -Force
+                }
+              } else {
+                throw "Azure blob container '$virtualContainer' already exists. To overwrite, use the 'ForceAzureBlobDelete' parameter"
+              }
+            }
+          }
+          catch {
+            if ($_.FullyQualifiedErrorId -eq 'ResourceNotFoundException,Microsoft.WindowsAzure.Commands.Storage.Blob.Cmdlet.GetAzureStorageContainerCommand') {
+              Write-Verbose -Verbose "Container '$virtualContainer' does not exist."
+            } else {
+              throw $_
+            }
+          }
+        }
+
+  - template: /.pipelines/templates/finalize.yml@self
