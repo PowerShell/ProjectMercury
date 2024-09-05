@@ -1,9 +1,6 @@
-parameters:
-  Architecture: 'x64'
-
 jobs:
-- job: build_${{ parameters.Architecture }}
-  displayName: Build Linux ${{ parameters.Architecture }}
+- job: build
+  displayName: Build AIShell module
   condition: succeeded()
   pool:
     type: linux
@@ -27,10 +24,6 @@ jobs:
     value: true
   - name: ob_sdl_tsa_configFile
     value: $(repoRoot)\.config\tsaoptions.json
-  - name: Architecture
-    value: ${{ parameters.Architecture }}
-  - name: Runtime
-    value: 'linux-$(Architecture)'
   #CodeQL tasks added manually to workaround signing failures
   - name: ob_sdl_codeql_compiled_enabled
     value: false
@@ -63,20 +56,20 @@ jobs:
       Import-Module $(repoRoot)/build.psm1 -Force
       Install-Dotnet
 
-      $runtime = '$(Runtime)'
+      $runtime = 'linux-x64'
       Write-Verbose "Building with Runtime: $runtime" -Verbose
-      Start-Build -Runtime $runtime -Configuration Release -Clean -NotIncludeModule -Verbose
+      Start-Build -Runtime $runtime -Configuration Release -Clean -Verbose
 
       $outputJson = '$(repoRoot)/_build_output_.json'
       if (Test-Path $outputJson) {
         $result = Get-Content $outputJson | ConvertFrom-Json
-        Write-Verbose "App path: $($result.App)" -Verbose
+        Write-Verbose "Module path: $($result.Module)" -Verbose
 
-        $vstsCommandString = "vso[task.setvariable variable=AppDir]$($result.App)"
+        $vstsCommandString = "vso[task.setvariable variable=ModuleDir]$($result.Module)"
         Write-Host ("sending " + $vstsCommandString)
         Write-Host "##$vstsCommandString"
       }
-    displayName: 'Build Linux - $(Architecture)'
+    displayName: 'Build AIShell module'
     env:
       ob_restore_phase: true
 
@@ -86,26 +79,26 @@ jobs:
       ob_restore_phase: true
 
   - pwsh: |
-      Get-ChildItem $(AppDir) -Recurse
-    displayName: "List AIShell app files"
+      Get-ChildItem $(ModuleDir) -Recurse
+    displayName: "List AIShell module files"
     env:
       ob_restore_phase: true
 
   - task: CopyFiles@2
-    displayName: "Upload unsigned app files"
+    displayName: "Upload unsigned module files"
     env:
       ob_restore_phase: true
     inputs:
-      SourceFolder: $(AppDir)
+      SourceFolder: $(ModuleDir)
       Contents: '**/*'
       TargetFolder: $(ob_outputDirectory)
 
   - template: /.pipelines/templates/finalize.yml@self
 
-- job: sign_${{ parameters.Architecture }}
-  displayName: Sign Linux ${{ parameters.Architecture }}
+- job: sign
+  displayName: Sign AIShell module
   condition: succeeded()
-  dependsOn: build_${{ parameters.Architecture }}
+  dependsOn: build
   pool:
     type: windows
   variables:
@@ -127,14 +120,10 @@ jobs:
     value: false
   - name: ob_sdl_tsa_configFile
     value: $(repoRoot)\.config\tsaoptions.json
-  - name: Architecture
-    value: ${{ parameters.Architecture }}
-  - name: Runtime
-    value: 'linux-$(Architecture)'
   - name: ob_sdl_codeql_compiled_enabled
     value: false
   - name: ob_sdl_sbom_packageName
-    value: 'AIShell.Linux.$(Architecture)'
+    value: 'AIShell.Module'
 
   steps:
   - checkout: self
@@ -150,17 +139,17 @@ jobs:
 
   - task: DownloadPipelineArtifact@2
     inputs:
-      artifact: drop_linux_build_$(Architecture)
-      path: $(Pipeline.Workspace)/drop_linux_build
+      artifact: drop_module_build
+      path: $(Pipeline.Workspace)/drop_module_build
     displayName: Download build
 
   - pwsh: |
-      Get-ChildItem -Path $(Pipeline.Workspace)/drop_linux_build -Recurse
+      Get-ChildItem -Path $(Pipeline.Workspace)/drop_module_build -Recurse
     displayName: 'List downloaded files'
 
   - template: /.pipelines/templates/sign-files.yml@self
     parameters:
-      appPath: '$(Pipeline.Workspace)/drop_linux_build'
+      appPath: '$(Pipeline.Workspace)/drop_module_build'
       repoRoot: '$(repoRoot)'
 
   - template: /.pipelines/templates/finalize.yml@self

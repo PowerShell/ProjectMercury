@@ -1,0 +1,111 @@
+parameters:
+  architecture: x64
+
+jobs:
+- job: package_${{ parameters.architecture }}
+  displayName: Package linux ${{ parameters.architecture }}
+  condition: succeeded()
+  pool:
+    type: linux
+
+  variables:
+    - name: runCodesignValidationInjection
+      value: false
+    - name: nugetMultiFeedWarnLevel
+      value: none
+    - name: NugetSecurityAnalysisWarningLevel
+      value: none
+    - name: skipNugetSecurityAnalysis
+      value: true
+    - group: DotNetPrivateBuildAccess
+    - name: ob_sdl_sbom_enabled
+      value: false
+    - name: ob_sdl_codeql_compiled_enabled
+      value: false
+    - name: ob_outputDirectory
+      value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+    - name: repoRoot
+      value: $(Build.SourcesDirectory)/ProjectMercury
+    - name: ob_sdl_binskim_enabled
+      value: true
+    - name: ob_sdl_tsa_configFile
+      value: $(repoRoot)/.config/tsaoptions.json
+    - name: Architecture
+      value: ${{ parameters.architecture }}
+
+  steps:
+  - checkout: self
+    clean: true
+    env:
+      ob_restore_phase: true
+
+  - pwsh: |
+      Get-ChildItem -Path env:
+    displayName: Capture environment
+    env:
+      ob_restore_phase: true
+
+  - download: AIShellBuildPipeline
+    artifact: drop_linux_sign_$(Architecture)
+    displayName: 'Download signed artifacts'
+    env:
+      ob_restore_phase: true
+
+  - pwsh: |
+      $signedFilesPath = "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_linux_sign_$(Architecture)"
+      Write-Verbose -Verbose "Downloaded artifacts: "
+      Get-ChildItem $signedFilesPath -Recurse
+
+      Write-Verbose -Message "Checking 'aish' exists in '$signedFilesPath'" -Verbose
+      if (-not (Test-Path $signedFilesPath/aish)) {
+        throw "aish not found in $signedFilesPath"
+      }
+
+      $version = (Get-Item "$signedFilesPath/AIShell.Abstraction.dll").VersionInfo.ProductVersion
+      $vstsCommandString = "vso[task.setvariable variable=PackageVersion]$version"
+      Write-Host ("sending " + $vstsCommandString)
+      Write-Host "##$vstsCommandString"
+    displayName: 'List Downloaded Artifacts'
+    # Diagnostics is not critical it passes every time it runs
+    continueOnError: true
+    env:
+      ob_restore_phase: true
+
+  - pwsh: |
+      Import-Module $(repoRoot)/tools/packaging -Force
+      $signedFilesPath = "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_macos_sign_$(Architecture)"
+
+      Write-Verbose -Message "Checking 'aish' exists in '$signedFilesPath'" -Verbose
+      if (-not (Test-Path $signedFilesPath/aish)) {
+        throw "aish not found in $signedFilesPath"
+      }
+
+      $macosRuntime = "osx-$(Architecture)"
+      $outDir = "$(Pipeline.Workspace)/AIShellBuildPipeline/pkgs"
+      $null = New-Item -ItemType Directory $outDir
+
+      New-TarballPackage -PackageSourcePath $signedFilesPath -Version $(PackageVersion) -Architecture $(Architecture) -CurrentLocation $outDir -Force
+
+      $vstsCommandString = "vso[task.setvariable variable=PackagePath]$outDir"
+      Write-Host ("sending " + $vstsCommandString)
+      Write-Host "##$vstsCommandString"
+    displayName: 'Package $(Architecture)'
+    env:
+      ob_restore_phase: true
+
+  - pwsh: |
+      if (-not (Test-Path $(ob_outputDirectory))) {
+        New-Item -ItemType Directory -Path $(ob_outputDirectory) -Force
+      }
+
+      $pkgFilter = "AIShell-*.tar.gz"
+      Write-Verbose -Verbose "pkgFilter: $pkgFilter"
+
+      $pkgPath = Get-ChildItem -Path $(PackagePath) -Filter $pkgFilter -File | ForEach-Object FullName
+      Write-Verbose -Verbose "pkgPath: $pkgPath"
+      Copy-Item -Path $pkgPath -Destination '$(ob_outputDirectory)' -Force -Verbose
+    displayName: 'Copy artifacts to output directory'
+
+  - pwsh: |
+      Get-ChildItem -Path $(ob_outputDirectory) -Recurse
+    displayName: 'List uploaded artifacts'

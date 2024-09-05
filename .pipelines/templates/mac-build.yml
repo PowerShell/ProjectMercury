@@ -1,9 +1,9 @@
 parameters:
-  Architecture: 'x64'
+  architecture: 'x64'
 
 jobs:
-- job: build_${{ parameters.Architecture }}
-  displayName: Build macOS ${{ parameters.Architecture }}
+- job: build_${{ parameters.architecture }}
+  displayName: Build macOS ${{ parameters.architecture }}
   condition: succeeded()
   pool:
     type: linux
@@ -26,7 +26,7 @@ jobs:
   - name: repoRoot
     value: $(Build.SourcesDirectory)
   - name: Architecture
-    value: ${{ parameters.Architecture }}
+    value: ${{ parameters.architecture }}
   - name: Runtime
     value: 'osx-$(Architecture)'
 
@@ -67,10 +67,10 @@ jobs:
 
   - template: /.pipelines/templates/finalize.yml@self
 
-- job: sign_${{ parameters.Architecture }}
-  displayName: Sign_macOS_${{ parameters.Architecture }}
+- job: sign_${{ parameters.architecture }}
+  displayName: Sign_macOS_${{ parameters.architecture }}
   condition: succeeded()
-  dependsOn: build_${{ parameters.Architecture }}
+  dependsOn: build_${{ parameters.architecture }}
   pool:
     type: windows
   variables:
@@ -89,7 +89,7 @@ jobs:
   - name: ob_sdl_tsa_configFile
     value: $(repoRoot)\.config\tsaoptions.json
   - name: Architecture
-    value: ${{ parameters.Architecture }}
+    value: ${{ parameters.architecture }}
   - name: Runtime
     value: 'osx-$(Architecture)'
   - name: ob_sdl_codeql_compiled_enabled

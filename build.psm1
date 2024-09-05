@@ -16,7 +16,7 @@ function Start-Build
         [string] $Configuration = "Debug",
 
         [Parameter()]
-        [ValidateSet('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')]
+        [ValidateSet('win-x86', 'win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')]
         [string] $Runtime = [NullString]::Value,
 
         [Parameter()]
