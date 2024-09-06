@@ -18,11 +18,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AIShell.Abstraction" Version="0.1.0-alpha.12" />
     <PackageReference Include="System.Management.Automation" Version="7.4.0">
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIShell.Abstraction\AIShell.Abstraction.csproj" />
   </ItemGroup>
 
   <ItemGroup>
