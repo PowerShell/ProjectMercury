@@ -64,6 +64,8 @@ jobs:
         Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName]$($result.App)"
       }
     displayName: 'Build macOS'
+    env:
+      ob_restore_phase: true
 
   - template: /.pipelines/templates/finalize.yml@self
 
@@ -106,6 +108,18 @@ jobs:
   - pwsh: |
       Get-ChildItem Env:
     displayName: Capture environment variables
+    env:
+      ob_restore_phase: true
+
+  - template: /.pipelines/templates/update-nuget-config.yml@self
+    parameters:
+      repoRoot: $(repoRoot)
+
+  - pwsh: |
+      Import-Module $(repoRoot)/build.psm1 -Force
+      Install-Dotnet
+      Start-Build -Configuration Release -Clean -NotIncludeModule -Verbose
+    displayName: 'Build again to get correct SBOM'
     env:
       ob_restore_phase: true
 
