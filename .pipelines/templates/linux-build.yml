@@ -157,6 +157,8 @@ jobs:
       Install-Dotnet
       Start-Build -Configuration Release -Clean -NotIncludeModule -Verbose
     displayName: 'Build again to get correct SBOM'
+    env:
+      ob_restore_phase: true
 
   - task: DownloadPipelineArtifact@2
     inputs:

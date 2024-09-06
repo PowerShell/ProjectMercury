@@ -64,6 +64,8 @@ jobs:
         Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName]$($result.App)"
       }
     displayName: 'Build macOS'
+    env:
+      ob_restore_phase: true
 
   - template: /.pipelines/templates/finalize.yml@self
 
@@ -118,6 +120,8 @@ jobs:
       Install-Dotnet
       Start-Build -Configuration Release -Clean -NotIncludeModule -Verbose
     displayName: 'Build again to get correct SBOM'
+    env:
+      ob_restore_phase: true
 
   - task: DownloadPipelineArtifact@2
     inputs:

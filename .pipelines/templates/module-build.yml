@@ -146,6 +146,8 @@ jobs:
       Install-Dotnet
       dotnet restore '$(repoRoot)\shell\AIShell.Integration'
     displayName: 'Restore to get correct SBOM'
+    env:
+      ob_restore_phase: true
 
   - task: DownloadPipelineArtifact@2
     inputs:
