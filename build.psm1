@@ -60,7 +60,6 @@ function Start-Build
     $agent_dir = Join-Path $shell_dir "agents"
 
     $app_dir = Join-Path $shell_dir "AIShell.App"
-    $pkg_dir = Join-Path $shell_dir "AIShell.Abstraction"
     $module_dir = Join-Path $shell_dir "AIShell.Integration"
 
     $openai_agent_dir = Join-Path $agent_dir "AIShell.OpenAI.Agent"
@@ -69,7 +68,6 @@ function Start-Build
 
     $config = $Configuration.ToLower()
     $out_dir = Join-Path $PSScriptRoot "out"
-    $pkg_out_dir = Join-Path $out_dir "package"
     $app_out_dir = Join-Path $out_dir $config "app"
     $module_out_dir = Join-Path $out_dir $config "module" "AIShell"
     $module_help_dir= Join-Path $PSScriptRoot "docs" "cmdlets"
@@ -85,21 +83,9 @@ function Start-Build
         }
     }
 
-    ## Create the package folder. Build will fail when nuget.config references to non-existing path.
-    if (-not (Test-Path $pkg_out_dir)) {
-        New-Item $pkg_out_dir -ItemType Directory > $null
-    }
-
     Write-Host "`n[Build AI Shell ...]`n" -ForegroundColor Green
     $app_csproj = GetProjectFile $app_dir
     dotnet publish $app_csproj -c $Configuration -o $app_out_dir -r $RID --sc
-
-    if ($LASTEXITCODE -eq 0) {
-        ## Move the nuget package to the package folder.
-        Write-Host "`n[Deploy the NuGet package ...]`n" -ForegroundColor Green
-        $pkg_csproj = GetProjectFile $pkg_dir
-        dotnet pack $pkg_csproj -c $Configuration --no-build -o $pkg_out_dir
-    }
 
     if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'openai-gpt') {
         Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green

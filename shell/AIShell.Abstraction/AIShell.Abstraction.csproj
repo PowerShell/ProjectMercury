@@ -3,22 +3,9 @@
 
   <PropertyGroup>
     <AssemblyName>AIShell.Abstraction</AssemblyName>
-
-    <PackageId>AIShell.Abstraction</PackageId>
-    <Company>Microsoft Corporation</Company>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
-    <Description>The abstraction layer SDK for building a plugin agent for AIShell.</Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
   </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="" />
-  </ItemGroup>
-
 </Project>
