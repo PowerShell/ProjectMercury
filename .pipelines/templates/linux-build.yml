@@ -148,6 +148,16 @@ jobs:
     env:
       ob_restore_phase: true
 
+  - template: /.pipelines/templates/update-nuget-config.yml@self
+    parameters:
+      repoRoot: $(repoRoot)
+
+  - pwsh: |
+      Import-Module $(repoRoot)/build.psm1 -Force
+      Install-Dotnet
+      Start-Build -Configuration Release -Clean -NotIncludeModule -Verbose
+    displayName: 'Build again to get correct SBOM'
+
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: drop_linux_build_$(Architecture)

@@ -137,6 +137,16 @@ jobs:
     env:
       ob_restore_phase: true
 
+  - template: /.pipelines/templates/update-nuget-config.yml@self
+    parameters:
+      repoRoot: $(repoRoot)
+
+  - pwsh: |
+      Import-Module $(repoRoot)\build.psm1 -Force
+      Install-Dotnet
+      dotnet restore '$(repoRoot)\shell\AIShell.Integration'
+    displayName: 'Restore to get correct SBOM'
+
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: drop_module_build
