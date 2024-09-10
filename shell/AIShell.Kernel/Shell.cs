@@ -604,7 +604,7 @@ internal sealed class Shell : IShell
                     {
                         // Write out the remote query, in the same style as user typing.
                         Host.Markup($"\n>> Remote Query Received:\n");
-                        Host.MarkupLine($"[teal]{input}[/]");
+                        Host.MarkupLine($"[teal]{input.EscapeMarkup()}[/]");
                     }
                     else
                     {
@@ -736,7 +736,7 @@ internal sealed class Shell : IShell
                     }
 
                     Host.WriteErrorLine()
-                        .WriteErrorLine($"Agent failed to generate a response: {ex.Message}")
+                        .WriteErrorLine($"Agent failed to generate a response: {ex.Message}\n{ex.StackTrace}")
                         .WriteErrorLine();
                 }
             }

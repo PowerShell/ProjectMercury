@@ -94,13 +94,19 @@ public interface IHost
     void RenderList<T>(T source, IList<IRenderElement<T>> elements);
 
     /// <summary>
+    /// Render a divider with the passed-in text.
+    /// </summary>
+    /// <param name="text">A brief caption for the subsequent section.</param>
+    void RenderDivider(string text);
+
+    /// <summary>
     /// Run an asynchronouse task with a spinner on the console showing the task in progress.
     /// </summary>
     /// <typeparam name="T">The return type of the asynchronouse task.</typeparam>
     /// <param name="func">The asynchronouse task.</param>
     /// <param name="status">The status message to be shown.</param>
     /// <returns>The returned result of <paramref name="func"/></returns>
-    Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status);
+    Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status, SpinnerKind? spinnerKind);
 
     /// <summary>
     /// Run an asynchronouse task with a spinner on the console showing the task in progress.
@@ -110,12 +116,22 @@ public interface IHost
     /// <param name="func">The asynchronouse task, which can change the status of the spinner.</param>
     /// <param name="status">The initial status message to be shown.</param>
     /// <returns>The returned result of <paramref name="func"/></returns>
-    Task<T> RunWithSpinnerAsync<T>(Func<IStatusContext, Task<T>> func, string status);
+    Task<T> RunWithSpinnerAsync<T>(Func<IStatusContext, Task<T>> func, string status, SpinnerKind? spinnerKind);
 
     /// <summary>
-    /// Run an asynchronouse task with a spinner with the default status message.
+    /// Run an asynchronouse task with the default spinner and the default status message.
     /// </summary>
-    Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func) => RunWithSpinnerAsync(func, "Generating...");
+    Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func) => RunWithSpinnerAsync(func, "Generating...", SpinnerKind.Generating);
+
+    /// <summary>
+    /// Run an asynchronouse task with the default spinner and the specified status message.
+    /// </summary>
+    Task<T> RunWithSpinnerAsync<T>(Func<Task<T>> func, string status) => RunWithSpinnerAsync(func, status, SpinnerKind.Generating);
+
+    /// <summary>
+    /// Run an asynchronouse task that allows changing the status message with the default spinner and the specified initial status message.
+    /// </summary>
+    Task<T> RunWithSpinnerAsync<T>(Func<IStatusContext, Task<T>> func, string status) => RunWithSpinnerAsync(func, status, SpinnerKind.Generating);
 
     /// <summary>
     /// Prompt for selection asynchronously.
@@ -173,9 +189,9 @@ public interface IHost
     /// Prompt for the user to input the value for an argument placeholder.
     /// </summary>
     /// <param name="argInfo">Information about the argument placeholder.</param>
-    /// <param name="cancellationToken">Token to cancel operation.</param>
+    /// <param name="printCaption">Indicates if the caption, such as the description and restriction, should be printed.</param>
     /// <returns></returns>
-    string PromptForArgument(ArgumentInfo argInfo, CancellationToken cancellationToken);
+    string PromptForArgument(ArgumentInfo argInfo, bool printCaption);
 }
 
 /// <summary>
@@ -190,18 +206,37 @@ public interface IStatusContext
 }
 
 /// <summary>
+/// Enum type for the kind of spinner to use.
+/// </summary>
+public enum SpinnerKind
+{
+    /// <summary>
+    /// This spinner indicates text is being generated.
+    /// It should be used when generating response in chat.
+    /// This is the default spinner kind used by the host.
+    /// </summary>
+    Generating,
+
+    /// <summary>
+    /// This spinner indicates a general task processing.
+    /// It should be used in all other cases, such as loading data, etc.
+    /// </summary>
+    Processing,
+}
+
+/// <summary>
 /// Information about an argument placeholder.
 /// </summary>
-public sealed class ArgumentInfo
+public class ArgumentInfo
 {
     /// <summary>
     /// Type of the argument data.
     /// </summary>
     public enum DataType
     {
-        String,
-        Int,
-        Bool,
+        @string,
+        @int,
+        @bool,
     }
 
     /// <summary>
@@ -225,17 +260,12 @@ public sealed class ArgumentInfo
     public DataType Type { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the user must choose from the suggestions.
-    /// </summary>
-    public bool MustChooseFromSuggestions { get; }
-
-    /// <summary>
     /// Gets the list of suggestions for the argument.
     /// </summary>
     public IList<string> Suggestions { get; }
 
     public ArgumentInfo(string name, string description, DataType dataType)
-        : this(name, description, restriction: null, dataType, mustChooseFromSuggestions: false, suggestions: null)
+        : this(name, description, restriction: null, dataType, suggestions: null)
     {
     }
 
@@ -244,24 +274,15 @@ public sealed class ArgumentInfo
         string description,
         string restriction,
         DataType dataType,
-        bool mustChooseFromSuggestions,
         IList<string> suggestions)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(description);
 
-        if (mustChooseFromSuggestions && (suggestions is null || suggestions.Count < 2))
-        {
-            throw new ArgumentException(
-                $"A suggestion list with at least 2 items is required when '{nameof(MustChooseFromSuggestions)}' is true.",
-                nameof(suggestions));
-        }
-
         Name = name;
         Description = description;
         Restriction = restriction;
         Type = dataType;
-        MustChooseFromSuggestions = mustChooseFromSuggestions;
         Suggestions = suggestions;
     }
 }
