@@ -20,7 +20,7 @@ function Start-Build
         [string] $Runtime = [NullString]::Value,
 
         [Parameter()]
-        [ValidateSet('openai-gpt', 'interpreter', 'ollama')]
+        [ValidateSet('openai-gpt', 'az-agent', 'interpreter', 'ollama')]
         [string[]] $AgentToInclude,
 
         [Parameter()]
@@ -40,7 +40,7 @@ function Start-Build
     if (-not $AgentToInclude) {
         $agents = $metadata.AgentsToInclude
         $AgentToInclude = if ($agents -eq "*") {
-            @('openai-gpt', 'interpreter', 'ollama')
+            @('openai-gpt', 'az-agent', 'interpreter', 'ollama')
         } else {
             $agents.Split(",", [System.StringSplitOptions]::TrimEntries)
             Write-Verbose "Include agents specified in Metadata.json"
@@ -63,6 +63,7 @@ function Start-Build
     $module_dir = Join-Path $shell_dir "AIShell.Integration"
 
     $openai_agent_dir = Join-Path $agent_dir "AIShell.OpenAI.Agent"
+    $az_agent_dir = Join-Path $agent_dir "AIShell.Azure.Agent"
     $interpreter_agent_dir = Join-Path $agent_dir "AIShell.Interpreter.Agent"
     $ollama_agent_dir = Join-Path $agent_dir "AIShell.Ollama.Agent"
 
@@ -73,6 +74,7 @@ function Start-Build
     $module_help_dir= Join-Path $PSScriptRoot "docs" "cmdlets"
 
     $openai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
+    $az_out_dir = Join-Path $app_out_dir "agents" "AIShell.Azure.Agent"
     $interpreter_out_dir = Join-Path $app_out_dir "agents" "AIShell.Interpreter.Agent"
     $ollama_out_dir =  Join-Path $app_out_dir "agents" "AIShell.Ollama.Agent"
 
@@ -91,6 +93,12 @@ function Start-Build
         Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
         $openai_csproj = GetProjectFile $openai_agent_dir
         dotnet publish $openai_csproj -c $Configuration -o $openai_out_dir
+    }
+
+    if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {
+        Write-Host "`n[Build the Azure agents ...]`n" -ForegroundColor Green
+        $az_csproj = GetProjectFile $az_agent_dir
+        dotnet publish $az_csproj -c $Configuration -o $az_out_dir
     }
 
     if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'interpreter') {
