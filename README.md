@@ -26,8 +26,9 @@ Some prerequisites for building an AI Shell:
 Here are the steps to install and use.
 
 1. Clone this repository, `git clone https://github.com/PowerShell/ProjectMercury`
-2. Run `./build.ps1` in the repository's root directory to build the project
-3. After the build is complete, you can find the produced executable `aish` in the `out\debug\app`
+2. Import the `build.psm1` module by running `import-module ./build.psm1` 
+3. Run the `Start-Build` command 
+4. After the build is complete, you can find the produced executable `aish` in the `out\debug\app`
    folder within the repository's root directory. You can add the location to the `PATH` environment
    variable for easy access. The full path is copied to your clipboard after successful build.
 
