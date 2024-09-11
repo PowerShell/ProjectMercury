@@ -31,11 +31,6 @@ public enum UserAction
     /// User ran the 'retry' command.
     /// </summary>
     Retry,
-
-    /// <summary>
-    /// User ran the 'refresh' command.
-    /// </summary>
-    Refresh,
 }
 
 public abstract class UserActionPayload
