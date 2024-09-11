@@ -444,7 +444,7 @@ function Copy-SignedFileBack
 #>
 function Update-CFSFeed
 {
-    $rids = @('win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')
+    $rids = @('win-x86', 'win-x64', 'win-arm64', 'linux-x64', 'linux-arm64', 'osx-x64', 'osx-arm64')
 
     Write-Host "1. clear all NuGet caches on the local machine." -ForegroundColor Green
     dotnet nuget locals all -c
