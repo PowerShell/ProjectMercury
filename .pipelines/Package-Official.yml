@@ -142,6 +142,6 @@ extends:
       - template: /.pipelines/templates/nupkg-package.yml@self
 
     - stage: upload
-      dependsOn: [mac_package, windows_package, linux_package, module, nupkg]
+      dependsOn: [mac, windows, linux, module, nupkg]
       jobs:
       - template: /.pipelines/templates/upload-to-Azure.yml@self
