@@ -310,14 +310,19 @@ internal sealed class Host : IHost
     }
 
     /// <inheritdoc/>
-    public void RenderDivider(string text)
+    public void RenderDivider(string text, DividerAlignment alignment)
     {
         ArgumentException.ThrowIfNullOrEmpty(text);
         RequireStdoutOrStderr(operation: "render divider");
 
-        AnsiConsole.Write(new Rule($"[yellow]{text.EscapeMarkup()}[/]")
-            .RuleStyle("grey")
-            .LeftJustified());
+        if (!text.Contains("[/]"))
+        {
+            text = $"[yellow]{text.EscapeMarkup()}[/]";
+        }
+
+        Justify justify = alignment is DividerAlignment.Left ? Justify.Left : Justify.Right;
+        Rule rule = new Rule(text).RuleStyle("grey").Justify(justify);
+        AnsiConsole.Write(rule);
     }
 
     /// <inheritdoc/>
