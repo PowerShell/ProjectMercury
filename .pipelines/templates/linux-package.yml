@@ -54,7 +54,7 @@ jobs:
   - pwsh: |
       $signedFilesPath = "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_linux_sign_$(Architecture)"
       Write-Verbose -Verbose "Downloaded artifacts: "
-      Get-ChildItem $signedFilesPath -Recurse
+      Get-ChildItem $signedFilesPath -Recurse | Out-String -Width 500 -Stream
 
       Write-Verbose -Message "Checking 'aish' exists in '$signedFilesPath'" -Verbose
       if (-not (Test-Path $signedFilesPath/aish)) {
@@ -73,14 +73,8 @@ jobs:
 
   - pwsh: |
       Import-Module $(repoRoot)/tools/packaging -Force
-      $signedFilesPath = "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_macos_sign_$(Architecture)"
+      $signedFilesPath = "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_linux_sign_$(Architecture)"
 
-      Write-Verbose -Message "Checking 'aish' exists in '$signedFilesPath'" -Verbose
-      if (-not (Test-Path $signedFilesPath/aish)) {
-        throw "aish not found in $signedFilesPath"
-      }
-
-      $macosRuntime = "osx-$(Architecture)"
       $outDir = "$(Pipeline.Workspace)/AIShellBuildPipeline/pkgs"
       $null = New-Item -ItemType Directory $outDir
 
