@@ -56,7 +56,7 @@ jobs:
   - pwsh: |
       $signedFilesPath = "$(Pipeline.Workspace)\AIShellBuildPipeline\drop_windows_build_$(Architecture)"
       Write-Verbose -Verbose "Downloaded artifacts: "
-      Get-ChildItem $signedFilesPath -Recurse
+      Get-ChildItem $signedFilesPath -Recurse | Out-String -Width 500 -Stream
 
       Write-Verbose -Message "Checking 'aish.exe' exists in '$signedFilesPath'" -Verbose
       if (-not (Test-Path $signedFilesPath\aish.exe)) {
@@ -99,20 +99,20 @@ jobs:
 
   - pwsh: |
       if (-not (Test-Path $(ob_outputDirectory))) {
-        New-Item -ItemType Directory -Path $(ob_outputDirectory) -Force
+        $null = New-Item -ItemType Directory -Path $(ob_outputDirectory) -Force
       }
 
-      $zipPkgNameFilter = "powershell-*.zip"
+      $zipPkgNameFilter = "AIShell-*.zip"
       $zipPkgPath = Get-ChildItem -Path $(PackagePath) -Filter $zipPkgNameFilter -File | ForEach-Object FullName
       Write-Verbose -Verbose "zipPkgPath: $zipPkgPath"
       Copy-Item -Path $zipPkgPath -Destination '$(ob_outputDirectory)' -Force -Verbose
 
-      $msixPkgNameFilter = "powershell-*.msix"
+      $msixPkgNameFilter = "AIShell-*.msix"
       $msixPkgPath = Get-ChildItem -Path $(PackagePath) -Filter $msixPkgNameFilter -File | ForEach-Object FullName
       Write-Verbose -Verbose "msixPkgPath: $msixPkgPath"
       Copy-Item -Path $msixPkgPath -Destination '$(ob_outputDirectory)' -Force -Verbose
     displayName: Copy to output directory
 
   - pwsh: |
-      Get-ChildItem -Path $(ob_outputDirectory) -Recurse
+      Get-ChildItem -Path $(ob_outputDirectory) -Recurse | Out-String -Width 500 -Stream
     displayName: 'List uploaded artifacts'

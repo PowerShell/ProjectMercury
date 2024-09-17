@@ -89,7 +89,7 @@ jobs:
 
   - pwsh: |
       if (-not (Test-Path $(ob_outputDirectory))) {
-        New-Item -ItemType Directory -Path $(ob_outputDirectory) -Force
+        $null = New-Item -ItemType Directory -Path $(ob_outputDirectory) -Force
       }
 
       $pkgFilter = "AIShell-*.tar.gz"
@@ -101,5 +101,5 @@ jobs:
     displayName: 'Copy artifacts to output directory'
 
   - pwsh: |
-      Get-ChildItem -Path $(ob_outputDirectory) -Recurse
+      Get-ChildItem -Path $(ob_outputDirectory) -Recurse | Out-String -Width 500 -Stream
     displayName: 'List uploaded artifacts'

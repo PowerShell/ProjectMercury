@@ -50,8 +50,16 @@ jobs:
       ob_restore_phase: true
 
   - pwsh: |
+      $signedFilePath = "$(Pipeline.Workspace)\AIShellBuildPipeline\drop_module_sign"
       Write-Verbose -Verbose "Downloaded artifacts: "
-      Get-ChildItem "$(Pipeline.Workspace)\AIShellBuildPipeline\drop_module_sign" -Recurse
+      Get-ChildItem $signedFilePath -Recurse | Out-String -Width 500 -Stream
+
+      $moduleFolder = "$(Pipeline.Workspace)\AIShellBuildPipeline\AIShell"
+      $null = New-Item -ItemType Directory -Path $moduleFolder -Force
+
+      Write-Verbose -Verbose "Move module files to the 'AIShell' module folder: "
+      Copy-Item -Path "$signedFilePath\*" -Destination $moduleFolder -Recurse -Force -Verbose
+      Get-ChildItem $moduleFolder -Recurse | Out-String -Width 500 -Stream
     displayName: 'List downloaded files'
     # Diagnostics is not critical it passes every time it runs
     continueOnError: true
@@ -59,7 +67,7 @@ jobs:
       ob_restore_phase: true
 
   - pwsh: |
-      $signedFilePath = "$(Pipeline.Workspace)\AIShellBuildPipeline\drop_module_sign"
+      $moduleFolder = "$(Pipeline.Workspace)\AIShellBuildPipeline\AIShell"
       $nugetPath = "$(Pipeline.Workspace)\AIShellBuildPipeline\NuGetPackage"
 
       New-Item -Path $nugetPath -ItemType Directory > $null
@@ -70,11 +78,11 @@ jobs:
       try {
         $RepoName = "PSRLLocal"
         Register-PSRepository -Name $RepoName -SourceLocation $nugetPath -PublishLocation $nugetPath -InstallationPolicy Trusted
-        Publish-Module -Repository $RepoName -Path $signedFilePath
+        Publish-Module -Repository $RepoName -Path $moduleFolder
       } finally {
         Unregister-PSRepository -Name $RepoName -ErrorAction SilentlyContinue
       }
-      Get-ChildItem -Path $nugetPath
+      Get-ChildItem -Path $nugetPath | Out-String -Width 500 -Stream
     displayName: 'Create the NuGet package'
     env:
       ob_restore_phase: true
