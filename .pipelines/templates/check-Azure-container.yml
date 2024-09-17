@@ -61,7 +61,8 @@ jobs:
       scriptType: inlineScript
       azurePowerShellVersion: latestVersion
       inline: |
-        $context = New-AzStorageContext -StorageAccountName '$(PSInfraStorageAccount)'
+        Write-Verbose -Verbose "Create storage context"
+        $context = New-AzStorageContext -StorageAccountName '$(PSInfraStorageAccount)' -UseConnectedAccount
         $containersToDelete = @{
           '$web' = 'aish/$(PackageVersion)'
           'aish' = '$(PackageVersion)'
