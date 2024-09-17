@@ -40,16 +40,9 @@ jobs:
   - task: DownloadPipelineArtifact@2
     inputs:
       buildType: 'current'
-      artifact: drop_mac_package_x64
+      artifact: macos-pkgs
       targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
     displayName: Download macOS x64 packages
-
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      artifact: drop_mac_package_arm64
-      targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
-    displayName: Download macOS arm64 packages
 
   - task: DownloadPipelineArtifact@2
     inputs:
@@ -85,6 +78,20 @@ jobs:
       artifact: drop_windows_package_arm64
       targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
     displayName: Download Windows arm64 packages
+
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifact: drop_module_package
+      targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
+    displayName: Download module package
+
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifact: drop_nupkg_package
+      targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
+    displayName: Download SDK NuGet package
 
   - pwsh: |
       Get-ChildItem '$(Build.ArtifactStagingDirectory)/downloads' | ForEach-Object FullName
