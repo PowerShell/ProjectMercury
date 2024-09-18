@@ -3,7 +3,7 @@ jobs:
   displayName: Package AIShell module
   condition: succeeded()
   pool:
-    type: windows
+    type: linux
 
   variables:
     - name: runCodesignValidationInjection
@@ -19,13 +19,13 @@ jobs:
     - name: ob_sdl_sbom_enabled
       value: false
     - name: ob_outputDirectory
-      value: '$(Build.ArtifactStagingDirectory)\ONEBRANCH_ARTIFACT'
+      value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
     - name: repoRoot
-      value: $(Build.SourcesDirectory)\ProjectMercury
+      value: $(Build.SourcesDirectory)/ProjectMercury
     - name: ob_sdl_binskim_enabled
       value: true
     - name: ob_sdl_tsa_configFile
-      value: $(repoRoot)\.config\tsaoptions.json
+      value: $(repoRoot)/.config/tsaoptions.json
     - name: ob_signing_setup_enabled
       value: true
     - name: ob_sdl_codeql_compiled_enabled
@@ -50,8 +50,16 @@ jobs:
       ob_restore_phase: true
 
   - pwsh: |
+      $signedFilePath = "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_module_sign"
       Write-Verbose -Verbose "Downloaded artifacts: "
-      Get-ChildItem "$(Pipeline.Workspace)\AIShellBuildPipeline\drop_module_sign" -Recurse
+      Get-ChildItem $signedFilePath -Recurse | Out-String -Width 500 -Stream
+
+      $moduleFolder = "$(Pipeline.Workspace)/AIShellBuildPipeline/AIShell"
+      $null = New-Item -ItemType Directory -Path $moduleFolder -Force
+
+      Write-Verbose -Verbose "Move module files to the 'AIShell' module folder: "
+      Copy-Item -Path "$signedFilePath/*" -Destination $moduleFolder -Recurse -Force -Verbose
+      Get-ChildItem $moduleFolder -Recurse | Out-String -Width 500 -Stream
     displayName: 'List downloaded files'
     # Diagnostics is not critical it passes every time it runs
     continueOnError: true
@@ -59,8 +67,8 @@ jobs:
       ob_restore_phase: true
 
   - pwsh: |
-      $signedFilePath = "$(Pipeline.Workspace)\AIShellBuildPipeline\drop_module_sign"
-      $nugetPath = "$(Pipeline.Workspace)\AIShellBuildPipeline\NuGetPackage"
+      $moduleFolder = "$(Pipeline.Workspace)/AIShellBuildPipeline/AIShell"
+      $nugetPath = "$(Pipeline.Workspace)/AIShellBuildPipeline/NuGetPackage"
 
       New-Item -Path $nugetPath -ItemType Directory > $null
       $vstsCommandString = "vso[task.setvariable variable=NugetPath]$nugetPath"
@@ -70,11 +78,11 @@ jobs:
       try {
         $RepoName = "PSRLLocal"
         Register-PSRepository -Name $RepoName -SourceLocation $nugetPath -PublishLocation $nugetPath -InstallationPolicy Trusted
-        Publish-Module -Repository $RepoName -Path $signedFilePath
+        Publish-Module -Repository $RepoName -Path $moduleFolder
       } finally {
         Unregister-PSRepository -Name $RepoName -ErrorAction SilentlyContinue
       }
-      Get-ChildItem -Path $nugetPath
+      Get-ChildItem -Path $nugetPath | Out-String -Width 500 -Stream
     displayName: 'Create the NuGet package'
     env:
       ob_restore_phase: true
@@ -91,5 +99,5 @@ jobs:
     displayName: Upload module nupkg
     inputs:
       SourceFolder: $(NugetPath)
-      Contents: '**\*'
+      Contents: '**/*'
       TargetFolder: $(ob_outputDirectory)

@@ -40,16 +40,9 @@ jobs:
   - task: DownloadPipelineArtifact@2
     inputs:
       buildType: 'current'
-      artifact: drop_mac_package_x64
+      artifact: macos-pkgs
       targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
     displayName: Download macOS x64 packages
-
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      buildType: 'current'
-      artifact: drop_mac_package_arm64
-      targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
-    displayName: Download macOS arm64 packages
 
   - task: DownloadPipelineArtifact@2
     inputs:
@@ -86,6 +79,20 @@ jobs:
       targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
     displayName: Download Windows arm64 packages
 
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifact: drop_module_package
+      targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
+    displayName: Download module package
+
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      buildType: 'current'
+      artifact: drop_nupkg_package
+      targetPath: '$(Build.ArtifactStagingDirectory)/downloads'
+    displayName: Download SDK NuGet package
+
   - pwsh: |
       Get-ChildItem '$(Build.ArtifactStagingDirectory)/downloads' | ForEach-Object FullName
     displayName: 'Capture downloads'
@@ -121,7 +128,7 @@ jobs:
         $nupkgName = [System.IO.Path]::GetFileNameWithoutExtension($nupkgFile.Name)
         $version = $nupkgName.Replace('AIShell.Abstraction.', '')
 
-        $storageAccountName = $(PSInfraStorageAccount)
+        $storageAccountName = '$(PSInfraStorageAccount)'
         $context = New-AzStorageContext -StorageAccountName $storageAccountName -UseConnectedAccount
 
         # Create the public blob container if it doesn't exist

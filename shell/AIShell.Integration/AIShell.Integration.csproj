@@ -18,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Management.Automation" Version="7.4.0">
+    <PackageReference Include="System.Management.Automation" Version="7.4.5">
       <ExcludeAssets>contentFiles</ExcludeAssets>
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>

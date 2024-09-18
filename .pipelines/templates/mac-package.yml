@@ -50,7 +50,7 @@ jobs:
   - pwsh: |
       $signedFilesPath = "$(Pipeline.Workspace)/AIShellBuildPipeline/drop_macos_sign_$(Architecture)"
       Write-Verbose -Verbose "Downloaded artifacts:"
-      Get-ChildItem $signedFilesPath -Recurse
+      Get-ChildItem $signedFilesPath -Recurse | Out-String -Width 500 -Stream
 
       $version = (Get-Item "$signedFilesPath/AIShell.Abstraction.dll").VersionInfo.ProductVersion
       $vstsCommandString = "vso[task.setvariable variable=PackageVersion]$version"
