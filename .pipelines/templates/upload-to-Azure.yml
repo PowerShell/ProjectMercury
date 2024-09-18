@@ -128,7 +128,7 @@ jobs:
         $nupkgName = [System.IO.Path]::GetFileNameWithoutExtension($nupkgFile.Name)
         $version = $nupkgName.Replace('AIShell.Abstraction.', '')
 
-        $storageAccountName = $(PSInfraStorageAccount)
+        $storageAccountName = '$(PSInfraStorageAccount)'
         $context = New-AzStorageContext -StorageAccountName $storageAccountName -UseConnectedAccount
 
         # Create the public blob container if it doesn't exist
