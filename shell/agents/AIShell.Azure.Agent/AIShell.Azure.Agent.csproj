@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.11.4" />
-    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.18.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
   </ItemGroup>
 
   <ItemGroup>
