@@ -138,17 +138,18 @@ internal sealed class Shell : IShell
     internal void ShowLandingPage()
     {
         // Write out information about the active agent.
-        var current = ActiveAgent;
-        if (current is not null)
+        if (_activeAgent is not null)
         {
             bool isWrapped = true;
-            if (!current.Impl.Name.Equals(_wrapper?.Agent, StringComparison.OrdinalIgnoreCase))
+            var impl = _activeAgent.Impl;
+
+            if (!impl.Name.Equals(_wrapper?.Agent, StringComparison.OrdinalIgnoreCase))
             {
                 isWrapped = false;
-                Host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
+                Host.MarkupLine($"Using the agent [green]{impl.Name}[/]:");
             }
 
-            current.Display(Host, isWrapped ? _wrapper.Description : null);
+            _activeAgent.Display(Host, isWrapped ? _wrapper.Description : null);
         }
 
         // Write out help.
@@ -655,7 +656,7 @@ internal sealed class Shell : IShell
     /// <param name="prompt"></param>
     internal async Task RunOnceAsync(string prompt)
     {
-        if (ActiveAgent is null)
+        if (_activeAgent is null)
         {
             Host.WriteErrorLine("No active agent was configured.");
             Host.WriteErrorLine($"Run '{Utils.AppName} --settings' to configure the active agent. Run '{Utils.AppName} --help' for details.");
@@ -665,7 +666,8 @@ internal sealed class Shell : IShell
 
         try
         {
-            await ActiveAgent.Impl.ChatAsync(prompt, this).WaitAsync(CancellationToken);
+            await _activeAgent.Impl.RefreshChatAsync(this);
+            await _activeAgent.Impl.ChatAsync(prompt, this);
         }
         catch (OperationCanceledException)
         {
