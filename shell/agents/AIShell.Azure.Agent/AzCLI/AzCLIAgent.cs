@@ -52,14 +52,6 @@ public sealed class AzCLIAgent : ILLMAgent
         SettingFile = Path.Combine(config.ConfigurationRoot, SettingFileName);
     }
 
-    public void RefreshChat()
-    {
-        // Reset the history so the subsequent chat can start fresh.
-        _chatService.ChatHistory.Clear();
-        ArgPlaceholder = null;
-        ValueStore.Clear();
-    }
-
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
 
     public bool CanAcceptFeedback(UserAction action) => !MetricHelper.TelemetryOptOut;
@@ -109,7 +101,17 @@ public sealed class AzCLIAgent : ILLMAgent
             });
     }
 
-    public async Task<bool> Chat(string input, IShell shell)
+    public Task RefreshChatAsync(IShell shell)
+    {
+        // Reset the history so the subsequent chat can start fresh.
+        _chatService.ChatHistory.Clear();
+        ArgPlaceholder = null;
+        ValueStore.Clear();
+
+        return Task.CompletedTask;
+    }
+
+    public async Task<bool> ChatAsync(string input, IShell shell)
     {
         // Measure time spent
         _watch.Restart();

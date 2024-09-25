@@ -56,12 +56,6 @@ public sealed class AzPSAgent : ILLMAgent
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
 
-    public void RefreshChat()
-    {
-        // Reset the history so the subsequent chat can start fresh.
-        _chatService.ChatHistory.Clear();
-    }
-
     public IEnumerable<CommandBase> GetCommands() => null;
 
     public bool CanAcceptFeedback(UserAction action) => !MetricHelper.TelemetryOptOut;
@@ -111,7 +105,15 @@ public sealed class AzPSAgent : ILLMAgent
             });
     }
 
-    public async Task<bool> Chat(string input, IShell shell)
+    public Task RefreshChatAsync(IShell shell)
+    {
+        // Reset the history so the subsequent chat can start fresh.
+        _chatService.ChatHistory.Clear();
+
+        return Task.CompletedTask;
+    }
+
+    public async Task<bool> ChatAsync(string input, IShell shell)
     {
         // Measure time spent
         _watch.Restart();

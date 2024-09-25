@@ -138,9 +138,10 @@ public interface ILLMAgent : IDisposable
 
     /// <summary>
     /// Refresh the current chat by starting a new chat session.
-    /// An agent can reset chat states in this method.
+    /// This method allows an agent to reset chat states, interact with user for authentication, print welcome message, and more.
     /// </summary>
-    void RefreshChat();
+    /// <param name="shell">The interface for interacting with the shell.</param>
+    Task RefreshChatAsync(IShell shell);
 
     /// <summary>
     /// Initiates a chat with the AI, using the provided input and shell.
@@ -148,7 +149,7 @@ public interface ILLMAgent : IDisposable
     /// <param name="input">The query message for the AI.</param>
     /// <param name="shell">The interface for interacting with the shell.</param>
     /// <returns>A task whose result contains a boolean indicating whether the query was successfully served.</returns>
-    Task<bool> Chat(string input, IShell shell);
+    Task<bool> ChatAsync(string input, IShell shell);
 
     /// <summary>
     /// Retrieves the collection of commands to be registered to the shell for the agent.
@@ -168,26 +169,4 @@ public interface ILLMAgent : IDisposable
     /// <param name="action">Type of the action.</param>
     /// <param name="actionPayload"></param>
     void OnUserAction(UserActionPayload actionPayload);
-}
-
-public interface IOrchestrator : ILLMAgent
-{
-    /// <summary>
-    /// Find the most suitable agent to serve the prompt.
-    /// </summary>
-    /// <param name="prompt">User prompt to be send to the agent.</param>
-    /// <param name="agents">List of descriptions for each of the agents</param>
-    /// <returns>The index of the selected agent. Or -1 if none are suitable.</returns>
-    Task<int> FindAgentForPrompt(string prompt, List<string> agents, CancellationToken token);
-}
-
-public interface ICodeAnalyzer : ILLMAgent
-{
-    /// <summary>
-    /// Analyze code blocks for any security concerns.
-    /// </summary>
-    /// <param name="codeBlocks"></param>
-    /// <param name="shell"></param>
-    /// <returns></returns>
-    Task<bool> AnalyzeCode(List<string> codeBlocks, IShell shell);
 }
