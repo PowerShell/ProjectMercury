@@ -7,15 +7,12 @@ internal class LLMAgent
 {
     internal ILLMAgent Impl { get; }
     internal AgentAssemblyLoadContext LoadContext { get; }
-    internal bool AnalyzerRoleDisabled { set; get; }
     internal string Prompt { set; get; }
 
     internal LLMAgent(ILLMAgent agent, AgentAssemblyLoadContext loadContext)
     {
         Impl = agent;
         LoadContext = loadContext;
-
-        AnalyzerRoleDisabled = false;
         Prompt = agent.Name;
     }
 
