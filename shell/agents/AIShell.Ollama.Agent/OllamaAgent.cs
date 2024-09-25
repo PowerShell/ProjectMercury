@@ -71,12 +71,6 @@ public sealed class OllamaAgent : ILLMAgent
     public string SettingFile { private set; get; } = null;
 
     /// <summary>
-    /// Refresh the current chat by starting a new chat session.
-    /// An agent can reset chat states in this method.
-    /// </summary>
-    public void RefreshChat() {}
-
-    /// <summary>
     /// Gets a value indicating whether the agent accepts a specific user action feedback.
     /// </summary>
     /// <param name="action">The user action.</param>
@@ -90,12 +84,18 @@ public sealed class OllamaAgent : ILLMAgent
     public void OnUserAction(UserActionPayload actionPayload) {}
 
     /// <summary>
+    /// Refresh the current chat by starting a new chat session.
+    /// This method allows an agent to reset chat states, interact with user for authentication, print welcome message, and more.
+    /// </summary>
+    public Task RefreshChatAsync(IShell shell) => Task.CompletedTask;
+
+    /// <summary>
     /// Main chat function that takes the users input and passes it to the LLM and renders it.
     /// </summary>
     /// <param name="input">The user input from the chat experience.</param>
     /// <param name="shell">The shell that provides host functionality.</param>
     /// <returns>Task Boolean that indicates whether the query was served by the agent.</returns>
-    public async Task<bool> Chat(string input, IShell shell)
+    public async Task<bool> ChatAsync(string input, IShell shell)
     {
         // Get the shell host
         IHost host = shell.Host;

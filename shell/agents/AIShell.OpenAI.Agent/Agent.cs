@@ -67,14 +67,6 @@ public sealed class OpenAIAgent : ILLMAgent
         _watcher.Changed += OnSettingFileChange;
     }
 
-    public void RefreshChat()
-    {
-        // Reload the setting file if needed.
-        ReloadSettings();
-        // Reset the history so the subsequent chat can start fresh.
-        _chatService.ChatHistory.Clear();
-    }
-
     /// <inheritdoc/>
     public IEnumerable<CommandBase> GetCommands() => [new GPTCommand(this)];
 
@@ -85,7 +77,18 @@ public sealed class OpenAIAgent : ILLMAgent
     public void OnUserAction(UserActionPayload actionPayload) {}
 
     /// <inheritdoc/>
-    public async Task<bool> Chat(string input, IShell shell)
+    public Task RefreshChatAsync(IShell shell)
+    {
+        // Reload the setting file if needed.
+        ReloadSettings();
+        // Reset the history so the subsequent chat can start fresh.
+        _chatService.ChatHistory.Clear();
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> ChatAsync(string input, IShell shell)
     {
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;

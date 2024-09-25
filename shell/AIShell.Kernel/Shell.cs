@@ -11,10 +11,12 @@ internal sealed class Shell : IShell
     private readonly bool _isInteractive;
     private readonly string _version;
     private readonly List<LLMAgent> _agents;
-    private readonly Stack<LLMAgent> _activeAgentStack;
     private readonly ShellWrapper _wrapper;
     private readonly HashSet<string> _textToIgnore;
     private readonly Setting _setting;
+
+    private bool _shouldRefresh;
+    private LLMAgent _activeAgent;
     private CancellationTokenSource _cancellationSource;
 
     /// <summary>
@@ -70,7 +72,7 @@ internal sealed class Shell : IShell
     /// <summary>
     /// Gets the currently active agent.
     /// </summary>
-    internal LLMAgent ActiveAgent => _activeAgentStack.TryPeek(out var agent) ? agent : null;
+    internal LLMAgent ActiveAgent => _activeAgent;
 
     #region IShell implementation
 
@@ -94,8 +96,9 @@ internal sealed class Shell : IShell
         Channel = args.Channel is null ? null : new Channel(args.Channel, this);
 
         _agents = [];
+        _activeAgent = null;
+        _shouldRefresh = false;
         _setting = Setting.Load();
-        _activeAgentStack = new Stack<LLMAgent>();
         _textToIgnore = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         _cancellationSource = new CancellationTokenSource();
         _version = typeof(Shell).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion;
@@ -285,58 +288,18 @@ internal sealed class Shell : IShell
                     converter: static a => a.Impl.Name)
                 .GetAwaiter().GetResult();
 
-            PushActiveAgent(chosenAgent);
+            _activeAgent = chosenAgent;
+            _shouldRefresh = true;
+            if (_isInteractive)
+            {
+                ILLMAgent impl = chosenAgent.Impl;
+                CommandRunner.UnloadAgentCommands();
+                CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
+            }
         }
         catch (Exception)
         {
             // Ignore failure from showing the confirmation prompt.
-        }
-    }
-
-    /// <summary>
-    /// Push the active agent on to the stack.
-    /// </summary>
-    internal void PushActiveAgent(LLMAgent agent)
-    {
-        if (_activeAgentStack.Count is 2)
-        {
-            throw new InvalidOperationException("Cannot push when two agents are already on stack.");
-        }
-
-        bool loadCommands = false;
-        if (_isInteractive)
-        {
-            loadCommands = !_activeAgentStack.TryPeek(out var current) || current != agent;
-        }
-
-        _activeAgentStack.Push(agent);
-        if (loadCommands)
-        {
-            ILLMAgent impl = agent.Impl;
-            impl.RefreshChat();
-            CommandRunner.UnloadAgentCommands();
-            CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
-        }
-    }
-
-    /// <summary>
-    /// Pop the current active agent off the stack.
-    /// </summary>
-    internal void PopActiveAgent()
-    {
-        if (_activeAgentStack.Count != 2)
-        {
-            throw new InvalidOperationException("Cannot pop when only one active agent is on stack.");
-        }
-
-        LLMAgent pre = _activeAgentStack.Pop();
-        LLMAgent cur = _activeAgentStack.Peek();
-
-        if (pre != cur)
-        {
-            ILLMAgent impl = cur.Impl;
-            CommandRunner.UnloadAgentCommands();
-            CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
         }
     }
 
@@ -346,21 +309,17 @@ internal sealed class Shell : IShell
     internal void SwitchActiveAgent(LLMAgent agent)
     {
         ILLMAgent impl = agent.Impl;
-        if (_activeAgentStack.TryPop(out var current))
+        if (_activeAgent is null)
         {
-            _activeAgentStack.Clear();
-            _activeAgentStack.Push(agent);
-            if (current != agent)
-            {
-                impl.RefreshChat();
-                CommandRunner.UnloadAgentCommands();
-                CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
-            }
+            _activeAgent = agent;
+            _shouldRefresh = true;
+            CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
         }
-        else
+        else if (_activeAgent != agent)
         {
-            _activeAgentStack.Push(agent);
-            impl.RefreshChat();
+            _activeAgent = agent;
+            _shouldRefresh = true;
+            CommandRunner.UnloadAgentCommands();
             CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
         }
     }
@@ -588,10 +547,16 @@ internal sealed class Shell : IShell
         while (!Exit)
         {
             string input = null;
-            LLMAgent agent = ActiveAgent;
+            LLMAgent agent = _activeAgent;
 
             try
             {
+                if (_shouldRefresh)
+                {
+                    _shouldRefresh = false;
+                    await agent?.Impl.RefreshChatAsync(this);
+                }
+
                 if (Regenerate)
                 {
                     input = LastQuery;
@@ -651,75 +616,14 @@ internal sealed class Shell : IShell
                     continue;
                 }
 
-                if (agent.IsOrchestrator(out IOrchestrator orchestrator)
-                    && _activeAgentStack.Count is 1
-                    && !agent.OrchestratorRoleDisabled
-                    && _agents.Count > 1)
-                {
-                    Host.MarkupLine($"The active agent [green]{agent.Impl.Name}[/] can act as an orchestrator and there are multiple agents available.");
-                    bool confirmed = await Host.PromptForConfirmationAsync(
-                        prompt: "Do you want it to find the most suitable agent for your query?",
-                        defaultValue: false);
-
-                    if (confirmed)
-                    {
-                        List<string> descriptions = new(capacity: _agents.Count);
-                        foreach (LLMAgent item in _agents)
-                        {
-                            descriptions.Add(item.Impl.Description);
-                        }
-
-                        try
-                        {
-                            Task<int> find_agent_op() => orchestrator.FindAgentForPrompt(
-                                prompt: input,
-                                agents: descriptions,
-                                token: CancellationToken).WaitAsync(CancellationToken);
-
-                            int selected = await Host.RunWithSpinnerAsync(find_agent_op, status: "Thinking...");
-                            string agentCommand = Formatter.Command($"/agent pop");
-
-                            if (selected >= 0)
-                            {
-                                var selectedAgent = _agents[selected];
-                                PushActiveAgent(selectedAgent);
-                                Host.MarkupNoteLine($"Selected agent: [green]{selectedAgent.Impl.Name}[/]")
-                                    .MarkupNoteLine($"It's now active for your query. When you are done with the topic, run {agentCommand} to return to the orchestrator.");
-                            }
-                            else
-                            {
-                                PushActiveAgent(agent);
-                                Host.MarkupNoteLine($"No suitable agent was found. The active agent [green]{agent.Impl.Name}[/] will be used for the topic.")
-                                    .MarkupNoteLine($"When you are done with the topic, run {agentCommand} to return to the orchestrator.");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            if (ex is OperationCanceledException)
-                            {
-                                // User cancelled the operation, so we return to the read-line prompt.
-                                continue;
-                            }
-
-                            agent.OrchestratorRoleDisabled = true;
-                            Host.WriteLine()
-                                .WriteErrorLine($"Operation failed: {ex.Message}")
-                                .WriteLine()
-                                .MarkupNoteLine($"The orchestrator role is disabled due to the failure. Continue with the active agent [green]{agent.Impl.Name}[/] for the query.");
-                        }
-                    }
-                }
-
                 try
                 {
-                    // Use the current active agent for the query.
-                    agent = ActiveAgent;
                     LastQuery = input;
                     LastAgent = agent;
 
                     // TODO: Consider `WaitAsync(CancellationToken)` to handle an agent not responding to ctr+c.
                     // One problem to use `WaitAsync` is to make sure we give reasonable time for the agent to handle the cancellation.
-                    bool wasQueryServed = await agent.Impl.Chat(input, this);
+                    bool wasQueryServed = await agent.Impl.ChatAsync(input, this);
                     if (!wasQueryServed)
                     {
                         Host.WriteLine()
@@ -735,18 +639,12 @@ internal sealed class Shell : IShell
                         continue;
                     }
 
-                    Host.WriteErrorLine()
-                        .WriteErrorLine($"Agent failed to generate a response: {ex.Message}\n{ex.StackTrace}")
-                        .WriteErrorLine();
+                    Host.WriteErrorLine($"\nAgent failed to generate a response: {ex.Message}\n{ex.StackTrace}\n");
                 }
             }
-            catch (AIShellException e)
+            catch (Exception e)
             {
-                Host.WriteErrorLine(e.Message);
-                if (e.HandlerAction is ExceptionHandlerAction.Stop)
-                {
-                    break;
-                }
+                Host.WriteErrorLine($"\n{e.Message}\n");
             }
         }
     }
@@ -767,15 +665,15 @@ internal sealed class Shell : IShell
 
         try
         {
-            await ActiveAgent.Impl.Chat(prompt, this).WaitAsync(CancellationToken);
+            await ActiveAgent.Impl.ChatAsync(prompt, this).WaitAsync(CancellationToken);
         }
         catch (OperationCanceledException)
         {
             Host.WriteErrorLine("Operation was aborted.");
         }
-        catch (AIShellException exception)
+        catch (Exception e)
         {
-            Host.WriteErrorLine(exception.Message);
+            Host.WriteErrorLine(e.Message);
         }
     }
 }

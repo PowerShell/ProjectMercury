@@ -72,7 +72,7 @@ public sealed class InterpreterAgent : ILLMAgent
     }
 
     /// <inheritdoc/>
-    public void RefreshChat()
+    public Task RefreshChatAsync(IShell shell)
     {
         // Reload the setting file if needed.
         ReloadSettings();
@@ -80,6 +80,8 @@ public sealed class InterpreterAgent : ILLMAgent
         _chatService.RefreshChat();
         // Shut down the execution service to start fresh.
         _executionService.Terminate();
+
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
@@ -92,7 +94,7 @@ public sealed class InterpreterAgent : ILLMAgent
     public IEnumerable<CommandBase> GetCommands() => null;
 
     /// <inheritdoc/>
-    public async Task<bool> Chat(string input, IShell shell)
+    public async Task<bool> ChatAsync(string input, IShell shell)
     {
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;

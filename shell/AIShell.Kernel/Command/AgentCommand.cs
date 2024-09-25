@@ -19,9 +19,6 @@ internal sealed class AgentCommand : CommandBase
         use.AddArgument(useAgent);
         use.SetHandler(UseAgentAction, useAgent);
 
-        var pop = new Command("pop", "Pop the current active agent off the stack and go back to the orchestrator agent.");
-        pop.SetHandler(PopAgentAction);
-
         var config = new Command("config", "Open up the setting file for an agent. When no agent is specified, target the active agent.");
         var editor = new Option<string>("--editor", "The editor to open the setting file in.");
         var configAgent = new Argument<string>(
@@ -37,7 +34,6 @@ internal sealed class AgentCommand : CommandBase
 
         AddCommand(config);
         AddCommand(list);
-        AddCommand(pop);
         AddCommand(use);
     }
 
@@ -89,25 +85,6 @@ internal sealed class AgentCommand : CommandBase
         shell.SwitchActiveAgent(chosenAgent);
         host.MarkupLine($"Using the agent [green]{chosenAgent.Impl.Name}[/]:");
         chosenAgent.Display(host);
-    }
-
-    private void PopAgentAction()
-    {
-        var shell = (Shell)Shell;
-        var host = shell.Host;
-
-        try
-        {
-            shell.PopActiveAgent();
-
-            var current = shell.ActiveAgent;
-            host.MarkupLine($"Using the agent [green]{current.Impl.Name}[/]:");
-            current.Display(host);
-        }
-        catch (Exception ex)
-        {
-            host.WriteErrorLine(ex.Message);
-        }
     }
 
     private void ConfigAgentAction(string name, string editor)
