@@ -1,6 +1,6 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Microsoft.Identity.Client;
 
 namespace Microsoft.Azure.Agent;
 
@@ -52,6 +52,30 @@ internal class CopilotActivity
     public string InputHint { get; set; }
     public JsonObject[] Attachments { get; set; }
     public string ReplyToId { get; set; }
+
+    internal Exception Error { get; set; }
+    internal void ParseMetadata(
+        out string[] suggestedUserResponses,
+        out ConversationState conversationState)
+    {
+        suggestedUserResponses = null;
+        conversationState = null;
+
+        foreach (JsonObject jObj in Attachments)
+        {
+            string name = jObj["name"].ToString();
+            JsonNode content = jObj["content"];
+
+            if (name is CopilotActivity.SuggestedResponseName)
+            {
+                suggestedUserResponses = content.Deserialize<string[]>(Utils.JsonOptions);
+            }
+            else if (name is CopilotActivity.ConversationStateName)
+            {
+                conversationState = content.Deserialize<ConversationState>(Utils.JsonOptions);
+            }
+        }
+    }
 };
 
 internal class ConversationState
@@ -68,8 +92,83 @@ internal class ConversationState
 
 internal class CopilotResponse
 {
-    public string Text { get; set; }
-    public string TopicName { get; set; }
-    public string[] SuggestedUserResponses { get; set; }
-    public ConversationState ConversationState { get; set; }
+    internal CopilotResponse(ChunkReader chunkReader, string topicName)
+    {
+        ArgumentNullException.ThrowIfNull(chunkReader);
+        ArgumentException.ThrowIfNullOrEmpty(topicName);
+
+        ChunkReader = chunkReader;
+        TopicName = topicName;
+    }
+
+    internal CopilotResponse(string text, string topicName)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(text);
+        ArgumentException.ThrowIfNullOrEmpty(topicName);
+
+        Text = text;
+        TopicName = topicName;
+    }
+
+    internal ChunkReader ChunkReader { get; }
+    internal string Text { get; }
+    internal string TopicName { get; }
+    internal string[] SuggestedUserResponses { get; set; }
+    internal ConversationState ConversationState { get; set; }
+}
+
+internal class RawResponse
+{
+    public List<CopilotActivity> Activities { get; set; }
+    public string Watermark { get; set; }
+}
+
+internal class ChunkReader
+{
+    private readonly string _replyToId;
+    private readonly AzureCopilotReceiver _receiver;
+    private CopilotActivity _current;
+    private bool _complete;
+
+    internal ChunkReader(AzureCopilotReceiver receiver, CopilotActivity current)
+    {
+        _replyToId = current.ReplyToId;
+        _receiver = receiver;
+        _current = current;
+        _complete = false;
+    }
+
+    internal CopilotActivity ReadChunk(CancellationToken cancellationToken)
+    {
+        if (_current is not null)
+        {
+            CopilotActivity ret = _current;
+            _current = null;
+            return ret;
+        }
+
+        if (_complete)
+        {
+            return null;
+        }
+
+        CopilotActivity activity = _receiver.ActivityQueue.Take(cancellationToken);
+
+        if (activity.Type is not "messageUpdate")
+        {
+            throw CorruptDataException.Create($"The 'type' should be 'messageUpdate' but it's '{activity.Type}'.");
+        }
+        if (activity.ReplyToId != _replyToId)
+        {
+            throw CorruptDataException.Create($"The 'replyToId' should be '{_replyToId}', but it's '{activity.ReplyToId}'.");
+        }
+        if (activity.InputHint is not "typing" and not "acceptingInput")
+        {
+            throw CorruptDataException.Create($"The 'inputHint' should be 'typing' or 'acceptingInput', but it's '{activity.InputHint}'.");
+        }
+
+        _complete = activity.InputHint is "acceptingInput";
+
+        return activity;
+    }
 }

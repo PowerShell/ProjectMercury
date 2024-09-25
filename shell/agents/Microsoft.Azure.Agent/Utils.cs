@@ -44,6 +44,19 @@ internal class ConnectionDroppedException : Exception
     }
 }
 
+internal class CorruptDataException : Exception
+{
+    internal CorruptDataException(string message)
+        : base(message)
+    {
+    }
+
+    internal static CorruptDataException Create(string message)
+    {
+        return new CorruptDataException($"Unexpected copilot activity received. {message}");
+    }
+}
+
 internal class ChatMessage
 {
     public string Role { get; set; }
