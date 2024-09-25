@@ -294,7 +294,6 @@ internal sealed class Shell : IShell
             if (_isInteractive)
             {
                 ILLMAgent impl = chosenAgent.Impl;
-                CommandRunner.UnloadAgentCommands();
                 CommandRunner.LoadCommands(impl.GetCommands(), impl.Name);
             }
         }
