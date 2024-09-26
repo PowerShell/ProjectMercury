@@ -77,10 +77,10 @@ jobs:
 
       try {
         $RepoName = "PSRLLocal"
-        Register-PSRepository -Name $RepoName -SourceLocation $nugetPath -PublishLocation $nugetPath -InstallationPolicy Trusted
-        Publish-Module -Repository $RepoName -Path $moduleFolder
+        Register-PSResourceRepository -Name $RepoName -Uri $nugetPath -Trusted
+        Publish-PSResource -Repository $RepoName -Path $moduleFolder
       } finally {
-        Unregister-PSRepository -Name $RepoName -ErrorAction SilentlyContinue
+        Unregister-PSResourceRepository -Name $RepoName -Force -ErrorAction SilentlyContinue
       }
       Get-ChildItem -Path $nugetPath | Out-String -Width 500 -Stream
     displayName: 'Create the NuGet package'

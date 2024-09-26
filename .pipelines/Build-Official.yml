@@ -9,11 +9,6 @@ parameters:
 
 resources:
   repositories:
-  - repository: ComplianceRepo
-    type: github
-    endpoint: ComplianceGHRepo
-    name: PowerShell/compliance
-    ref: master
   - repository: onebranchTemplates
     type: git
     name: OneBranch.Pipelines/GovernedTemplates
@@ -39,7 +34,7 @@ variables:
   - name: LinuxContainerImage
     value: mcr.microsoft.com/onebranch/cbl-mariner/build:2.0
   - name: WindowsContainerImage
-    value: onebranch.azurecr.io/windows/ltsc2019/vse2022:latest
+    value: onebranch.azurecr.io/windows/ltsc2022/vse2022:latest
   - name: CDP_DEFINITION_BUILD_COUNT
     value: $[counter('', 0)]
   - name: SKIP_SIGNING
@@ -53,9 +48,10 @@ extends:
     customTags: 'ES365AIMigrationTooling'
     featureFlags:
       LinuxHostVersion:
-          Network: KS3
+        Network: KS3
       WindowsHostVersion:
-          Network: KS3
+        Version: 2022
+        Network: KS3
     globalSdl:
       disableLegacyManifest: true
       # disabled Armorty as we dont have any ARM templates to scan. It fails on some sample ARM templates.
