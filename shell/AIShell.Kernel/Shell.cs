@@ -639,12 +639,16 @@ internal sealed class Shell : IShell
                         continue;
                     }
 
-                    Host.WriteErrorLine($"\nAgent failed to generate a response: {ex.Message}\n{ex.StackTrace}\n");
+                    Host.WriteErrorLine()
+                        .WriteErrorLine($"Agent failed to generate a response: {ex.Message}\n{ex.StackTrace}")
+                        .WriteErrorLine();
                 }
             }
             catch (Exception e)
             {
-                Host.WriteErrorLine($"\n{e.Message}\n");
+                Host.WriteErrorLine()
+                    .WriteErrorLine($"{e.Message}\n{e.StackTrace}")
+                    .WriteErrorLine();
             }
         }
     }
