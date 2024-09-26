@@ -54,9 +54,14 @@ internal class CopilotActivity
     public string ReplyToId { get; set; }
 
     internal Exception Error { get; set; }
-    internal void ParseMetadata(
-        out string[] suggestedUserResponses,
-        out ConversationState conversationState)
+
+    internal bool IsFromCopilot => From.Id.StartsWith("copilot", StringComparison.OrdinalIgnoreCase);
+    internal bool IsTyping => Type is "typing";
+    internal bool IsEvent => Type is "event";
+    internal bool IsMessage => Type is "message";
+    internal bool IsMessageUpdate => Type is "messageUpdate";
+
+    internal void ExtractMetadata(out string[] suggestedUserResponses, out ConversationState conversationState)
     {
         suggestedUserResponses = null;
         conversationState = null;
@@ -154,7 +159,7 @@ internal class ChunkReader
 
         CopilotActivity activity = _receiver.ActivityQueue.Take(cancellationToken);
 
-        if (activity.Type is not "messageUpdate")
+        if (!activity.IsMessageUpdate)
         {
             throw CorruptDataException.Create($"The 'type' should be 'messageUpdate' but it's '{activity.Type}'.");
         }

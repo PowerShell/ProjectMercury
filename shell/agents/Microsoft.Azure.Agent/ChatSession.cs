@@ -52,35 +52,36 @@ internal class ChatSession : IDisposable
             ["getformstate"] = true,
             ["notificationcopilotbuttonallerror"] = false,
             ["chitchatprompt"] = true,
-            ["streamresponse"] = true,
+            // TODO: the streaming is slow and not sending chunks, very clumsy for now.
+            // ["streamresponse"] = true,
         };
     }
 
-    internal string NewConversation(CancellationToken cancellationToken)
+    internal async Task RefreshAsync(IHost host, CancellationToken cancellationToken)
     {
         try
         {
-            Reset();
-            GenerateTokenAsync(cancellationToken).Wait(CancellationToken.None);
-            return StartConversationAsync(cancellationToken).GetAwaiter().GetResult();
+            await GenerateTokenAsync(host, cancellationToken);
+            await StartConversationAsync(host, cancellationToken);
         }
         catch (Exception e)
         {
             Reset();
             if (e is OperationCanceledException)
             {
-                Console.WriteLine("Failed to start a conversation because it was cancelled.");
-                Console.WriteLine("Please run '/refresh' to start a new conversation.");
+                host.WriteErrorLine()
+                    .WriteErrorLine("Operation cancelled. Please run '/refresh' to start a new conversation.");
             }
             else
             {
-                Console.WriteLine($"Failed to start a conversation due to the following error: {e.Message}");
-                Console.WriteLine(e.StackTrace);
-                Console.WriteLine("\nPlease try '/refresh' to start a new conversation.");
+                host.WriteErrorLine()
+                    .WriteErrorLine($"Failed to start a conversation due to the following error: {e.Message}")
+                    .WriteErrorLine(e.StackTrace)
+                    .WriteErrorLine()
+                    .WriteErrorLine("Please try '/refresh' to start a new conversation.")
+                    .WriteErrorLine();
             }
         }
-
-        return null;
     }
 
     private void Reset()
@@ -94,8 +95,9 @@ internal class ChatSession : IDisposable
         _copilotReceiver = null;
     }
 
-    private async Task GenerateTokenAsync(CancellationToken cancellationToken)
+    private async Task GenerateTokenAsync(IHost host, CancellationToken cancellationToken)
     {
+        // TODO: use spinner when generating token. Also use interaction for authentication is needed.
         string manualToken = Environment.GetEnvironmentVariable("DL_TOKEN");
         if (!string.IsNullOrEmpty(manualToken))
         {
@@ -103,26 +105,20 @@ internal class ChatSession : IDisposable
             return;
         }
 
-        try
-        {
-            HttpRequestMessage request = new(HttpMethod.Post, DL_TOKEN_URL);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", DL_SECRET);
+        // TODO: figure out how to get the token when copilot API is ready.
+        HttpRequestMessage request = new(HttpMethod.Post, DL_TOKEN_URL);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", DL_SECRET);
 
-            HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+        HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
 
-            Stream content = await response.Content.ReadAsStreamAsync(cancellationToken);
-            TokenPayload tpl = JsonSerializer.Deserialize<TokenPayload>(content, Utils.JsonOptions);
+        Stream content = await response.Content.ReadAsStreamAsync(cancellationToken);
+        TokenPayload tpl = JsonSerializer.Deserialize<TokenPayload>(content, Utils.JsonOptions);
 
-            _token = tpl.Token;
-        }
-        catch (Exception e) when (e is not OperationCanceledException)
-        {
-            throw new TokenRequestException($"Failed to generate the 'DirectLine' token: {e.Message}.", e);
-        }
+        _token = tpl.Token;
     }
 
-    private async Task<string> StartConversationAsync(CancellationToken cancellationToken)
+    private async Task StartConversationAsync(IHost host, CancellationToken cancellationToken)
     {
         HttpRequestMessage request = new(HttpMethod.Post, CONVERSATION_URL);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
@@ -137,14 +133,19 @@ internal class ChatSession : IDisposable
         _conversationUrl = $"{CONVERSATION_URL}/{spl.ConversationId}/activities";
         _streamUrl = spl.StreamUrl;
         _expireOn = DateTime.UtcNow.AddSeconds(spl.ExpiresIn);
-
         _copilotReceiver = await AzureCopilotReceiver.CreateAsync(_streamUrl);
+
         while (true)
         {
             CopilotActivity activity = _copilotReceiver.ActivityQueue.Take(cancellationToken);
-            if (activity.Type is "message" && _copilotReceiver.Watermark is 0)
+            if (activity.IsMessage && activity.IsFromCopilot && _copilotReceiver.Watermark is 0)
             {
-                return activity.Text;
+                activity.ExtractMetadata(out _, out ConversationState conversationState);
+                int chatNumber = conversationState.DailyConversationNumber;
+                int requestNumber = conversationState.TurnNumber;
+
+                host.WriteLine($"\n{activity.Text} This is chat #{chatNumber}, request #{requestNumber}.\n");
+                return;
             }
         }
     }
@@ -262,13 +263,13 @@ internal class ChatSession : IDisposable
                     continue;
                 }
 
-                if (activity.Type is "typing")
+                if (activity.IsTyping)
                 {
                     context?.Status(activity.Text);
                     continue;
                 }
 
-                if (activity.Type is "message")
+                if (activity.IsMessage)
                 {
                     CopilotResponse ret = activity.InputHint switch
                     {
@@ -279,7 +280,7 @@ internal class ChatSession : IDisposable
 
                     if (ret.ChunkReader is null)
                     {
-                        activity.ParseMetadata(out string[] suggestion, out ConversationState state);
+                        activity.ExtractMetadata(out string[] suggestion, out ConversationState state);
                         ret.SuggestedUserResponses = suggestion;
                         ret.ConversationState = state;
                     }

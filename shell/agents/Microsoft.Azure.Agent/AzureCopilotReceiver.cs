@@ -90,7 +90,7 @@ internal class AzureCopilotReceiver : IDisposable
 
                 foreach (CopilotActivity activity in rawResponse.Activities)
                 {
-                    if (activity.From.Id.StartsWith("copilot", StringComparison.OrdinalIgnoreCase))
+                    if (activity.IsFromCopilot)
                     {
                         _activityQueue.Add(activity);
                     }

@@ -43,21 +43,17 @@ public sealed class AzureAgent : ILLMAgent
         SettingFile = Path.Combine(config.ConfigurationRoot, SettingFileName);
     }
 
-    public void RefreshChat()
-    {
-        // Refresh the chat session.
-        string welcome = _chatSession.NewConversation(CancellationToken.None);
-        if (!string.IsNullOrEmpty(welcome))
-        {
-            Description = welcome;
-        }
-    }
-
     public IEnumerable<CommandBase> GetCommands() => null;
     public bool CanAcceptFeedback(UserAction action) => false;
     public void OnUserAction(UserActionPayload actionPayload) {}
 
-    public async Task<bool> Chat(string input, IShell shell)
+    public async Task RefreshChatAsync(IShell shell)
+    {
+        // Refresh the chat session.
+        await _chatSession.RefreshAsync(shell.Host, shell.CancellationToken);
+    }
+
+    public async Task<bool> ChatAsync(string input, IShell shell)
     {
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
@@ -97,7 +93,7 @@ public sealed class AzureAgent : ILLMAgent
                         CopilotActivity activity = copilotResponse.ChunkReader.ReadChunk(token);
                         if (activity is null)
                         {
-                            prevActivity.ParseMetadata(out string[] suggestion, out ConversationState state);
+                            prevActivity.ExtractMetadata(out string[] suggestion, out ConversationState state);
                             copilotResponse.SuggestedUserResponses = suggestion;
                             copilotResponse.ConversationState = state;
                             break;
