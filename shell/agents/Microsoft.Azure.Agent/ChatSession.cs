@@ -9,8 +9,6 @@ namespace Microsoft.Azure.Agent;
 
 internal class ChatSession : IDisposable
 {
-    // private string? DL_SECRET = Environment.GetEnvironmentVariable("DL_SECRET");
-    private const string DL_SECRET = "p01apw-4RCo.0Ck32zNZ6DduKt3Y6ZxOLd-9UBWyg6sr0v4tsTR_n24";
     private const string DL_TOKEN_URL = "https://directline.botframework.com/v3/directline/tokens/generate";
     private const string REFRESH_TOKEN_URL = "https://directline.botframework.com/v3/directline/tokens/refresh";
     internal const string CONVERSATION_URL = "https://directline.botframework.com/v3/directline/conversations";
@@ -21,11 +19,13 @@ internal class ChatSession : IDisposable
     private DateTime _expireOn;
     private AzureCopilotReceiver _copilotReceiver;
 
+    private readonly string _dl_secret;
     private readonly HttpClient _httpClient;
     private readonly Dictionary<string, object> _flights;
 
     internal ChatSession()
     {
+        _dl_secret = Environment.GetEnvironmentVariable("DL_SECRET");
         _httpClient = new HttpClient();
 
         // Keys and values for flights are from the portal request.
@@ -105,9 +105,14 @@ internal class ChatSession : IDisposable
             return;
         }
 
+        if (string.IsNullOrEmpty(_dl_secret))
+        {
+            throw new TokenRequestException("You have to manually grab the Direct Line token from portal and set it to the environment variable 'DL_TOKEN' until we figure out authentication.");
+        }
+
         // TODO: figure out how to get the token when copilot API is ready.
         HttpRequestMessage request = new(HttpMethod.Post, DL_TOKEN_URL);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", DL_SECRET);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _dl_secret);
 
         HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
