@@ -31,7 +31,7 @@ public sealed class AzureAgent : ILLMAgent
         _chatSession = new ChatSession();
         _turnsLeft = int.MaxValue;
 
-        Description = "This AI assistant can help generate Azure CLI and Azure PowerShell scripts or commands for managing Azure resources and end-to-end scenarios that involve multiple different Azure resources.";
+        Description = "This AI assistant can generate Azure CLI and Azure PowerShell commands for managing Azure resources, answer questions, and provides information tailored to your specific Azure environment.";
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Terms"] = "https://aka.ms/TermsofUseCopilot",
