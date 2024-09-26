@@ -97,7 +97,8 @@ public interface IHost
     /// Render a divider with the passed-in text.
     /// </summary>
     /// <param name="text">A brief caption for the subsequent section.</param>
-    void RenderDivider(string text);
+    /// <param name="alignment">Alignment of the text.</param>
+    void RenderDivider(string text, DividerAlignment alignment);
 
     /// <summary>
     /// Run an asynchronouse task with a spinner on the console showing the task in progress.
@@ -222,6 +223,22 @@ public enum SpinnerKind
     /// It should be used in all other cases, such as loading data, etc.
     /// </summary>
     Processing,
+}
+
+/// <summary>
+/// Enum type for the text alignment within a divider.
+/// </summary>
+public enum DividerAlignment
+{
+    /// <summary>
+    /// Text for the divider is left aligned.
+    /// </summary>
+    Left,
+
+    /// <summary>
+    /// Text for the divider is right aligned.
+    /// </summary>
+    Right,
 }
 
 /// <summary>

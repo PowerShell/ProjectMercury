@@ -67,7 +67,7 @@ internal sealed class ReplaceCommand : CommandBase
             ? $"all {items.Count} argument placeholders"
             : "the argument placeholder";
         host.WriteLine($"\nWe'll provide assistance in replacing {subText} and regenerating the result. You can press 'Enter' to skip to the next parameter or press 'Ctrl+c' to exit the assistance.\n");
-        host.RenderDivider("Input Values");
+        host.RenderDivider("Input Values", DividerAlignment.Left);
         host.WriteLine();
 
         try
@@ -151,11 +151,11 @@ internal sealed class ReplaceCommand : CommandBase
 
         if (_values.Count > 0)
         {
-            host.RenderDivider("Summary");
+            host.RenderDivider("Summary", DividerAlignment.Left);
             host.WriteLine("\nThe following placeholders will be replace:");
             host.RenderList(_values);
 
-            host.RenderDivider("Regenerate");
+            host.RenderDivider("Regenerate", DividerAlignment.Left);
             host.MarkupLine($"\nQuery: [teal]{ap.Query}[/]");
 
             try
