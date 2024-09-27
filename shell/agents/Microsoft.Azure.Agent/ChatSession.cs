@@ -280,7 +280,7 @@ internal class ChatSession : IDisposable
                     {
                         "typing"         => new CopilotResponse(new ChunkReader(_copilotReceiver, activity), activity.TopicName),
                         "acceptingInput" => new CopilotResponse(activity.Text, activity.TopicName),
-                        _ => throw CorruptDataException.Create($"The 'inputHint'")
+                        _ => throw CorruptDataException.Create($"The 'inputHint' is {activity.InputHint}.", activity)
                     };
 
                     if (ret.ChunkReader is null)
@@ -293,7 +293,7 @@ internal class ChatSession : IDisposable
                     return ret;
                 }
 
-                throw CorruptDataException.Create($"The 'type' is '{activity.Type}', but we only expect 'typing' and 'message' as we don't support any client handlers.");
+                throw CorruptDataException.Create($"The 'type' is '{activity.Type}', but we only expect 'typing' and 'message' as we don't support any client handlers.", activity);
             }
         }
         catch (OperationCanceledException)

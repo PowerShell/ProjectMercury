@@ -81,6 +81,8 @@ internal class CopilotActivity
             }
         }
     }
+
+    internal string Serialize() => JsonSerializer.Serialize(this, Utils.JsonHumanReadableOptions);
 };
 
 internal class ConversationState
@@ -161,15 +163,15 @@ internal class ChunkReader
 
         if (!activity.IsMessageUpdate)
         {
-            throw CorruptDataException.Create($"The 'type' should be 'messageUpdate' but it's '{activity.Type}'.");
+            throw CorruptDataException.Create($"The 'type' should be 'messageUpdate' but it's '{activity.Type}'.", activity);
         }
         if (activity.ReplyToId != _replyToId)
         {
-            throw CorruptDataException.Create($"The 'replyToId' should be '{_replyToId}', but it's '{activity.ReplyToId}'.");
+            throw CorruptDataException.Create($"The 'replyToId' should be '{_replyToId}', but it's '{activity.ReplyToId}'.", activity);
         }
         if (activity.InputHint is not "typing" and not "acceptingInput")
         {
-            throw CorruptDataException.Create($"The 'inputHint' should be 'typing' or 'acceptingInput', but it's '{activity.InputHint}'.");
+            throw CorruptDataException.Create($"The 'inputHint' should be 'typing' or 'acceptingInput', but it's '{activity.InputHint}'.", activity);
         }
 
         _complete = activity.InputHint is "acceptingInput";
