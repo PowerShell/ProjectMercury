@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 
 namespace Microsoft.Azure.Agent;
@@ -26,7 +27,6 @@ internal class AzureCopilotReceiver : IDisposable
     }
 
     internal int Watermark { get; private set; }
-    internal BlockingCollection<CopilotActivity> ActivityQueue => _activityQueue;
 
     internal static async Task<AzureCopilotReceiver> CreateAsync(string streamUrl)
     {
@@ -52,6 +52,7 @@ internal class AzureCopilotReceiver : IDisposable
                 if (result.MessageType is WebSocketMessageType.Close)
                 {
                     closingMessage = "Close message received";
+                    _activityQueue.Add(new CopilotActivity { Error = new ConnectionDroppedException("The server websocket is closing. Connection dropped.") });
                 }
             }
             catch (OperationCanceledException)
@@ -65,6 +66,7 @@ internal class AzureCopilotReceiver : IDisposable
             {
                 // TODO: log the closing request.
                 await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, closingMessage, CancellationToken.None);
+                _activityQueue.CompleteAdding();
                 break;
             }
 
@@ -98,8 +100,20 @@ internal class AzureCopilotReceiver : IDisposable
             }
         }
 
-        // TODO: log the current state of the web socket
-        // TODO: handle error state, such as 'aborted'
+        // TODO: log the current state of the web socket.
+        _activityQueue.Add(new CopilotActivity { Error = new ConnectionDroppedException($"State of the websocket is '{_webSocket.State}'. Connection dropped.") });
+        _activityQueue.CompleteAdding();
+    }
+
+    internal CopilotActivity Take(CancellationToken cancellationToken)
+    {
+        CopilotActivity activity = _activityQueue.Take(cancellationToken);
+        if (activity.Error is not null)
+        {
+            ExceptionDispatchInfo.Capture(activity.Error).Throw();
+        }
+
+        return activity;
     }
 
     public void Dispose()
