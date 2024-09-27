@@ -74,6 +74,7 @@ jobs:
             $blobPrefix = $entry.Value
             $virtualContainer = "$container/$blobPrefix"
 
+            Write-Verbose -Verbose "Operate on virtual container $virtualContainer ..."
             $blobs = Get-AzStorageBlob -Container $container -Context $context | Where-Object Name -Like "$blobPrefix/*" -ErrorAction Stop
             if ($null -ne $blobs) {
               if ('$(ForceAzureBlobDelete)' -eq 'true') {
