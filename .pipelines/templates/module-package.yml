@@ -80,7 +80,7 @@ jobs:
         Register-PSResourceRepository -Name $RepoName -Uri $nugetPath -Trusted
         Publish-PSResource -Repository $RepoName -Path $moduleFolder
       } finally {
-        Unregister-PSResourceRepository -Name $RepoName -Force -ErrorAction SilentlyContinue
+        Unregister-PSResourceRepository -Name $RepoName -ErrorAction SilentlyContinue
       }
       Get-ChildItem -Path $nugetPath | Out-String -Width 500 -Stream
     displayName: 'Create the NuGet package'
