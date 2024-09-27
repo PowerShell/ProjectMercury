@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Agent;
 internal static class Utils
 {
     private static readonly JsonSerializerOptions s_jsonOptions;
+    private static readonly JsonSerializerOptions s_humanReadableOptions;
 
     static Utils()
     {
@@ -13,14 +14,16 @@ internal static class Utils
             WriteIndented = false,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
+
+        s_humanReadableOptions = new JsonSerializerOptions()
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        };
     }
 
     internal static JsonSerializerOptions JsonOptions => s_jsonOptions;
-
-    /// <summary>
-    /// Keep 3 conversation iterations as the context information.
-    /// </summary>
-    internal const int HistoryCount = 6;
+    internal static JsonSerializerOptions JsonHumanReadableOptions => s_humanReadableOptions;
 }
 
 internal class TokenRequestException : Exception
@@ -46,14 +49,14 @@ internal class ConnectionDroppedException : Exception
 
 internal class CorruptDataException : Exception
 {
-    internal CorruptDataException(string message)
+    private CorruptDataException(string message)
         : base(message)
     {
     }
 
-    internal static CorruptDataException Create(string message)
+    internal static CorruptDataException Create(string message, CopilotActivity activity)
     {
-        return new CorruptDataException($"Unexpected copilot activity received. {message}");
+        return new CorruptDataException($"Unexpected copilot activity received. {message}\n\n{activity.Serialize()}\n");
     }
 }
 
