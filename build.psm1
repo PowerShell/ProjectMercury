@@ -129,6 +129,22 @@ function Start-Build
         $aish_module_csproj = GetProjectFile $module_dir
         dotnet publish $aish_module_csproj -c $Configuration -o $module_out_dir
 
+        # Update version for the module manifest file.
+        $projectUrl = 'https://github.com/PowerShell/ProjectMercury'
+        $version = (Get-Item $module_out_dir/AIShell.Integration.dll).VersionInfo.ProductVersion
+        $privateData = "PrivateData = @{ PSData = @{ ProjectUri = '$projectUrl' } }"
+        if ($version -match "(.*)-(.*)") {
+            $version = $matches[1]
+            $prerelease = $matches[2]
+            # Put the prerelease tag in private data.
+            $privateData = "PrivateData = @{ PSData = @{ Prerelease = '$prerelease'; ProjectUri = '$projectUrl' } }"
+        }
+
+        $moduleManifest = Get-Content $module_out_dir/AIShell.psd1 -Raw
+        $moduleManifest = $moduleManifest -replace "ModuleVersion = '.*'", "ModuleVersion = '$version'"
+        $moduleManifest = $moduleManifest -replace "}", "    ${privateData}`n}`n"
+        Set-Content -Path $module_out_dir/AIShell.psd1 -Value $moduleManifest -NoNewline
+
         $installHelp = $false
         if (Get-Module -Name PlatyPS -ListAvailable) {
             $installHelp = $true
