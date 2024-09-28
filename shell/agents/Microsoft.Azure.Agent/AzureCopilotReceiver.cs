@@ -41,6 +41,7 @@ internal class AzureCopilotReceiver : IDisposable
 
     private async Task ProcessActivities()
     {
+        Exception error;
         while (_webSocket.State is WebSocketState.Open)
         {
             string closingMessage = null;
@@ -52,7 +53,8 @@ internal class AzureCopilotReceiver : IDisposable
                 if (result.MessageType is WebSocketMessageType.Close)
                 {
                     closingMessage = "Close message received";
-                    _activityQueue.Add(new CopilotActivity { Error = new ConnectionDroppedException("The server websocket is closing. Connection dropped.") });
+                    error = new("The server websocket is closing. Connection dropped.");
+                    _activityQueue.Add(new CopilotActivity { Error = error });
                 }
             }
             catch (OperationCanceledException)
@@ -101,7 +103,8 @@ internal class AzureCopilotReceiver : IDisposable
         }
 
         // TODO: log the current state of the web socket.
-        _activityQueue.Add(new CopilotActivity { Error = new ConnectionDroppedException($"State of the websocket is '{_webSocket.State}'. Connection dropped.") });
+        error = new($"The websocket got in '{_webSocket.State}' state. Connection dropped.");
+        _activityQueue.Add(new CopilotActivity { Error = error });
         _activityQueue.CompleteAdding();
     }
 
