@@ -159,7 +159,7 @@ internal class ChunkReader
             return null;
         }
 
-        CopilotActivity activity = _receiver.ActivityQueue.Take(cancellationToken);
+        CopilotActivity activity = _receiver.Take(cancellationToken);
 
         if (!activity.IsMessageUpdate)
         {

@@ -142,7 +142,7 @@ internal class ChatSession : IDisposable
 
         while (true)
         {
-            CopilotActivity activity = _copilotReceiver.ActivityQueue.Take(cancellationToken);
+            CopilotActivity activity = _copilotReceiver.Take(cancellationToken);
             if (activity.IsMessage && activity.IsFromCopilot && _copilotReceiver.Watermark is 0)
             {
                 activity.ExtractMetadata(out _, out ConversationState conversationState);
@@ -259,7 +259,7 @@ internal class ChatSession : IDisposable
 
             while (true)
             {
-                CopilotActivity activity = _copilotReceiver.ActivityQueue.Take(cancellationToken);
+                CopilotActivity activity = _copilotReceiver.Take(cancellationToken);
 
                 if (activity.ReplyToId != activityId)
                 {
