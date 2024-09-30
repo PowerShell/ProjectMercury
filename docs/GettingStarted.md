@@ -4,55 +4,59 @@ AIShell was created to help command line users find the right commands to use, r
 and better understand the commands and the output they produce. Follow along and walk through some
 examples to get started with AIShell.
 
-## What is AIShell
+## What is AIShell?
 
-AIShell is a CLI executable that allows you to interact with different AI assistants within your
-CLI. Each different AI assistant is known as an agent. You can choose which agent to use when you
-start AIShell and switch between them when you are using AIShell.
+AIShell is a command line interface (CLI) tool that allows you to interact with different AI
+assistants within your CLI. You can choose which agent to use when you start AIShell. And you can
+switch between them when you are using AIShell.
 
-In this version of AIShell, we are shipping two agents, one talking to an Azure OpenAI instance of
-gpt-4o and an Azure agent that can help assist with Azure CLI commands. When this is formally
-released you will need to provide your own Azure OpenAI deployment and configure the agent with its
-specific details.
+Each AI assistant is known as an agent. In this version of AIShell, we include two agents, one
+talking to an **Azure OpenAI** instance of **gpt-4o** and an Azure agent that can assist with Azure
+CLI commands. During this initial development period, we provide you with access to Azure OpenAI.
+When we formally release Aish you will need to provide your own Azure OpenAI deployment and update
+the configuration to use your instance.
 
-AIShell is an executable known as `aish.exe` and can be ran in your CLI for a full screen
-experience. If you are utilizing Windows Terminal and PowerShell 7 you can use the `AIShell`
-PowerShell module to create a split screen experience. This is the recommended way to use AIShell
-because you will get key benefits of deeper integration into the shell. These features include:
+The AIShell executable (`aish.exe`) can be run in your command shell for a full screen experience.
+If you are using Windows Terminal and PowerShell 7 you can use the **AIShell** PowerShell module to
+create a split screen, or sidecar, experience. This is the recommended way to use AIShell because
+you get deeper integration with the shell. These features include:
 
 - Inserting code from the sidecar response directly into the working shell
-- Multi-step commands will be put into the predictive intellisense buffer for quick acceptance
-- Easy, single command error recovery
+- Multi-step commands are put into the Predictive IntelliSense buffer for quick acceptance
+- Easy, single-command error recovery
 
 ## Starting AIShell
 
-You can utilize the `Start-AIShell` command in the `AIShell` PowerShell module to open a split pane
-experience in Windows Terminal. You will be prompted to choose an agent to use, and then you can
-start chatting with the agent.
+Use the `Start-AIShell` command in the **AIShell** module to open a split pane experience in Windows
+Terminal. When AIShell starts, it prompts to choose an agent.
 
-![A Gif showing Getting Started with AIShell](/docs/media/startAISHell.gif)
+![An animation showing Getting Started with AIShell.](/docs/media/startAISHell.gif)
 
 ## Using AIShell
 
-Now that you have the AIShell window open and selected an agent, you can start chatting with the
-agent. The installed Azure OpenAI agent is grounded to be a PowerShell expert. This means we have
-modified the system prompt to say it should act like a PowerShell expert, it is not trained on any
-specific PowerShell code or documentation. In the final version you will have to configure the agent
-with your endpoint/keys/system prompt before utilizing it. For ease of use we have removed these
-steps. 
+Now that you have selected an agent, you can begin chatting with the it. The installed Azure OpenAI
+agent is hsa been configured to be a PowerShell expert. This means we've modified the system prompt
+to say it should act like a PowerShell expert. It's not trained on any specific PowerShell code or
+documentation. In the final version you have to configure the agent with your endpoint, API keys,
+and system prompt before using it. For this walkthrough we've done these steps for you.
 
-The Azure agent is an agent designed to bring the Copilot in Azure directly to your CLI and help
-provide Azure CLI and Azure PowerShell commands. Typically you will need to login to Azure by using
-the `az login` or `Connect-AzAccount` commands but for the sake of this study we have done so
-already. Here are some sample queries you can ask to each agent:
+The Azure agent is designed brings the Copilot in Azure experience directly to your command line. It
+provides assistance for Azure CLI and Azure PowerShell commands. Typically, you need to sign into
+Azure using the `az login` or `Connect-AzAccount` commands. However, for this walkthrough we've done
+that for you.
 
-### Azure OpenAI Agent
+## Use AIShell to interact with the agents
+
+Use these sample queries with each agent.
+
+Azure OpenAI Agent
 
 - "How do I create a text file named helloworld in PowerShell?"
 - "What is the difference between a switch and a parameter in PowerShell?"
 - How do I get the top 10 most CPU intensive processes on my computer?
 
-### Azure Agent
+Azure Agent
+
 - "How do I create a new resource group with Azure CLI?"
 - "How can I list out the storage accounts I have in Azure PowerShell"
 - "What is Application Insights?"
@@ -60,18 +64,19 @@ already. Here are some sample queries you can ask to each agent:
 
 Here is a quick demo showing the Azure Agent in action:
 
-![A Gif showing Azure Agent in action](/docs/media/AzureAgent.gif)
+![An animation showing Azure Agent in action.](/docs/media/AzureAgent.gif)
 
 ### Switching Agents
 
-You can switch between agents by using the `@<agentName>` syntax in your chat messages. For example,
+You can switch between agents using the `@<agentName>` syntax in your chat messages. For example,
 
-You can also use a chat command to switch agents. For example, to switch to the `openai-gpt` agent, use `/agent use openai-gpt`.
+You can also use a chat command to switch agents. For example, to switch to the `openai-gpt` agent,
+use `/agent use openai-gpt`.
 
 ### Chat commands
 
-By default, `aish` provides a base set of chat `/` commands used to interact with the responses from
-the AI model. To get a list of commands, use the `/help` command in the chat session.
+By default, `aish` provides a base set of chat commands used to interact with the AI model. To get a
+list of commands, use the `/help` command in the chat session.
 
 ```
   Name       Description                                      Source
@@ -91,38 +96,37 @@ the AI model. To get a list of commands, use the `/help` command in the chat ses
 ### Inserting code
 
 When you are chatting with the agent, you can use the `/code post` command to automatically insert
-the code from the response into the working shell. This is a great way to quickly get the code you
-need to run in your shell. Additionally, you can use the hot key `Ctrl+d, Ctrl+d` to insert the code
-into the working shell.
+the code from the response into the working shell. This is the simplest way to quickly get the code
+you need to run in your shell. You can also use the hot key <kbd>Ctrl</kbd>+<kbd>d</kbd>,
+<kbd>Ctrl</kbd>+<kbd>d</kbd> to insert the code into the working shell.
 
-![A Gif showing Inserting Code with AIShell](/docs/media/InsertCode.gif)
+![An animation showing Inserting Code with AIShell.](/docs/media/InsertCode.gif)
+
 
 ### Key bindings for commands
 
-AIShell supports key bindings for the `/code` command. They are currently hard-coded, but custom key
-bindings will be supported in future releases.
+AIShell has key bindings for the `/code` command. They key bindings are currently hard-coded, but
+custom key bindings will be supported in future releases.
 
-| Key bindings              | Command          | Functionality |
-| ------------------------- | ---------------- | ------------- |
-| <kbd>Ctrl+d, Ctrl+c</kbd> | `/code copy`     | Copy _all_ the generated code snippets to clipboard |
-| <kbd>Ctrl+\<n\></kbd>     | `/code copy <n>` | Copy the _n-th_ generated code snippet to clipboard |
-| <kbd>Ctrl+d, Ctrl+d</kbd> | `/code post`     | Post _all_ the generated code snippets to the connected application |
-| <kbd>Ctrl+d, \<n\></kbd>  | `/code post <n>` | Post the _n-th_ generated code snippet to the connected application |
+|                       Key bindings                       |     Command      |                            Functionality                            |
+| -------------------------------------------------------- | ---------------- | ------------------------------------------------------------------- |
+| <kbd>Ctrl+d</kbd><kbd>Ctrl</kbd>+<kbd>c</kbd>            | `/code copy`     | Copy _all_ the generated code snippets to clipboard                 |
+| <kbd>Ctrl</kbd>+<kbd>\<n\></kbd>                         | `/code copy <n>` | Copy the _n-th_ generated code snippet to clipboard                 |
+| <kbd>Ctrl</kbd>+<kbd>d</kbd><kbd>Ctrl</kbd>+<kbd>d</kbd> | `/code post`     | Post _all_ the generated code snippets to the connected application |
+| <kbd>Ctrl</kbd>+<kbd>d</kbd><kbd>\<n\></kbd>             | `/code post <n>` | Post the _n-th_ generated code snippet to the connected application |
 
 ### Resolving Errors
 
 If you encounter an error in your working terminal, you can use the `Resolve-Error` cmdlet to send
-that error to the open AIShell window for resolution. This will allow you to get a response from the
-AI model open to help you resolve the error.
+that error to the open AIShell window for resolution. This command asks the AI model to help you
+resolve the error.
 
-![A Gif showing Resolving Errors with AIShell](/docs/media/ResolveError.gif)
+![An animation showing Resolving Errors with AIShell.](/docs/media/ResolveError.gif)
 
 ### Invoking AIShell
 
-Additionally for following up on commands and their output, you can use the `Invoke-AIShell` cmdlet
-to send queries to the open AIShell window and current agent.
+You can use the `Invoke-AIShell` cmdlet to send queries to the current again in open AIShell window.
+This command allows you to interact with the AI model from your working terminal.
 
-![A Gif showing Invoking AIShell with AIShell](/docs/media/InvokeAIShell.gif)
-
-
+![An animation using Invoke-AIShell.](/docs/media/InvokeAIShell.gif)
 
