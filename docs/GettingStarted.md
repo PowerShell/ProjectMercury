@@ -41,9 +41,10 @@ specific PowerShell code or documentation. In the final version you will have to
 with your endpoint/keys/system prompt before utilizing it. For ease of use we have removed these
 steps. 
 
-The Azure agent is an agent designed to bring the Copilot in Azure directly to your CLI and
-help provide Azure CLI and Azure PowerShell commands. Here are some sample queries you can ask to
-each agent:
+The Azure agent is an agent designed to bring the Copilot in Azure directly to your CLI and help
+provide Azure CLI and Azure PowerShell commands. Typically you will need to login to Azure by using
+the `az login` or `Connect-AzAccount` commands but for the sake of this study we have done so
+already. Here are some sample queries you can ask to each agent:
 
 ### Azure OpenAI Agent
 
@@ -56,6 +57,10 @@ each agent:
 - "How can I list out the storage accounts I have in Azure PowerShell"
 - "What is Application Insights?"
 - "How to create a web app with Azure CLI?"
+
+Here is a quick demo showing the Azure Agent in action:
+
+![A Gif showing Azure Agent in action](/docs/media/AzureAgent.gif)
 
 ### Switching Agents
 
@@ -90,6 +95,8 @@ the code from the response into the working shell. This is a great way to quickl
 need to run in your shell. Additionally, you can use the hot key `Ctrl+d, Ctrl+d` to insert the code
 into the working shell.
 
+![A Gif showing Inserting Code with AIShell](/docs/media/InsertCode.gif)
+
 ### Key bindings for commands
 
 AIShell supports key bindings for the `/code` command. They are currently hard-coded, but custom key
@@ -111,6 +118,7 @@ AI model open to help you resolve the error.
 ![A Gif showing Resolving Errors with AIShell](/docs/media/ResolveError.gif)
 
 ### Invoking AIShell
+
 Additionally for following up on commands and their output, you can use the `Invoke-AIShell` cmdlet
 to send queries to the open AIShell window and current agent.
 
