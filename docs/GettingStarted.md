@@ -1,8 +1,8 @@
 # Getting Started with AIShell
 
-AIShell was developed to help target key pain points of CLI users like finding the right
-command/command combination to use, recover from errors and understand better commands and outputs
-of those commands. Follow along and walk through some examples to get started with AIShell.
+AIShell was created to help command line users find the right commands to use, recover from errors,
+and better understand the commands and the output they produce. Follow along and walk through some
+examples to get started with AIShell.
 
 ## What is AIShell
 
