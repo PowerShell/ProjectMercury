@@ -37,8 +37,13 @@ start chatting with the agent.
 Now that you have the AIShell window open and selected an agent, you can start chatting with the
 agent. The installed Azure OpenAI agent is grounded to be a PowerShell expert. This means we have
 modified the system prompt to say it should act like a PowerShell expert, it is not trained on any
-specific PowerShell code or documentation. The Azure agent is an agent designed to bring the Copilot
-in Azure directly to your CLI and help provide Azure CLI and Azure PowerShell commands. Here are some sample queries you can ask to each agent:
+specific PowerShell code or documentation. In the final version you will have to configure the agent
+with your endpoint/keys/system prompt before utilizing it. For ease of use we have removed these
+steps. 
+
+The Azure agent is an agent designed to bring the Copilot in Azure directly to your CLI and
+help provide Azure CLI and Azure PowerShell commands. Here are some sample queries you can ask to
+each agent:
 
 ### Azure OpenAI Agent
 
