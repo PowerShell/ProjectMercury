@@ -70,6 +70,8 @@ Here is a quick demo showing the Azure Agent in action:
 
 You can switch between agents using the `@<agentName>` syntax in your chat messages. For example,
 
+![An animation showing switching between two agents with the @ sign](/docs/media/SwitchingAgents.gif)
+
 You can also use a chat command to switch agents. For example, to switch to the `openai-gpt` agent,
 use `/agent use openai-gpt`.
 
@@ -125,7 +127,7 @@ resolve the error.
 
 ### Invoking AIShell
 
-You can use the `Invoke-AIShell` cmdlet to send queries to the current again in open AIShell window.
+You can use the `Invoke-AIShell` cmdlet to send queries to the current agent in open AIShell window.
 This command allows you to interact with the AI model from your working terminal.
 
 ![An animation using Invoke-AIShell.](/docs/media/InvokeAIShell.gif)
