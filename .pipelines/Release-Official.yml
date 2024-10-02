@@ -124,6 +124,8 @@ extends:
       dependsOn: PublishGitHubRelease
       jobs:
       - template: /.pipelines/templates/release-publish-module.yml@self
+        parameters:
+          publish: false
 
     - stage: PublishMsix
       dependsOn: PublishGitHubRelease
