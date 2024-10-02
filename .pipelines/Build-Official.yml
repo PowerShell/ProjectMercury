@@ -19,12 +19,8 @@ variables:
     value: 1
   - name: POWERSHELL_TELEMETRY_OPTOUT
     value: 1
-  - name: nugetMultiFeedWarnLevel
-    value: none
-  - name: NugetSecurityAnalysisWarningLevel
-    value: none
-  - name: skipNugetSecurityAnalysis
-    value: true
+  - name: DOTNET_NOLOGO
+    value: 1
   - name: branchCounterKey
     value: $[format('{0:yyyyMMdd}-{1}', pipeline.startTime,variables['Build.SourceBranch'])]
   - name: branchCounter
@@ -68,7 +64,6 @@ extends:
         ignoreDirectories: 'docs,test,tools'
       asyncSdl:
         enabled: true
-        forStages: [prep, macos, linux, windows]
         credscan:
           enabled: true
           scanFolder: $(Build.SourcesDirectory)

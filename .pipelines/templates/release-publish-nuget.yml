@@ -1,0 +1,40 @@
+parameters:
+  - name: publish
+    default: false
+    type: boolean
+
+jobs:
+- job: NuGetPublish
+  displayName: Publish to NuGet
+  condition: succeeded()
+  pool:
+    type: windows
+  variables:
+  - group: 'mscodehub-code-read-akv'
+  - name: ob_outputDirectory
+    value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+
+  steps:
+  - checkout: self
+    clean: true
+
+  - pwsh: |
+      Get-ChildItem Env:
+    displayName: 'Capture Environment Variables'
+
+  - download: AIShellPackagePipeline
+    artifact: drop_nupkg_package
+    displayName: Download nuget packages
+
+  - pwsh: |
+      Get-ChildItem '$(Pipeline.Workspace)/AIShellPackagePipeline/drop_nupkg_package/*.nupkg' -recurse
+    displayName: List nupkg package
+
+  - task: NuGetCommand@2
+    displayName: 'NuGet push'
+    condition: and(ne('${{ parameters.publish }}', 'false'), succeeded())
+    inputs:
+      command: push
+      packagesToPush: '$(Pipeline.Workspace)/AIShellPackagePipeline/drop_nupkg_package/*.nupkg'
+      nuGetFeedType: external
+      publishFeedCredentials: PowerShellNuGetOrgPush

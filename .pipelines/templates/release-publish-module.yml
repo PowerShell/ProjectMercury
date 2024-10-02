@@ -1,0 +1,38 @@
+parameters:
+  - name: publish
+    default: false
+    type: boolean
+
+jobs:
+- job: ModulePublish
+  dependsOn: validation
+  displayName: Publish to PSGallery
+  variables:
+    - name: ob_outputDirectory
+      value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+    # Disable SBOM, signing, and codeQL for this job
+    - name: ob_sdl_sbom_enabled
+      value: false
+    - name: ob_signing_setup_enabled
+      value: false
+    - name: ob_sdl_codeql_compiled_enabled
+      value: false
+  pool:
+    type: windows
+
+  steps:
+  - download: AIShellPackagePipeline
+    artifact: drop_module_package
+    displayName: Download module package
+
+  - pwsh: |
+      Get-ChildItem '$(Pipeline.Workspace)/AIShellPackagePipeline/drop_module_package/*.nupkg' -recurse
+    displayName: List nupkg package
+
+  - task: NuGetCommand@2
+    displayName: Push AIShell module to PSGallery feed
+    inputs:
+      command: push
+      packagesToPush: '$(Pipeline.Workspace)/AIShellPackagePipeline/drop_module_package/*.nupkg'
+      nuGetFeedType: external
+      publishFeedCredentials: PowerShellGallery-dongbow

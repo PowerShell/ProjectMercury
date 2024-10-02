@@ -1,0 +1,100 @@
+jobs:
+- job: GithubReleaseDraft
+  displayName: Create GitHub Release Draft
+  condition: succeeded()
+  pool:
+    type: windows
+  variables:
+  - group: 'mscodehub-code-read-akv'
+  - group: 'Azure Blob variable group'
+  - group: 'GitHubTokens'
+  - name: ob_outputDirectory
+    value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+
+  steps:
+  - checkout: self
+    clean: true
+
+  - pwsh: |
+      Get-ChildItem Env:
+    displayName: 'Capture Environment Variables'
+
+  - download: AIShellPackagePipeline
+      artifact: drop_windows_package_arm64
+      displayName: Download win-arm64 zip
+      patterns: '**/*.zip'
+
+  - download: AIShellPackagePipeline
+    artifact: drop_windows_package_x64
+    displayName: Download win-x64 zip
+    patterns: '**/*.zip'
+
+  - download: AIShellPackagePipeline
+    artifact: drop_windows_package_x86
+    displayName: Download win-x86 zip
+    patterns: '**/*.zip'
+  
+  - download: AIShellPackagePipeline
+    artifact: drop_linux_package_arm64
+    displayName: Download linux-arm64 tar.gz
+    patterns: '**/*.tar.gz'
+
+  - download: AIShellPackagePipeline
+    artifact: drop_linux_package_x64
+    displayName: Download linux-x64 tar.gz
+    patterns: '**/*.tar.gz'
+
+  - download: AIShellPackagePipeline
+    artifact: macos-pkgs
+    displayName: Download macOS tar.gz
+    patterns: '**/*.tar.gz'
+
+  - pwsh: |
+      $packagesRoot = '$(Pipeline.Workspace)/release'
+      $null = New-Item -ItemType Directory -Path $packagesRoot
+      Get-ChildItem -Path '$(Pipeline.Workspace)\AIShellPackagePipeline' -Include *.zip,*.tar.gz -Recurse |
+        Copy-Item -Destination $packagesRoot -Force -Verbose
+      Get-ChildItem -Path $packagesRoot | Out-String -Width 500 -Stream
+
+      $vstsCommandString = "vso[task.setvariable variable=PackagesRoot]$packagesRoot"
+      Write-Host "sending " + $vstsCommandString
+      Write-Host "##$vstsCommandString"
+    displayName: Capture downloaded artifacts
+
+  - pwsh: |
+      $macX64File = (Get-Item "$(Pipeline.Workspace)\AIShellPackagePipeline\AIShell-*-osx-x64.tar.gz").FullName
+      $releaseVersion = $macX64File.Replace("AIShell-", "").Replace("-osx-x64.tar.gz", "")
+
+      $vstsCommandString = "vso[task.setvariable variable=ReleaseVersion]$releaseVersion"
+      Write-Host "sending " + $vstsCommandString
+      Write-Host "##$vstsCommandString"
+    displayName: 'Set release version'
+
+  - task: GitHubRelease@1
+      displayName: Create draft GitHub release
+      inputs:
+        gitHubConnection: GitHub
+        repositoryName: PowerShell/ProjectMercury
+        assets: '$(PackagesRoot)/*'
+        tagSource: userSpecifiedTag
+        tag: v$(ReleaseVersion)
+        isDraft: true
+        addChangeLog: false
+        releaseNotesSource: inline
+        releaseNotesInline: "<!-- TODO: Generate release notes on GitHub! -->"
+
+- template: /.pipelines/templates/wait-for-approval.yml@self
+  parameters:
+    displayName: Push Git Tag
+    jobName: PushGitTag
+    dependsOnJob: GithubReleaseDraft
+    instructions: |
+      Push the git tag to upstream
+
+- template: /.pipelines/templates/wait-for-approval.yml@self
+  parameters:
+    displayName: Make Draft Public
+    jobName: DraftPublic
+    dependsOnJob: PushGitTag
+    instructions: |
+      Make the GitHub Release Draft Public
