@@ -57,6 +57,9 @@ jobs:
       $moduleFolder = "$(Pipeline.Workspace)/AIShellBuildPipeline/AIShell"
       $null = New-Item -ItemType Directory -Path $moduleFolder -Force
 
+      Write-Verbose -Verbose "Delete SBOM files ..."
+      Remove-Item -Path "$signedFilePath/_manifest" -Recurse -Force
+
       Write-Verbose -Verbose "Move module files to the 'AIShell' module folder: "
       Copy-Item -Path "$signedFilePath/*" -Destination $moduleFolder -Recurse -Force -Verbose
       Get-ChildItem $moduleFolder -Recurse | Out-String -Width 500 -Stream

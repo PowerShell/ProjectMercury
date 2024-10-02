@@ -20,18 +20,8 @@ variables:
     value: ${{ parameters.debug }}
   - name: ENABLE_PRS_DELAYSIGN
     value: 1
-  - name: ROOT
-    value: $(Build.SourcesDirectory)
   - name: ForceAzureBlobDelete
     value: ${{ parameters.ForceAzureBlobDelete }}
-  - name: NUGET_XMLDOC_MODE
-    value: none
-  - name: nugetMultiFeedWarnLevel
-    value: none
-  - name: NugetSecurityAnalysisWarningLevel
-    value: none
-  - name: skipNugetSecurityAnalysis
-    value: true
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
   - name: WindowsContainerImage
@@ -52,8 +42,6 @@ resources:
       trigger:
         branches:
           include:
-            - main
-            - obp-*
             - release-*
 
   repositories:
@@ -89,7 +77,6 @@ extends:
         ignoreDirectories: 'docs,shell,test,tools'
       asyncSdl:
         enabled: true
-        forStages: ['build']
         credscan:
           enabled: true
           scanFolder:  $(Build.SourcesDirectory)

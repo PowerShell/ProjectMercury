@@ -12,8 +12,6 @@ jobs:
     value: false
   - name: NugetSecurityAnalysisWarningLevel
     value: none
-  - name: DOTNET_NOLOGO
-    value: 1
   - group: DotNetPrivateBuildAccess
   - group: certificate_logical_to_actual
   - name: ob_outputDirectory

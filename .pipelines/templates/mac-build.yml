@@ -14,8 +14,6 @@ jobs:
   variables:
   - name: HOMEBREW_NO_ANALYTICS
     value: 1
-  - name: DOTNET_NOLOGO
-    value: 1
   - name: runCodesignValidationInjection
     value: false
   - name: NugetSecurityAnalysisWarningLevel
@@ -78,8 +76,6 @@ jobs:
   variables:
   - name: NugetSecurityAnalysisWarningLevel
     value: none
-  - name: DOTNET_NOLOGO
-    value: 1
   - group: DotNetPrivateBuildAccess
   - group: certificate_logical_to_actual
   - name: ob_outputDirectory
