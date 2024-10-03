@@ -71,17 +71,17 @@ jobs:
     displayName: 'Set release version'
 
   - task: GitHubRelease@1
-      displayName: Create draft GitHub release
-      inputs:
-        gitHubConnection: GitHub
-        repositoryName: PowerShell/ProjectMercury
-        assets: '$(PackagesRoot)/*'
-        tagSource: userSpecifiedTag
-        tag: v$(ReleaseVersion)
-        isDraft: true
-        addChangeLog: false
-        releaseNotesSource: inline
-        releaseNotesInline: "<!-- TODO: Generate release notes on GitHub! -->"
+    displayName: Create draft GitHub release
+    inputs:
+      gitHubConnection: GitHub
+      repositoryName: PowerShell/ProjectMercury
+      assets: '$(PackagesRoot)/*'
+      tagSource: userSpecifiedTag
+      tag: v$(ReleaseVersion)
+      isDraft: true
+      addChangeLog: false
+      releaseNotesSource: inline
+      releaseNotesInline: "<!-- TODO: Generate release notes on GitHub! -->"
 
 - template: /.pipelines/templates/wait-for-approval.yml@self
   parameters:
