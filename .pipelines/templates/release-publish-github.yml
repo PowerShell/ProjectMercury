@@ -20,9 +20,9 @@ jobs:
     displayName: 'Capture Environment Variables'
 
   - download: AIShellPackagePipeline
-      artifact: drop_windows_package_arm64
-      displayName: Download win-arm64 zip
-      patterns: '**/*.zip'
+    artifact: drop_windows_package_arm64
+    displayName: Download win-arm64 zip
+    patterns: '**/*.zip'
 
   - download: AIShellPackagePipeline
     artifact: drop_windows_package_x64
