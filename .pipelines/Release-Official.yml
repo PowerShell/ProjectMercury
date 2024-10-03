@@ -93,9 +93,7 @@ extends:
 
     - stage: UpdateChangeLog
       displayName: Update the changelog
-      dependsOn:
-        - ManualValidation
-        - msixbundle
+      dependsOn: ['ManualValidation', 'msixbundle']
       jobs:
       - template: /.pipelines/templates/wait-for-approval.yml@self
         parameters:
@@ -107,7 +105,7 @@ extends:
 
     - stage: PublishGitHubRelease
       displayName: Publish GitHub Release
-      dependsOn: BlobPublic
+      dependsOn: UpdateChangeLog
       jobs:
       - template: /.pipelines/templates/release-publish-github.yml@self
 
@@ -134,7 +132,7 @@ extends:
       - template: /.pipelines/templates/wait-for-approval.yml@self
         parameters:
           displayName: Publish the MSIX Bundle package to store
-          jobName: PublishMsix
+          jobName: PublishToStore
           instructions: |
             Ask Steve to release MSIX bundle package to Store
 
