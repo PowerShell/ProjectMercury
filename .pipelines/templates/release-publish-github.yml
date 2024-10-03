@@ -62,7 +62,7 @@ jobs:
     displayName: Capture downloaded artifacts
 
   - pwsh: |
-      $macX64File = (Get-Item "$(PackagesRoot)\AIShell-*-osx-x64.tar.gz").FullName
+      $macX64File = (Get-Item "$(PackagesRoot)\AIShell-*-osx-x64.tar.gz").Name
       $releaseVersion = $macX64File.Replace("AIShell-", "").Replace("-osx-x64.tar.gz", "")
 
       $vstsCommandString = "vso[task.setvariable variable=ReleaseVersion]$releaseVersion"
