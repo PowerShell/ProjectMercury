@@ -70,18 +70,16 @@ jobs:
       Write-Host "##$vstsCommandString"
     displayName: 'Set release version'
 
-  - task: GitHubRelease@1
-    displayName: Create draft GitHub release
-    inputs:
-      gitHubConnection: GitHub
-      repositoryName: PowerShell/ProjectMercury
-      assets: '$(PackagesRoot)/*'
-      tagSource: userSpecifiedTag
-      tag: v$(ReleaseVersion)
-      isDraft: true
-      addChangeLog: false
-      releaseNotesSource: inline
-      releaseNotesInline: "<!-- TODO: Generate release notes on GitHub! -->"
+  - pwsh: |
+      git clone https://$(mscodehubCodeReadPat)@mscodehub.visualstudio.com/PowerShellCore/_git/Internal-PowerShellTeam-Tools '$(Pipeline.Workspace)\tools'
+    displayName: Clone Internal-Tools repository
+
+  - pwsh: |
+      Import-module '$(Pipeline.Workspace)\tools\Scripts\GitHubRelease.psm1'
+      $releaseTag = 'v$(ReleaseVersion)'
+      $description = '<!-- TODO: Generate release notes on GitHub! -->'
+      Publish-ReleaseDraft -Tag $releaseTag -Name "$releaseTag Release of AIShell" -Description $description -User PowerShell -Repository ProjectMercury -PackageFolder $(PackagesRoot) -Token $(GitHubReleasePat)
+    displayName: Publish Release Draft
 
 - template: /.pipelines/templates/wait-for-approval.yml@self
   parameters:
