@@ -10,6 +10,8 @@ jobs:
   - group: 'GitHubTokens'
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+  - name: ob_sdl_tsa_configFile
+    value: $(Build.SourcesDirectory)\ProjectMercury\.config\tsaoptions.json
 
   steps:
   - checkout: self
@@ -20,9 +22,9 @@ jobs:
     displayName: 'Capture Environment Variables'
 
   - download: AIShellPackagePipeline
-      artifact: drop_windows_package_arm64
-      displayName: Download win-arm64 zip
-      patterns: '**/*.zip'
+    artifact: drop_windows_package_arm64
+    displayName: Download win-arm64 zip
+    patterns: '**/*.zip'
 
   - download: AIShellPackagePipeline
     artifact: drop_windows_package_x64
@@ -54,6 +56,8 @@ jobs:
       $null = New-Item -ItemType Directory -Path $packagesRoot
       Get-ChildItem -Path '$(Pipeline.Workspace)\AIShellPackagePipeline' -Include *.zip,*.tar.gz -Recurse |
         Copy-Item -Destination $packagesRoot -Force -Verbose
+
+      Write-Verbose -Verbose "List all packages to be published to GitHub release page:"
       Get-ChildItem -Path $packagesRoot | Out-String -Width 500 -Stream
 
       $vstsCommandString = "vso[task.setvariable variable=PackagesRoot]$packagesRoot"
@@ -62,7 +66,7 @@ jobs:
     displayName: Capture downloaded artifacts
 
   - pwsh: |
-      $macX64File = (Get-Item "$(Pipeline.Workspace)\AIShellPackagePipeline\AIShell-*-osx-x64.tar.gz").FullName
+      $macX64File = (Get-Item "$(PackagesRoot)\AIShell-*-osx-x64.tar.gz").Name
       $releaseVersion = $macX64File.Replace("AIShell-", "").Replace("-osx-x64.tar.gz", "")
 
       $vstsCommandString = "vso[task.setvariable variable=ReleaseVersion]$releaseVersion"
@@ -70,18 +74,16 @@ jobs:
       Write-Host "##$vstsCommandString"
     displayName: 'Set release version'
 
-  - task: GitHubRelease@1
-      displayName: Create draft GitHub release
-      inputs:
-        gitHubConnection: GitHub
-        repositoryName: PowerShell/ProjectMercury
-        assets: '$(PackagesRoot)/*'
-        tagSource: userSpecifiedTag
-        tag: v$(ReleaseVersion)
-        isDraft: true
-        addChangeLog: false
-        releaseNotesSource: inline
-        releaseNotesInline: "<!-- TODO: Generate release notes on GitHub! -->"
+  - pwsh: |
+      git clone https://$(mscodehubCodeReadPat)@mscodehub.visualstudio.com/PowerShellCore/_git/Internal-PowerShellTeam-Tools '$(Pipeline.Workspace)\tools'
+    displayName: Clone Internal-Tools repository
+
+  - pwsh: |
+      Import-module '$(Pipeline.Workspace)\tools\Scripts\GitHubRelease.psm1'
+      $releaseTag = 'v$(ReleaseVersion)'
+      $description = '<!-- TODO: Generate release notes on GitHub! -->'
+      Publish-ReleaseDraft -Tag $releaseTag -Name "$releaseTag Release of AIShell" -Description $description -User PowerShell -Repository ProjectMercury -PackageFolder $(PackagesRoot) -Token $(GitHubReleasePat)
+    displayName: Publish Release Draft
 
 - template: /.pipelines/templates/wait-for-approval.yml@self
   parameters:

@@ -15,13 +15,6 @@ jobs:
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
 
   steps:
-  - checkout: self
-    clean: true
-
-  - pwsh: |
-      Get-ChildItem Env:
-    displayName: 'Capture Environment Variables'
-
   - download: AIShellPackagePipeline
     artifact: drop_nupkg_package
     displayName: Download nuget packages

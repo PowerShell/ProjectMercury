@@ -5,7 +5,6 @@ parameters:
 
 jobs:
 - job: ModulePublish
-  dependsOn: validation
   displayName: Publish to PSGallery
   variables:
     - name: ob_outputDirectory
