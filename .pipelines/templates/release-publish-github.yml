@@ -56,6 +56,8 @@ jobs:
       $null = New-Item -ItemType Directory -Path $packagesRoot
       Get-ChildItem -Path '$(Pipeline.Workspace)\AIShellPackagePipeline' -Include *.zip,*.tar.gz -Recurse |
         Copy-Item -Destination $packagesRoot -Force -Verbose
+
+      Write-Verbose -Verbose "List all packages to be published to GitHub release page:"
       Get-ChildItem -Path $packagesRoot | Out-String -Width 500 -Stream
 
       $vstsCommandString = "vso[task.setvariable variable=PackagesRoot]$packagesRoot"
