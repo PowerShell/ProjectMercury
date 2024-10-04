@@ -115,7 +115,7 @@ extends:
       jobs:
       - template: /.pipelines/templates/release-publish-nuget.yml@self
         parameters:
-          publish: false
+          publish: true
 
     - stage: PublishModule
       displayName: Publish Module
@@ -123,7 +123,7 @@ extends:
       jobs:
       - template: /.pipelines/templates/release-publish-module.yml@self
         parameters:
-          publish: false
+          publish: true
 
     - stage: PublishMsix
       dependsOn: PublishGitHubRelease
