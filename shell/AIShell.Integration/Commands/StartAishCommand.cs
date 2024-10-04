@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Management.Automation;
 using System.Text;
 
-namespace AIShell.Integration;
+namespace AIShell.Integration.Commands;
 
 [Alias("aish")]
 [Cmdlet(VerbsLifecycle.Start, "AIShell")]
