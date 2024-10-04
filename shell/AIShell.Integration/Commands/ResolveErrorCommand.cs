@@ -3,7 +3,7 @@ using System.Management.Automation;
 using Microsoft.PowerShell.Commands;
 using AIShell.Abstraction;
 
-namespace AIShell.Integration;
+namespace AIShell.Integration.Commands;
 
 [Alias("fixit")]
 [Cmdlet(VerbsDiagnostic.Resolve, "Error")]

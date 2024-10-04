@@ -2,20 +2,20 @@ using System.Collections.ObjectModel;
 using System.Management.Automation;
 using AIShell.Abstraction;
 
-namespace AIShell.Integration;
+namespace AIShell.Integration.Commands;
 
 [Alias("askai")]
 [Cmdlet(VerbsLifecycle.Invoke, "AIShell", DefaultParameterSetName = "Default")]
 public class InvokeAIShellCommand : PSCmdlet
 {
-    [Parameter(Position = 0, Mandatory = true)]
-    public string Query { get; set; }
+    [Parameter(Mandatory = true, ValueFromRemainingArguments = true)]
+    public string[] Query { get; set; }
 
     [Parameter]
     [ValidateNotNullOrEmpty]
     public string Agent { get; set; }
 
-    [Parameter(ParameterSetName = "Default", Position = 1, Mandatory = false, ValueFromPipeline = true)]
+    [Parameter(ParameterSetName = "Default", Mandatory = false, ValueFromPipeline = true)]
     public PSObject Context { get; set; }
 
     [Parameter(ParameterSetName = "Clipboard", Mandatory = true)]
@@ -55,6 +55,6 @@ public class InvokeAIShellCommand : PSCmdlet
         }
 
         string context = results?.Count > 0 ? results[0] : null;
-        Channel.Singleton.PostQuery(new PostQueryMessage(Query, context, Agent));
+        Channel.Singleton.PostQuery(new PostQueryMessage(string.Join(' ', Query), context, Agent));
     }
 }
