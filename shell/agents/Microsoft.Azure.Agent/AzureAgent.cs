@@ -112,15 +112,22 @@ public sealed class AzureAgent : ILLMAgent
             }
 
             var conversationState = copilotResponse.ConversationState;
-            string color = conversationState.TurnNumber switch
-            {
-                < 10 => "green",
-                < 15 => "yellow",
-                _ => "red",
-            };
-
             _turnsLeft = conversationState.TurnLimit - conversationState.TurnNumber;
-            host.RenderDivider($"[{color}]{conversationState.TurnNumber} of {conversationState.TurnLimit} requests[/]", DividerAlignment.Right);
+            if (_turnsLeft <= 5)
+            {
+                string message = _turnsLeft switch
+                {
+                    1 => $"[yellow]{_turnsLeft} request left[/]",
+                    0 => $"[red]{_turnsLeft} request left[/]",
+                    _ => $"[yellow]{_turnsLeft} requests left[/]",
+                };
+
+                host.RenderDivider(message, DividerAlignment.Right);
+                if (_turnsLeft is 0)
+                {
+                    host.WriteLine("\nYou've reached the maximum length of a conversation. To continue, please run '/refresh' to start a new conversation.\n");
+                }
+            }
         }
         catch (Exception ex) when (ex is TokenRequestException or ConnectionDroppedException)
         {
