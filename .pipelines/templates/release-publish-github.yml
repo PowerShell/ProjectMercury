@@ -10,6 +10,8 @@ jobs:
   - group: 'GitHubTokens'
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+  - name: ob_sdl_tsa_configFile
+    value: $(Build.SourcesDirectory)\ProjectMercury\.config\tsaoptions.json
 
   steps:
   - checkout: self
