@@ -130,6 +130,17 @@ Configuration of AI Shell will be improved in future releases to support custom 
 
 Please see [CONTRIBUTING.md][02] for more details.
 
+## Privacy
+
+AIShell does not capture, collect, store, or process any personal data or personally identifiable information (PII). All data interactions 
+are limited to the scope of the functionality provided by the tool and do not involve any form of personal data collection.
+
+Some agents integrated with AIShell may collect telemetry data to improve performance, enhance user experience, or troubleshoot issues. 
+We recommend that you refer to the individual agent’s README or documentation for more information on the telemetry practices and data collection 
+policies for each agent.
+
+If you are interested in learning more, see [Microsoft's Privacy Statement](https://www.microsoft.com/en-us/privacy/privacystatement?msockid=1fe60b30e66967f13fb91f29e73f661a).
+
 ## Support
 
 For support, see our [Support][05] statement.
