@@ -78,6 +78,7 @@ internal sealed class Shell : IShell
 
     IHost IShell.Host => Host;
     CancellationToken IShell.CancellationToken => _cancellationSource.Token;
+    List<CodeBlock> IShell.ExtractCodeBlocks(string text, out List<SourceInfo> sourceInfos) => Utils.ExtractCodeBlocks(text, out sourceInfos);
 
     #endregion IShell implementation
 

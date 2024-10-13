@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using AIShell.Abstraction;
 
 namespace Microsoft.Azure.Agent;
 
@@ -41,6 +42,7 @@ internal class CopilotActivity
 {
     public const string ConversationStateName = "azurecopilot/conversationstate";
     public const string SuggestedResponseName = "azurecopilot/suggesteduserresponses";
+    public const string CLIHandlerTopic = "CLIHandler";
 
     public string Type { get; set; }
     public string Id { get; set; }
@@ -178,4 +180,42 @@ internal class ChunkReader
 
         return activity;
     }
+}
+
+internal class CommandItem
+{
+    internal SourceInfo SourceInfo { get; set; }
+    internal string Script { get; set; }
+}
+
+internal class PlaceholderItem
+{
+    public string Name { get; set; }
+    public string Desc { get; set; }
+    public string Type { get; set; }
+    public List<string> ValidValues { get; set; }
+}
+
+internal class ResponseData
+{
+    internal string Text { get; set; }
+    internal List<CommandItem> CommandSet { get; set; }
+    internal List<PlaceholderItem> PlaceholderSet { get; set; }
+}
+
+internal class ArgumentPlaceholder
+{
+    internal ArgumentPlaceholder(string query, ResponseData data)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(query);
+        ArgumentNullException.ThrowIfNull(data);
+
+        Query = query;
+        ResponseData = data;
+        DataRetriever = new(data);
+    }
+
+    public string Query { get; set; }
+    public ResponseData ResponseData { get; set; }
+    public DataRetriever DataRetriever { get; }
 }

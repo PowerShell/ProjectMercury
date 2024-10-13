@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.PowerShell;
 using AIShell.Abstraction;
+using Microsoft.VisualBasic;
 
 namespace AIShell.Kernel;
 
@@ -125,16 +126,19 @@ internal static class Utils
     }
 
     /// <summary>
-    /// Extract code blocks from the passed-in text.
+    /// Extracts code blocks that are surrounded by code fences from the passed-in markdown text.
     /// </summary>
-    internal static List<CodeBlock> ExtractCodeBlocks(string text)
+    internal static List<CodeBlock> ExtractCodeBlocks(string text, out List<SourceInfo> sourceInfos)
     {
+        sourceInfos = null;
+
         if (string.IsNullOrEmpty(text))
         {
             return null;
         }
 
         int start, index = -1;
+        int codeBlockStart = -1, codeBlockIndents = -1;
         bool inCodeBlock = false;
         string language = null;
         StringBuilder code = null;
@@ -163,11 +167,17 @@ internal static class Utils
                     if (lineTrimmed.Length is 3)
                     {
                         // Current line is the ending code fence.
-                        codeBlocks.Add(new CodeBlock(code.ToString(), language));
+                        if (code.Length > 0)
+                        {
+                            codeBlocks.Add(new CodeBlock(code.ToString(), language));
+                            sourceInfos.Add(new SourceInfo(codeBlockStart, start - 1, codeBlockIndents));
+                        }
 
                         code.Clear();
                         language = null;
                         inCodeBlock = false;
+                        codeBlockStart = codeBlockIndents = -1;
+
                         continue;
                     }
 
@@ -179,8 +189,13 @@ internal static class Utils
                     // Current line is the starting code fence.
                     code ??= new StringBuilder();
                     codeBlocks ??= [];
+                    sourceInfos ??= [];
+
                     inCodeBlock = true;
                     language = lineTrimmed.Length > 3 ? lineTrimmed[3..].ToString() : null;
+                    // No need to capture the code block start index if we already reached end of the text.
+                    codeBlockStart = index is -1 ? -1 : index + 1;
+                    codeBlockIndents = line.IndexOf("```");
                 }
 
                 continue;
@@ -198,6 +213,7 @@ internal static class Utils
         {
             // It's possbile that the ending code fence is missing.
             codeBlocks.Add(new CodeBlock(code.ToString(), language));
+            sourceInfos.Add(new SourceInfo(codeBlockStart, text.Length - 1, codeBlockIndents));
         }
 
         return codeBlocks;
