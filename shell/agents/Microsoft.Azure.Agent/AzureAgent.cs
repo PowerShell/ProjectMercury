@@ -18,19 +18,22 @@ public sealed class AzureAgent : ILLMAgent
     private const string SettingFileName = "az.agent.json";
     private const string InstructionPrompt = """
         NOTE: follow the below instructions when generating responses that include Azure CLI commands with placeholders:
-        1. DO NOT include the command for creating a new resource group unless the query explicitly asks for it. Otherwise, assume a resource group already exists.
-        2. DO NOT include an additional example with made-up values unless it provides additional context or value beyond the initial command.
-        3. Always represent a placeholder in the form of `<placeholder-name>`.
-        4. Always use the consistent placeholder names across all your responses. For example, `<resourceGroupName>` should be used for all the places where a resource group name value is needed.
-        5. If the commands contain placeholders, the placeholders should be summarized in markdown bullet points at the end of the response in the same order as they appear in the commands, following this format:
+        1. User's OS is `{0}`. Make sure the generated commands are suitable for the specified OS.
+        2. DO NOT include the command for creating a new resource group unless the query explicitly asks for it. Otherwise, assume a resource group already exists.
+        3. DO NOT include an additional example with made-up values unless it provides additional context or value beyond the initial command.
+        4. Always represent a placeholder in the form of `<placeholder-name>`.
+        5. Always use the consistent placeholder names across all your responses. For example, `<resourceGroupName>` should be used for all the places where a resource group name value is needed.
+        6. When the commands contain placeholders, the placeholders should be summarized in markdown bullet points at the end of the response in the same order as they appear in the commands, following this format:
            ```
            Placeholders:
            - `<first-placeholder>`: <concise-description>
            - `<second-placeholder>`: <concise-description>
            ```
+        7. DO NOT include the placeholder summary when the commands contains no placeholder.
         """;
 
     private int _turnsLeft;
+    private readonly string _instructions;
     private readonly StringBuilder _buffer;
     private readonly ChatSession _chatSession;
     private readonly Dictionary<string, string> _valueStore;
@@ -40,6 +43,7 @@ public sealed class AzureAgent : ILLMAgent
         _buffer = new StringBuilder();
         _chatSession = new ChatSession();
         _valueStore = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        _instructions = string.Format(InstructionPrompt, Environment.OSVersion.VersionString);
 
         Name = "Azure";
         Company = "Microsoft";
@@ -94,7 +98,7 @@ public sealed class AzureAgent : ILLMAgent
 
         try
         {
-            string query = $"{input}\n\n---\n\n{InstructionPrompt}";
+            string query = $"{input}\n\n---\n\n{_instructions}";
             CopilotResponse copilotResponse = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
                 func: async context => await _chatSession.GetChatResponseAsync(query, context, token)
