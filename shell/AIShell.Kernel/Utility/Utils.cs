@@ -8,7 +8,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.PowerShell;
 using AIShell.Abstraction;
-using Microsoft.VisualBasic;
 
 namespace AIShell.Kernel;
 

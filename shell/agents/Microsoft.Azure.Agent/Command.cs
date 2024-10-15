@@ -1,6 +1,5 @@
 using System.CommandLine;
 using System.Text;
-using System.Text.Json;
 using AIShell.Abstraction;
 
 namespace Microsoft.Azure.Agent;
