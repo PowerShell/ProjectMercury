@@ -19,7 +19,7 @@ internal sealed class DummyStreamRender : IStreamRender
 
     public string AccumulatedContent => _buffer.ToString();
 
-    public List<CodeBlock> CodeBlocks => Utils.ExtractCodeBlocks(_buffer.ToString());
+    public List<CodeBlock> CodeBlocks => Utils.ExtractCodeBlocks(_buffer.ToString(), out _);
 
     public void Refresh(string newChunk)
     {

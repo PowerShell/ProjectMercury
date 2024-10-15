@@ -66,7 +66,8 @@ public class Bash : ILanguage
         {
             case "sh":
                 return true;
-
+            case "azurecli":
+                return true;
             default:
                 return false;
         }
