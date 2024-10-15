@@ -52,6 +52,7 @@ internal class CopilotActivity
     public string TopicName { get; set; }
     public string Text { get; set; }
     public string InputHint { get; set; }
+    public string Locale { get; set; }
     public JsonObject[] Attachments { get; set; }
     public string ReplyToId { get; set; }
 
@@ -101,26 +102,29 @@ internal class ConversationState
 
 internal class CopilotResponse
 {
-    internal CopilotResponse(ChunkReader chunkReader, string topicName)
+    internal CopilotResponse(ChunkReader chunkReader, string locale, string topicName)
     {
         ArgumentNullException.ThrowIfNull(chunkReader);
         ArgumentException.ThrowIfNullOrEmpty(topicName);
 
         ChunkReader = chunkReader;
+        Locale = locale;
         TopicName = topicName;
     }
 
-    internal CopilotResponse(string text, string topicName)
+    internal CopilotResponse(string text, string locale, string topicName)
     {
         ArgumentException.ThrowIfNullOrEmpty(text);
         ArgumentException.ThrowIfNullOrEmpty(topicName);
 
         Text = text;
+        Locale = locale;
         TopicName = topicName;
     }
 
     internal ChunkReader ChunkReader { get; }
     internal string Text { get; }
+    internal string Locale { get; }
     internal string TopicName { get; }
     internal string[] SuggestedUserResponses { get; set; }
     internal ConversationState ConversationState { get; set; }
@@ -182,10 +186,24 @@ internal class ChunkReader
     }
 }
 
+#region parameter injection data types
+
 internal class CommandItem
 {
-    internal SourceInfo SourceInfo { get; set; }
+    /// <summary>
+    /// Indicates whether the <see cref="Script"/> was updated by replacing placeholders with actual values.
+    /// </summary>
+    internal bool Updated { get; set; }
+
+    /// <summary>
+    /// The command script.
+    /// </summary>
     internal string Script { get; set; }
+
+    /// <summary>
+    /// The source extent information.
+    /// </summary>
+    internal SourceInfo SourceInfo { get; set; }
 }
 
 internal class PlaceholderItem
@@ -199,6 +217,7 @@ internal class PlaceholderItem
 internal class ResponseData
 {
     internal string Text { get; set; }
+    internal string Locale { get; set; }
     internal List<CommandItem> CommandSet { get; set; }
     internal List<PlaceholderItem> PlaceholderSet { get; set; }
 }
@@ -219,3 +238,5 @@ internal class ArgumentPlaceholder
     public ResponseData ResponseData { get; set; }
     public DataRetriever DataRetriever { get; }
 }
+
+#endregion

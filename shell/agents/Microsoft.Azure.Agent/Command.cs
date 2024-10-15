@@ -9,7 +9,6 @@ internal sealed class ReplaceCommand : CommandBase
 {
     private readonly AzureAgent _agent;
     private readonly Dictionary<string, string> _values;
-    private readonly Dictionary<string, string> _pseudoValues;
     private readonly HashSet<string> _productNames;
     private readonly HashSet<string> _environmentNames;
 
@@ -18,7 +17,6 @@ internal sealed class ReplaceCommand : CommandBase
     {
         _agent = agent;
         _values = [];
-        _pseudoValues = [];
         _productNames = [];
         _environmentNames = [];
 
@@ -47,13 +45,11 @@ internal sealed class ReplaceCommand : CommandBase
     private void ReplaceAction()
     {
         _values.Clear();
-        _pseudoValues.Clear();
         _productNames.Clear();
         _environmentNames.Clear();
 
         IHost host = Shell.Host;
         ArgumentPlaceholder ap = _agent.ArgPlaceholder;
-        UserValueStore uvs = _agent.ValueStore;
 
         if (ap is null)
         {
@@ -114,9 +110,8 @@ internal sealed class ReplaceCommand : CommandBase
                 string value = host.PromptForArgument(argInfo, printCaption: false);
                 if (!string.IsNullOrEmpty(value))
                 {
-                    string pseudoValue = uvs.SaveUserInputValue(value);
                     _values.Add(item.Name, value);
-                    _pseudoValues.Add(item.Name, pseudoValue);
+                    _agent.SaveUserValue(item.Name, value);
 
                     if (nameArgInfo is not null && nameArgInfo.NamingRule.TryMatchName(value, out string prodName, out string envName))
                     {
@@ -229,49 +224,19 @@ internal sealed class ReplaceCommand : CommandBase
     private async Task<string> RegenerateAsync()
     {
         ArgumentPlaceholder ap = _agent.ArgPlaceholder;
-        StringBuilder prompt = new(capacity: ap.Query.Length + _pseudoValues.Count * 15);
-        prompt.Append("For all subsequent queries regarding Azure CLI commands, please use the following values for the specified argument placeholders:");
-
-        // We use the pseudo values when building the new prompt, because the new prompt
-        // will be added to history, and we don't want real values to go off the box.
-        foreach (var entry in _pseudoValues)
-        {
-            prompt.Append($"\n- {entry.Key}: \"{entry.Value}\"");
-        }
 
         // We are doing the replacement locally, but want to fake the regeneration.
         await Task.Delay(2000, Shell.CancellationToken);
 
         ResponseData data = ap.ResponseData;
-        foreach (CommandItem command in data.CommandSet)
+        _agent.ReplaceKnownPlaceholders(data);
+
+        if (data.PlaceholderSet is null)
         {
-            foreach (var entry in _pseudoValues)
-            {
-                command.Script = command.Script.Replace(entry.Key, entry.Value, StringComparison.OrdinalIgnoreCase);
-            }
+            _agent.ArgPlaceholder.DataRetriever.Dispose();
+            _agent.ArgPlaceholder = null;
         }
 
-        List<PlaceholderItem> placeholders = data.PlaceholderSet;
-        if (placeholders.Count == _pseudoValues.Count)
-        {
-            data.PlaceholderSet = null;
-        }
-        else if (placeholders.Count > _pseudoValues.Count)
-        {
-            List<PlaceholderItem> newList = new(placeholders.Count - _pseudoValues.Count);
-            foreach (PlaceholderItem item in placeholders)
-            {
-                if (!_pseudoValues.ContainsKey(item.Name))
-                {
-                    newList.Add(item);
-                }
-            }
-
-            data.PlaceholderSet = newList;
-        }
-
-        _agent.UserValuePrompt = prompt.ToString();
-
-        return _agent.GenerateAnswer(ap.Query, data);
+        return _agent.GenerateAnswer(data);
     }
 }

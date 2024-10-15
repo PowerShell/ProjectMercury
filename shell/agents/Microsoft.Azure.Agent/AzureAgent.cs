@@ -1,34 +1,64 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using AIShell.Abstraction;
-using Microsoft.Identity.Client;
 
 namespace Microsoft.Azure.Agent;
 
 public sealed class AzureAgent : ILLMAgent
 {
-    public string Name => "Azure";
-    public string Company => "Microsoft";
-    public List<string> SampleQueries => [
-        "Create a VM with a public IP address",
-        "How to create a web app?",
-        "Backup an Azure SQL database to a storage container"
-    ];
-
-    public string Description { private set; get; }
-    public Dictionary<string, string> LegalLinks { private set; get; }
+    public string Name { get; }
+    public string Company { get; }
+    public string Description { get; }
+    public List<string> SampleQueries { get; }
+    public Dictionary<string, string> LegalLinks { get; }
     public string SettingFile { private set; get; }
 
-    internal string UserValuePrompt { set; get; }
-    internal UserValueStore ValueStore { get; } = new();
     internal ArgumentPlaceholder ArgPlaceholder { set; get; }
 
     private const string SettingFileName = "az.agent.json";
-    private const string HorizontalRule = "\n---\n";
+    private const string InstructionPrompt = """
+        NOTE: follow the below instructions when generating responses that include Azure CLI commands with placeholders:
+        1. DO NOT include the command for creating a new resource group unless the query explicitly asks for it. Otherwise, assume a resource group already exists.
+        2. DO NOT include an additional example with made-up values unless it provides additional context or value beyond the initial command.
+        3. Always represent a placeholder in the form of `<placeholder-name>`.
+        4. Always use the consistent placeholder names across all your responses. For example, `<resourceGroupName>` should be used for all the places where a resource group name value is needed.
+        5. If the commands contain placeholders, the placeholders should be summarized in markdown bullet points at the end of the response in the same order as they appear in the commands, following this format:
+           ```
+           Placeholders:
+           - `<first-placeholder>`: <concise-description>
+           - `<second-placeholder>`: <concise-description>
+           ```
+        """;
 
     private int _turnsLeft;
-    private StringBuilder _buffer;
-    private ChatSession _chatSession;
+    private readonly StringBuilder _buffer;
+    private readonly ChatSession _chatSession;
+    private readonly Dictionary<string, string> _valueStore;
+
+    public AzureAgent()
+    {
+        _buffer = new StringBuilder();
+        _chatSession = new ChatSession();
+        _valueStore = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        Name = "Azure";
+        Company = "Microsoft";
+        Description = "This AI assistant can generate Azure CLI and Azure PowerShell commands for managing Azure resources, answer questions, and provides information tailored to your specific Azure environment.";
+
+        SampleQueries = [
+            "Create a VM with a public IP address",
+            "How to create a web app?",
+            "Backup an Azure SQL database to a storage container"
+        ];
+
+        LegalLinks = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Terms"] = "https://aka.ms/TermsofUseCopilot",
+            ["Privacy"] = "https://aka.ms/privacy",
+            ["FAQ"] = "https://aka.ms/CopilotforAzureClientToolsFAQ",
+            ["Transparency"] = "https://aka.ms/CopilotAzCLIPSTransparency",
+        };
+    }
 
     public void Dispose()
     {
@@ -38,18 +68,6 @@ public sealed class AzureAgent : ILLMAgent
     public void Initialize(AgentConfig config)
     {
         _turnsLeft = int.MaxValue;
-        _buffer = new StringBuilder();
-        _chatSession = new ChatSession();
-
-        Description = "This AI assistant can generate Azure CLI and Azure PowerShell commands for managing Azure resources, answer questions, and provides information tailored to your specific Azure environment.";
-        LegalLinks = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Terms"] = "https://aka.ms/TermsofUseCopilot",
-            ["Privacy"] = "https://aka.ms/privacy",
-            ["FAQ"] = "https://aka.ms/CopilotforAzureClientToolsFAQ",
-            ["Transparency"] = "https://aka.ms/CopilotAzCLIPSTransparency",
-        };
-
         SettingFile = Path.Combine(config.ConfigurationRoot, SettingFileName);
     }
 
@@ -74,11 +92,9 @@ public sealed class AzureAgent : ILLMAgent
             return true;
         }
 
-        string query = UserValuePrompt is null ? input : $"{UserValuePrompt}\n{HorizontalRule}\n{input}";
-        UserValuePrompt = null;
-
         try
         {
+            string query = $"{input}\n\n---\n\n{InstructionPrompt}";
             CopilotResponse copilotResponse = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
                 func: async context => await _chatSession.GetChatResponseAsync(query, context, token)
@@ -92,30 +108,23 @@ public sealed class AzureAgent : ILLMAgent
 
             if (copilotResponse.ChunkReader is null)
             {
-                string text = copilotResponse.Text;
+                ArgPlaceholder?.DataRetriever?.Dispose();
+                ArgPlaceholder = null;
 
-                // Process response from CLI handler specially to support parameter injection.
-                if (CopilotActivity.CLIHandlerTopic.Equals(copilotResponse.TopicName, StringComparison.OrdinalIgnoreCase))
+                // Process CLI handler response specially to support parameter injection.
+                ResponseData data = null;
+                if (copilotResponse.TopicName == CopilotActivity.CLIHandlerTopic)
                 {
-                    text = text.Replace("~~~", "```");
-                    ResponseData data = ParseCLIHandlerResponse(text, shell);
-                    if (data is null)
-                    {
-                        // No code blocks in the response, or there is no placeholders in its code blocks.
-                        ArgPlaceholder = null;
-                        host.RenderFullResponse(text);
-                    }
-                    else
-                    {
-                        string answer = GenerateAnswer(input, data);
-                        host.RenderFullResponse(answer);
-                    }
+                    data = ParseCLIHandlerResponse(copilotResponse, shell);
                 }
-                else
+
+                string answer = data is null ? copilotResponse.Text : GenerateAnswer(data);
+                if (data?.PlaceholderSet is not null)
                 {
-                    ArgPlaceholder = null;
-                    host.RenderFullResponse(text);
+                    ArgPlaceholder = new ArgumentPlaceholder(input, data);
                 }
+
+                host.RenderFullResponse(answer);
             }
             else
             {
@@ -175,8 +184,9 @@ public sealed class AzureAgent : ILLMAgent
         return true;
     }
 
-    private static ResponseData ParseCLIHandlerResponse(string text, IShell shell)
+    private ResponseData ParseCLIHandlerResponse(CopilotResponse copilotResponse, IShell shell)
     {
+        string text = copilotResponse.Text;
         List<CodeBlock> codeBlocks = shell.ExtractCodeBlocks(text, out List<SourceInfo> sourceInfos);
         if (codeBlocks is null || codeBlocks.Count is 0)
         {
@@ -194,7 +204,7 @@ public sealed class AzureAgent : ILLMAgent
             string script = codeBlocks[i].Code;
             commands.Add(new CommandItem { SourceInfo = sourceInfos[i], Script = script });
 
-            // placeholder is in the `<xxx>` form.
+            // Go through all code blocks to find placeholders. Placeholder is in the `<xxx>` form.
             int start = -1;
             for (int k = 0; k < script.Length; k++)
             {
@@ -203,7 +213,7 @@ public sealed class AzureAgent : ILLMAgent
                 {
                     start = k;
                 }
-                else if (c is '>')
+                else if (c is '>' && start > -1)
                 {
                     placeholders ??= [];
                     phSet ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -219,49 +229,169 @@ public sealed class AzureAgent : ILLMAgent
             }
         }
 
-        return new ResponseData { Text = text, CommandSet = commands, PlaceholderSet = placeholders };
+        if (placeholders is null)
+        {
+            return null;
+        }
+
+        ResponseData data = new() {
+            Text = text,
+            CommandSet = commands,
+            PlaceholderSet = placeholders,
+            Locale = copilotResponse.Locale,
+        };
+
+        string first = placeholders[0].Name;
+        int begin = sourceInfos[^1].End + 1;
+
+        // We instruct Az Copilot to summarize placeholders in the fixed format shown below.
+        // So, we assume the response will adhere to this format and parse the text based on it.
+        //  Placeholders:
+        //  - `<first-placeholder>`: <concise-description>
+        //  - `<second-placeholder>`: <concise-description>
+        const string pattern = "- `{0}`:";
+        int index = text.IndexOf(string.Format(pattern, first), begin);
+        if (index > 0 && text[index - 1] is '\n' && text[index - 2] is ':')
+        {
+            // Get the start index of the placeholder section.
+            int n = index - 2;
+            for (; text[n] is not '\n'; n--);
+            begin = n + 1;
+
+            // For each placeholder, try to extract its description.
+            foreach (var phItem in placeholders)
+            {
+                string key = string.Format(pattern, phItem.Name);
+                index = text.IndexOf(key, begin);
+                if (index > 0)
+                {
+                    // Extract out the description of the particular placeholder.
+                    int i = index + key.Length, k = i;
+                    for (; k < text.Length && text[k] is not '\n'; k++);
+                    var desc = text.AsSpan(i, k - i).Trim();
+                    if (desc.Length > 0)
+                    {
+                        phItem.Desc = desc.ToString();
+                    }
+                }
+            }
+
+            data.Text = text[0..begin];
+        }
+        else
+        {
+            // The placeholder section is not in the format as we've instructed ...
+            // TODO: send telemetry about this case.
+        }
+
+        ReplaceKnownPlaceholders(data);
+        return data;
     }
 
-    internal string GenerateAnswer(string input, ResponseData data)
+    internal void SaveUserValue(string phName, string value)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(phName);
+        ArgumentException.ThrowIfNullOrEmpty(value);
+
+        _valueStore[phName] = value;
+    }
+
+    internal void ReplaceKnownPlaceholders(ResponseData data)
+    {
+        List<PlaceholderItem> placeholders = data.PlaceholderSet;
+        if (_valueStore.Count is 0 || placeholders is null)
+        {
+            return;
+        }
+
+        List<int> indices = null;
+        Dictionary<string, string> pairs = null;
+
+        for (int i = 0; i < placeholders.Count; i++)
+        {
+            PlaceholderItem item = placeholders[i];
+            if (_valueStore.TryGetValue(item.Name, out string value))
+            {
+                indices ??= [];
+                pairs ??= [];
+
+                indices.Add(i);
+                pairs.Add(item.Name, value);
+            }
+        }
+
+        if (pairs is null)
+        {
+            return;
+        }
+
+        foreach (CommandItem command in data.CommandSet)
+        {
+            foreach (var entry in pairs)
+            {
+                string script = command.Script;
+                command.Script = script.Replace(entry.Key, entry.Value, StringComparison.OrdinalIgnoreCase);
+                command.Updated = !ReferenceEquals(script, command.Script);
+            }
+        }
+
+        if (pairs.Count == placeholders.Count)
+        {
+            data.PlaceholderSet = null;
+        }
+        else
+        {
+            for (int i = indices.Count - 1; i >= 0; i--)
+            {
+                placeholders.RemoveAt(indices[i]);
+            }
+        }
+    }
+
+    internal string GenerateAnswer(ResponseData data)
     {
         _buffer.Clear();
         string text = data.Text;
 
-        // We keep 'ArgPlaceholder' unchanged when it's re-generating in '/replace' with only partial placeholders replaced.
-        if (!ReferenceEquals(ArgPlaceholder?.ResponseData, data) || data.PlaceholderSet is null)
-        {
-            ArgPlaceholder?.DataRetriever?.Dispose();
-            ArgPlaceholder = null;
-        }
-
-        if (data.PlaceholderSet?.Count > 0)
-        {
-            // Create the data retriever for the placeholders ASAP, so it gets
-            // more time to run in background.
-            ArgPlaceholder ??= new ArgumentPlaceholder(input, data);
-        }
-
         int index = 0;
         foreach (CommandItem item in data.CommandSet)
         {
-            // Replace the pseudo values with the real values.
-            string script = ValueStore.ReplacePseudoValues(item.Script);
-            if (!ReferenceEquals(script, item.Script))
+            if (item.Updated)
             {
                 _buffer.Append(text.AsSpan(index, item.SourceInfo.Start - index));
-                _buffer.Append(script);
+                _buffer.Append(item.Script);
                 index = item.SourceInfo.End + 1;
             }
         }
 
         if (index is 0)
         {
-            return text;
+            _buffer.Append(text);
         }
-
-        if (index < text.Length)
+        else if (index < text.Length)
         {
             _buffer.Append(text.AsSpan(index, text.Length - index));
+        }
+
+        if (data.PlaceholderSet is not null)
+        {
+            // Construct text about the placeholders if we successfully stripped the placeholder
+            // section off from the original response.
+            //
+            // TODO: Note that the original response could be in a different locale, and in
+            // that case, we should be using a localized resource string based on the locale.
+            // For now, we just hard code with English strings.
+            var first = data.PlaceholderSet[0];
+            if (first.Name != first.Desc)
+            {
+                _buffer.Append("\nReplace the placeholders with your specific values:\n");
+                foreach (var phItem in data.PlaceholderSet)
+                {
+                    _buffer.Append($"- `{phItem.Name}`: {phItem.Desc}\n");
+                }
+
+                _buffer.Append("\nRun `/replace` to get assistance in placeholder replacement.\n");
+            }
         }
 
         return _buffer.ToString();

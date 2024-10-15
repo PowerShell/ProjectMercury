@@ -278,8 +278,8 @@ internal class ChatSession : IDisposable
                 {
                     CopilotResponse ret = activity.InputHint switch
                     {
-                        "typing"         => new CopilotResponse(new ChunkReader(_copilotReceiver, activity), activity.TopicName),
-                        "acceptingInput" => new CopilotResponse(activity.Text, activity.TopicName),
+                        "typing"         => new CopilotResponse(new ChunkReader(_copilotReceiver, activity), activity.Locale, activity.TopicName),
+                        "acceptingInput" => new CopilotResponse(activity.Text, activity.Locale, activity.TopicName),
                         _ => throw CorruptDataException.Create($"The 'inputHint' is {activity.InputHint}.", activity)
                     };
 

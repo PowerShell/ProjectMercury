@@ -324,7 +324,7 @@ internal class DataRetriever : IDisposable
 
             foreach (var cmd in data.CommandSet)
             {
-                string script = cmd.Script;
+                string script = cmd.Script.Trim();
 
                 // Handle AzCLI commands.
                 if (script.StartsWith("az ", StringComparison.OrdinalIgnoreCase))

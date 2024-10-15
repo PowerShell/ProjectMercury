@@ -140,9 +140,48 @@ internal static class Utils
         int start, index = -1;
         int codeBlockStart = -1, codeBlockIndents = -1;
         bool inCodeBlock = false;
-        string language = null;
+        string language = null, codeFenceInUse = null;
         StringBuilder code = null;
         List<CodeBlock> codeBlocks = null;
+
+        bool CodeFenceStarts(ReadOnlySpan<char> curLine)
+        {
+            const string BacktickFence = "```";
+            const string TildeFence = "~~~";
+
+            if (inCodeBlock || curLine.IsEmpty)
+            {
+                return false;
+            }
+
+            if (curLine.StartsWith(BacktickFence))
+            {
+                inCodeBlock = true;
+                codeFenceInUse = BacktickFence;
+                return true;
+            }
+
+            if (curLine.StartsWith(TildeFence))
+            {
+                inCodeBlock = true;
+                codeFenceInUse = TildeFence;
+                return true;
+            }
+
+            return false;
+        }
+
+        bool CodeFenceEnds(ReadOnlySpan<char> curLine)
+        {
+            if (inCodeBlock && curLine.SequenceEqual(codeFenceInUse))
+            {
+                inCodeBlock = false;
+                codeFenceInUse = null;
+                return true;
+            }
+
+            return false;
+        }
 
         do
         {
@@ -160,43 +199,34 @@ internal static class Utils
 
             // Trim the line before checking for code fence.
             ReadOnlySpan<char> lineTrimmed = line.Trim();
-            if (lineTrimmed.StartsWith("```"))
+
+            if (CodeFenceStarts(lineTrimmed))
             {
-                if (inCodeBlock)
+                // Current line is the starting code fence.
+                code ??= new StringBuilder();
+                codeBlocks ??= [];
+                sourceInfos ??= [];
+
+                language = lineTrimmed.Length > 3 ? lineTrimmed[3..].ToString() : null;
+                // No need to capture the code block start index if we already reached end of the text.
+                codeBlockStart = index is -1 ? -1 : index + 1;
+                codeBlockIndents = line.IndexOf(codeFenceInUse);
+
+                continue;
+            }
+
+            if (CodeFenceEnds(lineTrimmed))
+            {
+                // Current line is the ending code fence.
+                if (code.Length > 0)
                 {
-                    if (lineTrimmed.Length is 3)
-                    {
-                        // Current line is the ending code fence.
-                        if (code.Length > 0)
-                        {
-                            codeBlocks.Add(new CodeBlock(code.ToString(), language));
-                            sourceInfos.Add(new SourceInfo(codeBlockStart, start - 1, codeBlockIndents));
-                        }
-
-                        code.Clear();
-                        language = null;
-                        inCodeBlock = false;
-                        codeBlockStart = codeBlockIndents = -1;
-
-                        continue;
-                    }
-
-                    // It's not the ending code fence, so keep appending to code.
-                    code.Append(line);
+                    codeBlocks.Add(new CodeBlock(code.ToString(), language));
+                    sourceInfos.Add(new SourceInfo(codeBlockStart, start - 1, codeBlockIndents));
                 }
-                else
-                {
-                    // Current line is the starting code fence.
-                    code ??= new StringBuilder();
-                    codeBlocks ??= [];
-                    sourceInfos ??= [];
 
-                    inCodeBlock = true;
-                    language = lineTrimmed.Length > 3 ? lineTrimmed[3..].ToString() : null;
-                    // No need to capture the code block start index if we already reached end of the text.
-                    codeBlockStart = index is -1 ? -1 : index + 1;
-                    codeBlockIndents = line.IndexOf("```");
-                }
+                code.Clear();
+                language = null;
+                codeBlockStart = codeBlockIndents = -1;
 
                 continue;
             }
