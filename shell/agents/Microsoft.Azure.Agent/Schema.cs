@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using AIShell.Abstraction;
 
 namespace Microsoft.Azure.Agent;
 
@@ -41,6 +42,7 @@ internal class CopilotActivity
 {
     public const string ConversationStateName = "azurecopilot/conversationstate";
     public const string SuggestedResponseName = "azurecopilot/suggesteduserresponses";
+    public const string CLIHandlerTopic = "CLIHandler";
 
     public string Type { get; set; }
     public string Id { get; set; }
@@ -50,6 +52,7 @@ internal class CopilotActivity
     public string TopicName { get; set; }
     public string Text { get; set; }
     public string InputHint { get; set; }
+    public string Locale { get; set; }
     public JsonObject[] Attachments { get; set; }
     public string ReplyToId { get; set; }
 
@@ -99,26 +102,29 @@ internal class ConversationState
 
 internal class CopilotResponse
 {
-    internal CopilotResponse(ChunkReader chunkReader, string topicName)
+    internal CopilotResponse(ChunkReader chunkReader, string locale, string topicName)
     {
         ArgumentNullException.ThrowIfNull(chunkReader);
         ArgumentException.ThrowIfNullOrEmpty(topicName);
 
         ChunkReader = chunkReader;
+        Locale = locale;
         TopicName = topicName;
     }
 
-    internal CopilotResponse(string text, string topicName)
+    internal CopilotResponse(string text, string locale, string topicName)
     {
         ArgumentException.ThrowIfNullOrEmpty(text);
         ArgumentException.ThrowIfNullOrEmpty(topicName);
 
         Text = text;
+        Locale = locale;
         TopicName = topicName;
     }
 
     internal ChunkReader ChunkReader { get; }
     internal string Text { get; }
+    internal string Locale { get; }
     internal string TopicName { get; }
     internal string[] SuggestedUserResponses { get; set; }
     internal ConversationState ConversationState { get; set; }
@@ -179,3 +185,58 @@ internal class ChunkReader
         return activity;
     }
 }
+
+#region parameter injection data types
+
+internal class CommandItem
+{
+    /// <summary>
+    /// Indicates whether the <see cref="Script"/> was updated by replacing placeholders with actual values.
+    /// </summary>
+    internal bool Updated { get; set; }
+
+    /// <summary>
+    /// The command script.
+    /// </summary>
+    internal string Script { get; set; }
+
+    /// <summary>
+    /// The source extent information.
+    /// </summary>
+    internal SourceInfo SourceInfo { get; set; }
+}
+
+internal class PlaceholderItem
+{
+    public string Name { get; set; }
+    public string Desc { get; set; }
+    public string Type { get; set; }
+    public List<string> ValidValues { get; set; }
+}
+
+internal class ResponseData
+{
+    internal string Text { get; set; }
+    internal string Locale { get; set; }
+    internal List<CommandItem> CommandSet { get; set; }
+    internal List<PlaceholderItem> PlaceholderSet { get; set; }
+}
+
+internal class ArgumentPlaceholder
+{
+    internal ArgumentPlaceholder(string query, ResponseData data)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(query);
+        ArgumentNullException.ThrowIfNull(data);
+
+        Query = query;
+        ResponseData = data;
+        DataRetriever = new(data);
+    }
+
+    public string Query { get; set; }
+    public ResponseData ResponseData { get; set; }
+    public DataRetriever DataRetriever { get; }
+}
+
+#endregion
