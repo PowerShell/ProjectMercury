@@ -22,7 +22,6 @@ public sealed class AzCLIAgent : ILLMAgent
     internal UserValueStore ValueStore { get; } = new();
 
     private const string SettingFileName = "az-cli.agent.json";
-    private readonly Stopwatch _watch = new();
 
     private AzCLIChatService _chatService;
     private StringBuilder _text;
@@ -113,10 +112,6 @@ public sealed class AzCLIAgent : ILLMAgent
 
     public async Task<bool> ChatAsync(string input, IShell shell)
     {
-        // Measure time spent
-        _watch.Restart();
-        var startTime = DateTime.Now;
-
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
 
@@ -143,14 +138,9 @@ public sealed class AzCLIAgent : ILLMAgent
                 string answer = GenerateAnswer(input, data);
                 host.RenderFullResponse(answer);
 
-                // Measure time spent
-                _watch.Stop();
-
-                if (!MetricHelper.TelemetryOptOut) 
+                if (!MetricHelper.TelemetryOptOut)
                 {
                     // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
-                    var EndTime = DateTime.Now;
-                    var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
 
                     // Append last Q&A history in HistoryMessage
                     _historyForTelemetry.AddLast(new HistoryMessage("user", input, _chatService.CorrelationID));
@@ -160,11 +150,8 @@ public sealed class AzCLIAgent : ILLMAgent
                         new AzTrace()
                         {
                             CorrelationID = _chatService.CorrelationID,
-                            Duration = Duration,
-                            EndTime = EndTime,
                             EventType = "Question",
-                            Handler = "Azure CLI",
-                            StartTime = startTime
+                            Handler = "Azure CLI"
                         });
                 }
             }
@@ -186,8 +173,7 @@ public sealed class AzCLIAgent : ILLMAgent
         }
         finally
         {
-            // Stop the watch in case of early return or exception.
-            _watch.Stop();
+
         }
 
         return true;
@@ -228,6 +214,17 @@ public sealed class AzCLIAgent : ILLMAgent
                     .Append($"# {action.Desc}\n")
                     .Append(script).Append('\n')
                     .Append("```\n\n");
+
+                _metricHelper.LogTelemetry(
+                new AzTrace()
+                {
+                    // Command = actionPayload.Action.ToString(),
+                    CorrelationID = _chatService.CorrelationID,
+                    EventType = "Feedback",
+                    Handler = "Azure CLI",
+                    //DetailedMessage = DetailedMessage,
+                    //HistoryMessage = history
+                });
             }
 
             if (ArgPlaceholder is not null)

@@ -42,7 +42,7 @@ public class MetricHelper
         services.AddApplicationInsightsTelemetryWorkerService((ApplicationInsightsServiceOptions options) =>
             {
                 // Application insights in the temp environment.
-                options.ConnectionString = "InstrumentationKey=7c753881-1ada-44a0-81be-94fb6a06dc34";
+                options.ConnectionString = "InstrumentationKey=eea660a1-d969-44f8-abe4-96666e7fb159";
                 options.EnableHeartbeat = false;
                 options.EnableDiagnosticsTelemetryModule = false;
             }
@@ -95,7 +95,7 @@ public class MetricHelper
             { "EndTime", trace.EndTime?.ToString() },
         };
 
-        _telemetryClient.TrackTrace("AIShell", eventProperties);
+        _telemetryClient.TrackTrace("AIShell-Test", eventProperties);
 
         // Explicitly call Flush() followed by sleep is required in Console Apps.
         // This is to ensure that even if application terminates, telemetry is sent to the back-end.
