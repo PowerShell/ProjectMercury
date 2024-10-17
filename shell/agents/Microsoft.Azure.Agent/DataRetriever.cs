@@ -236,7 +236,7 @@ internal class DataRetriever : IDisposable
             new("Container Registry",
                 "cr",
                 "The name only allows alphanumeric characters. Length: 5 to 50 chars.",
-                "cr<product>[<environment>][<identifier>]",
+                "cr<prod>[<env>][<id>]",
                 ["crnavigatorprod001", "crhadoopdev001"],
                 "az acr create --name",
                 "New-AzContainerRegistry -Name"),
@@ -244,7 +244,7 @@ internal class DataRetriever : IDisposable
             new("Storage Account",
                 "st",
                 "The name can only contain lowercase letters and numbers. Length: 3 to 24 chars.",
-                "st<product>[<environment>][<identifier>]",
+                "st<prod>[<env>][<id>]",
                 ["stsalesappdataqa", "sthadoopoutputtest"],
                 "az storage account create --name",
                 "New-AzStorageAccount -Name"),
@@ -324,38 +324,50 @@ internal class DataRetriever : IDisposable
 
             foreach (var cmd in data.CommandSet)
             {
-                string script = cmd.Script.Trim();
+                bool placeholderFound = false;
+                // Az Copilot may return a code block that contains multiple commands.
+                string[] scripts = cmd.Script.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-                // Handle AzCLI commands.
-                if (script.StartsWith("az ", StringComparison.OrdinalIgnoreCase))
+                foreach (string script in scripts)
                 {
-                    if (!cmds.TryGetValue(script, out command))
+                    // Handle AzCLI commands.
+                    if (script.StartsWith("az ", StringComparison.OrdinalIgnoreCase))
                     {
-                        int firstParamIndex = script.IndexOf("--");
-                        command = script.AsSpan(0, firstParamIndex).Trim().ToString();
-                        cmds.Add(script, command);
+                        if (!cmds.TryGetValue(script, out command))
+                        {
+                            int firstParamIndex = script.IndexOf("--");
+                            command = script.AsSpan(0, firstParamIndex).Trim().ToString();
+                            cmds.Add(script, command);
+                        }
+
+                        int argIndex = script.IndexOf(item.Name, StringComparison.OrdinalIgnoreCase);
+                        if (argIndex is -1)
+                        {
+                            continue;
+                        }
+
+                        int paramIndex = script.LastIndexOf("--", argIndex);
+                        parameter = script.AsSpan(paramIndex, argIndex - paramIndex).Trim().ToString();
+
+                        placeholderFound = true;
+                        break;
                     }
 
-                    int argIndex = script.IndexOf(item.Name, StringComparison.OrdinalIgnoreCase);
-                    if (argIndex is -1)
+                    // It's a non-AzCLI command, such as "ssh".
+                    if (script.Contains(item.Name, StringComparison.OrdinalIgnoreCase))
                     {
-                        continue;
+                        // Leave the parameter to be null for non-AzCLI commands, as there is
+                        // no reliable way to parse an arbitrary command
+                        command = script;
+                        parameter = null;
+
+                        placeholderFound = true;
+                        break;
                     }
-
-                    int paramIndex = script.LastIndexOf("--", argIndex);
-                    parameter = script.AsSpan(paramIndex, argIndex - paramIndex).Trim().ToString();
-
-                    break;
                 }
 
-                // It's a non-AzCLI command, such as "ssh".
-                if (script.Contains(item.Name, StringComparison.OrdinalIgnoreCase))
+                if (placeholderFound)
                 {
-                    // Leave the parameter to be null for non-AzCLI commands, as there is
-                    // no reliable way to parse an arbitrary command
-                    command = script;
-                    parameter = null;
-
                     break;
                 }
             }
@@ -421,12 +433,7 @@ internal class DataRetriever : IDisposable
         string cmdAndParam = $"{pair.Command} {pair.Parameter}";
         if (s_azNamingRules.TryGetValue(cmdAndParam, out NamingRule rule))
         {
-            string restriction = rule.PatternText is null
-                ? rule.GeneralRule
-                : $"""
-                     - {rule.GeneralRule}
-                     - Recommended pattern: {rule.PatternText}, e.g. {string.Join(", ", rule.Example)}.
-                    """;
+            string restriction = rule.PatternText is null ? null : $"Recommended pattern: {rule.PatternText}";
             return new ArgumentInfoWithNamingRule(item.Name, item.Desc, restriction, rule);
         }
 
@@ -439,14 +446,11 @@ internal class DataRetriever : IDisposable
 
         if (_stop) { return null; }
 
-        List<string> suggestions = GetArgValues(pair, out Option option);
-        // If the option's description is less than the placeholder's description in length, then it's
-        // unlikely to provide more information than the latter. In that case, we don't use it.
-        string optionDesc = option?.Description?.Length > item.Desc.Length ? option.Description : null;
-        return new ArgumentInfo(item.Name, item.Desc, optionDesc, dataType, suggestions);
+        List<string> suggestions = GetArgValues(pair);
+        return new ArgumentInfo(item.Name, item.Desc, restriction: null, dataType, suggestions);
     }
 
-    private List<string> GetArgValues(ArgumentPair pair, out Option option)
+    private List<string> GetArgValues(ArgumentPair pair)
     {
         // First, try to get static argument values if they exist.
         string command = pair.Command;
@@ -466,7 +470,7 @@ internal class DataRetriever : IDisposable
             s_azStaticDataCache.TryAdd(command, commandData);
         }
 
-        option = commandData?.FindOption(pair.Parameter);
+        Option option = commandData?.FindOption(pair.Parameter);
         List<string> staticValues = option?.Arguments;
         if (staticValues?.Count > 0)
         {
@@ -646,7 +650,7 @@ internal class NamingRule
 
         if (abbreviation is not null)
         {
-            PatternText = $"<product>-{abbreviation}[-<environment>][-<identifier>]";
+            PatternText = $"<prod>-{abbreviation}[-<env>][-<id>]";
             PatternRegex = new Regex($"^(?<prod>[a-zA-Z0-9]+)-{abbreviation}(?:-(?<env>[a-zA-Z0-9]+))?(?:-[a-zA-Z0-9]+)?$", RegexOptions.Compiled);
 
             string product = s_products[Random.Shared.Next(0, s_products.Length)];
