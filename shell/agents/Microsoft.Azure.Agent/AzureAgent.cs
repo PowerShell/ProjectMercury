@@ -101,6 +101,7 @@ public sealed class AzureAgent : ILLMAgent
             string query = $"{input}\n\n---\n\n{_instructions}";
             CopilotResponse copilotResponse = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
+                spinnerKind: SpinnerKind.Processing,
                 func: async context => await _chatSession.GetChatResponseAsync(query, context, token)
             ).ConfigureAwait(false);
 
