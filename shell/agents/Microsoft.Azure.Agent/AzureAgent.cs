@@ -335,7 +335,10 @@ public sealed class AzureAgent : ILLMAgent
             {
                 string script = command.Script;
                 command.Script = script.Replace(entry.Key, entry.Value, StringComparison.OrdinalIgnoreCase);
-                command.Updated = !ReferenceEquals(script, command.Script);
+                if (!ReferenceEquals(script, command.Script))
+                {
+                    command.Updated = true;
+                }
             }
         }
 

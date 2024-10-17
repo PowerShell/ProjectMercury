@@ -149,7 +149,7 @@ internal class ChatSession : IDisposable
                 int chatNumber = conversationState.DailyConversationNumber;
                 int requestNumber = conversationState.TurnNumber;
 
-                host.WriteLine($"\n{activity.Text} This is chat #{chatNumber}, request #{requestNumber}.\n");
+                host.WriteLine($"\n{activity.Text}\nThis is chat #{chatNumber}, request #{requestNumber}.\n");
                 return;
             }
         }
