@@ -63,6 +63,7 @@ public class MetricHelper
 
     public void LogTelemetry(AzTrace trace)
     {
+        /*
         string historyJson;
 
         while (true)
@@ -79,7 +80,7 @@ public class MetricHelper
             {
                 break;
             }
-        }
+        }*/
         
         Dictionary<string, string> eventProperties = new()
         {
@@ -87,15 +88,11 @@ public class MetricHelper
             { "InstallationID", trace.InstallationID },
             { "Handler", trace.Handler },
             { "EventType", trace.EventType },
-            { "Duration", trace.Duration?.ToString() },
             { "Command", trace.Command },
-            { "DetailedMessage", trace.DetailedMessage },
-            { "HistoryMessage", historyJson },
-            { "StartTime", trace.StartTime?.ToString() },
-            { "EndTime", trace.EndTime?.ToString() },
+            { "DetailedMessage", trace.DetailedMessage }
         };
 
-        _telemetryClient.TrackTrace("AIShell-Test", eventProperties);
+        _telemetryClient.TrackTrace("AIShell-Test1017", eventProperties);
 
         // Explicitly call Flush() followed by sleep is required in Console Apps.
         // This is to ensure that even if application terminates, telemetry is sent to the back-end.

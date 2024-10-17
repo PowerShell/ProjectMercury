@@ -23,10 +23,10 @@ public sealed class AzCLIAgent : ILLMAgent
 
     private const string SettingFileName = "az-cli.agent.json";
 
-    private AzCLIChatService _chatService;
+    internal AzCLIChatService _chatService;
     private StringBuilder _text;
-    private MetricHelper _metricHelper;
-    private LinkedList<HistoryMessage> _historyForTelemetry;
+    internal MetricHelper _metricHelper;
+    // private LinkedList<HistoryMessage> _historyForTelemetry;
 
     public void Dispose()
     {
@@ -37,7 +37,7 @@ public sealed class AzCLIAgent : ILLMAgent
     {
         _text = new StringBuilder();
         _chatService = new AzCLIChatService();
-        _historyForTelemetry = [];
+        // _historyForTelemetry = [];
         _metricHelper = new MetricHelper(AzCLIChatService.Endpoint);
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
@@ -60,11 +60,13 @@ public sealed class AzCLIAgent : ILLMAgent
         // Send telemetry about the user action.
         // DisLike Action
         string DetailedMessage = null;
-        LinkedList<HistoryMessage> history = null;
+        // LinkedList<HistoryMessage> history = null;
         if (actionPayload.Action == UserAction.Dislike)
         {
             DislikePayload dislikePayload = (DislikePayload)actionPayload;
             DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
+            
+            /*
             if (dislikePayload.ShareConversation)
             {
                 history = _historyForTelemetry;
@@ -72,20 +74,12 @@ public sealed class AzCLIAgent : ILLMAgent
             else
             {
                 _historyForTelemetry.Clear();
-            }
+            }*/
         }
         // Like Action
         else if (actionPayload.Action == UserAction.Like)
         {
             LikePayload likePayload = (LikePayload)actionPayload;
-            if (likePayload.ShareConversation)
-            {
-                history = _historyForTelemetry;
-            }
-            else
-            {
-                _historyForTelemetry.Clear();
-            }
         }
 
         _metricHelper.LogTelemetry(
@@ -95,8 +89,7 @@ public sealed class AzCLIAgent : ILLMAgent
                 CorrelationID = _chatService.CorrelationID,
                 EventType = "Feedback",
                 Handler = "Azure CLI",
-                DetailedMessage = DetailedMessage,
-                HistoryMessage = history
+                DetailedMessage = DetailedMessage
             });
     }
 
@@ -138,6 +131,7 @@ public sealed class AzCLIAgent : ILLMAgent
                 string answer = GenerateAnswer(input, data);
                 host.RenderFullResponse(answer);
 
+                /*
                 if (!MetricHelper.TelemetryOptOut)
                 {
                     // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
@@ -153,7 +147,7 @@ public sealed class AzCLIAgent : ILLMAgent
                             EventType = "Question",
                             Handler = "Azure CLI"
                         });
-                }
+                }*/
             }
         }
         catch (RefreshTokenException ex)
@@ -207,24 +201,13 @@ public sealed class AzCLIAgent : ILLMAgent
                 CommandItem action = data.CommandSet[i];
                 // Replace the pseudo values with the real values.
                 string script = ValueStore.ReplacePseudoValues(action.Script);
-
+                
                 _text.Append($"{i+1}. {action.Desc}")
                     .Append("\n\n")
                     .Append("```sh\n")
                     .Append($"# {action.Desc}\n")
                     .Append(script).Append('\n')
                     .Append("```\n\n");
-
-                _metricHelper.LogTelemetry(
-                new AzTrace()
-                {
-                    // Command = actionPayload.Action.ToString(),
-                    CorrelationID = _chatService.CorrelationID,
-                    EventType = "Feedback",
-                    Handler = "Azure CLI",
-                    //DetailedMessage = DetailedMessage,
-                    //HistoryMessage = history
-                });
             }
 
             if (ArgPlaceholder is not null)

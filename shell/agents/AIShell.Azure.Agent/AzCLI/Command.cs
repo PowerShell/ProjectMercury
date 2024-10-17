@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.Text;
 using System.Text.Json;
+using System.Timers;
 using AIShell.Abstraction;
 
 namespace AIShell.Azure.CLI;
@@ -72,6 +73,7 @@ internal sealed class ReplaceCommand : CommandBase
 
         try
         {
+            List<string> DetailedMessage = [];
             for (int i = 0; i < items.Count; i++)
             {
                 var item = items[i];
@@ -123,11 +125,27 @@ internal sealed class ReplaceCommand : CommandBase
                         _productNames.Add(prodName.ToLower());
                         _environmentNames.Add(envName.ToLower());
                     }
+                    DetailedMessage.Add(string.Format("{0} =: {1}", item.Name, value));
+                }
+                else
+                {
+                    DetailedMessage.Add(string.Format("{0} {1}", item.Name, "not replaced"));
                 }
 
                 // Write an extra new line.
                 host.WriteLine();
             }
+
+            _agent._metricHelper.LogTelemetry(
+                new AzTrace()
+                {
+                    Command = "Replace",
+                    CorrelationID = _agent._chatService.CorrelationID,
+                    EventType = "Feedback",
+                    Handler = "Azure CLI",
+                    DetailedMessage = JsonSerializer.Serialize(DetailedMessage)
+                    // HistoryMessage = history
+                });
         }
         catch (OperationCanceledException)
         {

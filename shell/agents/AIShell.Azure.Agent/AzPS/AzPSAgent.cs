@@ -100,8 +100,7 @@ public sealed class AzPSAgent : ILLMAgent
                 CorrelationID = _chatService.CorrelationID,
                 EventType = "Feedback",
                 Handler = "Azure PowerShell",
-                DetailedMessage = DetailedMessage,
-                HistoryMessage = history
+                DetailedMessage = DetailedMessage
             });
     }
 
@@ -177,11 +176,8 @@ public sealed class AzPSAgent : ILLMAgent
                     new AzTrace()
                     {
                         CorrelationID = _chatService.CorrelationID,
-                        Duration = Duration,
-                        EndTime = EndTime,
                         EventType = "Question",
-                        Handler = "Azure PowerShell",
-                        StartTime = startTime
+                        Handler = "Azure PowerShell"
                     });
             }
         }

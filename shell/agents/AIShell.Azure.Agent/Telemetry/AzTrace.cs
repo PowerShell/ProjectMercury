@@ -43,9 +43,9 @@ public class AzTrace
     // CorrelationId from client side.
     public string CorrelationID; 
     // private bool _enableAzureDataCollection = null;
-    public TimeSpan? Duration;
-    public DateTime? StartTime;
-    public DateTime? EndTime;
+    // public TimeSpan? Duration;
+    // public DateTime? StartTime;
+    // public DateTime? EndTime;
     public string InstallationID = s_installationId;
     public string EventType;
     public string Command;
@@ -54,7 +54,7 @@ public class AzTrace
     /// Reason of dislike
     /// </summary>
     public string DetailedMessage;
-    internal LinkedList<HistoryMessage> HistoryMessage;
+    // internal LinkedList<HistoryMessage> HistoryMessage;
     /// <summary>
     /// Agent Information - may contain:
     /// Handler Version
