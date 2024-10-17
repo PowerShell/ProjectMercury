@@ -61,7 +61,7 @@ internal sealed class ReplaceCommand : CommandBase
         string subText = items.Count > 1
             ? $"all {items.Count} argument placeholders"
             : "the argument placeholder";
-        host.WriteLine($"\nWe'll provide assistance in replacing {subText} and regenerating the result. You can press 'Enter' to skip to the next parameter or press 'Ctrl+c' to exit the assistance.\n");
+        host.WriteLine($"\nWe'll provide assistance in replacing {subText} and regenerating the result.\nYou can press 'Enter' to skip to the next parameter or press 'Ctrl+c' to exit the assistance.\n");
         host.RenderDivider("Input Values", DividerAlignment.Left);
         host.WriteLine();
 
