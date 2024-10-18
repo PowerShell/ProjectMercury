@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AIShell.Abstraction;
@@ -9,11 +10,14 @@ namespace Microsoft.Azure.Agent;
 
 internal class DataRetriever : IDisposable
 {
-    private static readonly Dictionary<string, NamingRule> s_azNamingRules;
-    private static readonly ConcurrentDictionary<string, Command> s_azStaticDataCache;
+    private const string MetadataQueryTemplate = "{{\"command\":\"{0}\"}}";
+    private const string MetadataEndpoint = "https://cli-validation-tool-meta-qry.azurewebsites.net/api/command_metadata";
 
-    private readonly string _staticDataRoot;
+    private static readonly Dictionary<string, NamingRule> s_azNamingRules;
+    private static readonly ConcurrentDictionary<string, AzCLICommand> s_azStaticDataCache;
+
     private readonly Task _rootTask;
+    private readonly HttpClient _httpClient;
     private readonly SemaphoreSlim _semaphore;
     private readonly List<ArgumentPair> _placeholders;
     private readonly Dictionary<string, ArgumentPair> _placeholderMap;
@@ -302,11 +306,11 @@ internal class DataRetriever : IDisposable
         s_azStaticDataCache = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    internal DataRetriever(ResponseData data)
+    internal DataRetriever(ResponseData data, HttpClient httpClient)
     {
         _stop = false;
+        _httpClient = httpClient;
         _semaphore = new SemaphoreSlim(3, 3);
-        _staticDataRoot = @"E:\yard\tmp\az-cli-out\az";
         _placeholders = new(capacity: data.PlaceholderSet.Count);
         _placeholderMap = new(capacity: data.PlaceholderSet.Count);
 
@@ -453,31 +457,23 @@ internal class DataRetriever : IDisposable
     private List<string> GetArgValues(ArgumentPair pair)
     {
         // First, try to get static argument values if they exist.
+        bool hasCompleter = true;
         string command = pair.Command;
-        if (!s_azStaticDataCache.TryGetValue(command, out Command commandData))
+
+        AzCLICommand commandData = s_azStaticDataCache.GetOrAdd(command, QueryForMetadata);
+        AzCLIParameter param = commandData?.FindParameter(pair.Parameter);
+
+        if (param is not null)
         {
-            string[] cmdElements = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            string dirPath = _staticDataRoot;
-            for (int i = 1; i < cmdElements.Length - 1; i++)
+            if (param.Choices?.Count > 0)
             {
-                dirPath = Path.Combine(dirPath, cmdElements[i]);
+                return param.Choices;
             }
 
-            string filePath = Path.Combine(dirPath, cmdElements[^1] + ".json");
-            commandData = File.Exists(filePath)
-                ? JsonSerializer.Deserialize<Command>(File.OpenRead(filePath))
-                : null;
-            s_azStaticDataCache.TryAdd(command, commandData);
+            hasCompleter = param.HasCompleter;
         }
 
-        Option option = commandData?.FindOption(pair.Parameter);
-        List<string> staticValues = option?.Arguments;
-        if (staticValues?.Count > 0)
-        {
-            return staticValues;
-        }
-
-        if (_stop) { return null; }
+        if (_stop || !hasCompleter) { return null; }
 
         // Then, try to get dynamic argument values using AzCLI tab completion.
         string commandLine = $"{pair.Command} {pair.Parameter} ";
@@ -551,6 +547,42 @@ internal class DataRetriever : IDisposable
         }
     }
 
+    private AzCLICommand QueryForMetadata(string azCommand)
+    {
+        AzCLICommand command = null;
+        var reqBody = new StringContent(string.Format(MetadataQueryTemplate, azCommand), Encoding.UTF8, Utils.JsonContentType);
+        var request = new HttpRequestMessage(HttpMethod.Get, MetadataEndpoint) { Content = reqBody };
+
+        try
+        {
+            using var cts = new CancellationTokenSource(1200);
+            var response = _httpClient.Send(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+
+            if (response.IsSuccessStatusCode)
+            {
+                using Stream stream = response.Content.ReadAsStream(cts.Token);
+                using JsonDocument document = JsonDocument.Parse(stream);
+
+                JsonElement root = document.RootElement;
+                if (root.TryGetProperty("data", out JsonElement data) &&
+                    data.TryGetProperty("metadata", out JsonElement metadata))
+                {
+                    command = metadata.Deserialize<AzCLICommand>(Utils.JsonOptions);
+                }
+            }
+            else
+            {
+                // TODO: telemetry.
+            }
+        }
+        catch (Exception)
+        {
+            // TODO: telemetry.
+        }
+
+        return command;
+    }
+
     internal (string command, string parameter) GetMappedCommand(string placeholderName)
     {
         if (_placeholderMap.TryGetValue(placeholderName, out ArgumentPair pair))
@@ -584,6 +616,22 @@ internal class DataRetriever : IDisposable
         _stop = true;
         _rootTask.Wait();
         _semaphore.Dispose();
+    }
+
+    internal static void WarmUpMetadataService(HttpClient httpClient)
+    {
+        // Send a request to the AzCLI metadata service to warm up the service (code start is slow).
+        // We query for the command 'az sql server list' which only has 2 parameters,
+        // so it should cause minimum processing on the server side.
+        HttpRequestMessage request = new(HttpMethod.Get, MetadataEndpoint)
+        {
+            Content = new StringContent(
+                "{\"command\":\"az sql server list\"}",
+                Encoding.UTF8,
+                Utils.JsonContentType)
+        };
+
+        _ = httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
     }
 }
 
@@ -701,85 +749,5 @@ internal class NamingRule
         }
 
         return false;
-    }
-}
-
-public class Option
-{
-    public string Name { get; }
-    public string[] Alias { get; }
-    public string[] Short { get; }
-    public string Attribute { get; }
-    public string Description { get; set; }
-    public List<string> Arguments { get; set; }
-
-    public Option(string name, string description, string[] alias, string[] @short, string attribute, List<string> arguments)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentException.ThrowIfNullOrEmpty(description);
-
-        Name = name;
-        Alias = alias;
-        Short = @short;
-        Attribute = attribute;
-        Description = description;
-        Arguments = arguments;
-    }
-}
-
-public sealed class Command
-{
-    public List<Option> Options { get; }
-    public string Examples { get; }
-    public string Name { get; }
-    public string Description { get; }
-
-    public Command(string name, string description, List<Option> options, string examples)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentException.ThrowIfNullOrEmpty(description);
-        ArgumentNullException.ThrowIfNull(options);
-
-        Options = options;
-        Examples = examples;
-        Name = name;
-        Description = description;
-    }
-
-    public Option FindOption(string name)
-    {
-        foreach (Option option in Options)
-        {
-            if (name.StartsWith("--"))
-            {
-                if (string.Equals(option.Name, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    return option;
-                }
-
-                if (option.Alias is not null)
-                {
-                    foreach (string alias in option.Alias)
-                    {
-                        if (string.Equals(alias, name, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return option;
-                        }
-                    }
-                }
-            }
-            else if (option.Short is not null)
-            {
-                foreach (string s in option.Short)
-                {
-                    if (string.Equals(s, name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return option;
-                    }
-                }
-            }
-        }
-
-        return null;
     }
 }

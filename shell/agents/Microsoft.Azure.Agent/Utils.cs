@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Agent;
 
 internal static class Utils
 {
+    internal const string JsonContentType = "application/json";
+
     private static readonly JsonSerializerOptions s_jsonOptions;
     private static readonly JsonSerializerOptions s_humanReadableOptions;
 
