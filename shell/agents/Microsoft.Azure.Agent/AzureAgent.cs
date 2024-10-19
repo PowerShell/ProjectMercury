@@ -35,13 +35,17 @@ public sealed class AzureAgent : ILLMAgent
     private int _turnsLeft;
     private readonly string _instructions;
     private readonly StringBuilder _buffer;
+    private readonly HttpClient _httpClient;
     private readonly ChatSession _chatSession;
     private readonly Dictionary<string, string> _valueStore;
 
     public AzureAgent()
     {
         _buffer = new StringBuilder();
-        _chatSession = new ChatSession();
+        _httpClient = new HttpClient();
+        Task.Run(() => DataRetriever.WarmUpMetadataService(_httpClient));
+
+        _chatSession = new ChatSession(_httpClient);
         _valueStore = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         _instructions = string.Format(InstructionPrompt, Environment.OSVersion.VersionString);
 
@@ -66,7 +70,9 @@ public sealed class AzureAgent : ILLMAgent
 
     public void Dispose()
     {
-        _chatSession?.Dispose();
+        ArgPlaceholder?.DataRetriever?.Dispose();
+        _chatSession.Dispose();
+        _httpClient.Dispose();
     }
 
     public void Initialize(AgentConfig config)
@@ -126,7 +132,7 @@ public sealed class AzureAgent : ILLMAgent
                 string answer = data is null ? copilotResponse.Text : GenerateAnswer(data);
                 if (data?.PlaceholderSet is not null)
                 {
-                    ArgPlaceholder = new ArgumentPlaceholder(input, data);
+                    ArgPlaceholder = new ArgumentPlaceholder(input, data, _httpClient);
                 }
 
                 host.RenderFullResponse(answer);
