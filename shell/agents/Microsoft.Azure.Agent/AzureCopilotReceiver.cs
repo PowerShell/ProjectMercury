@@ -3,6 +3,8 @@ using System.Net.WebSockets;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
 
+using Serilog;
+
 namespace Microsoft.Azure.Agent;
 
 internal class AzureCopilotReceiver : IDisposable
@@ -57,14 +59,14 @@ internal class AzureCopilotReceiver : IDisposable
             }
             catch (OperationCanceledException)
             {
-                // TODO: log the cancellation of the message receiving thread.
                 // Close the web socket before the thread is going away.
                 closingMessage = "Client closing";
+                Log.Error("[AzureCopilotReceiver] Receiver thread cancelled, which means the instance was disposed.");
             }
 
             if (closingMessage is not null)
             {
-                // TODO: log the closing request.
+                Log.Error("[AzureCopilotReceiver] Sending web socket closing request, message: '{}'", closingMessage);
                 await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, closingMessage, CancellationToken.None);
                 _activityQueue.CompleteAdding();
                 break;
@@ -100,7 +102,7 @@ internal class AzureCopilotReceiver : IDisposable
             }
         }
 
-        // TODO: log the current state of the web socket.
+        Log.Error("[AzureCopilotReceiver] Web socket connection dropped. State: '{0}'", _webSocket.State);
         _activityQueue.Add(new CopilotActivity { Error = new ConnectionDroppedException($"The websocket got in '{_webSocket.State}' state. Connection dropped.") });
         _activityQueue.CompleteAdding();
     }

@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+
 using AIShell.Abstraction;
 
 namespace Microsoft.Azure.Agent;
@@ -75,8 +76,7 @@ internal class ChatSession : IDisposable
             else
             {
                 host.WriteErrorLine()
-                    .WriteErrorLine($"Failed to start a conversation due to the following error: {e.Message}")
-                    .WriteErrorLine(e.StackTrace)
+                    .WriteErrorLine($"Failed to start a conversation due to the following error: {e.Message}\n{e.StackTrace}")
                     .WriteErrorLine()
                     .WriteErrorLine("Please try '/refresh' to start a new conversation.")
                     .WriteErrorLine();
