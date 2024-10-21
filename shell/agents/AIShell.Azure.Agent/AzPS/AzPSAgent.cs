@@ -18,13 +18,11 @@ public sealed class AzPSAgent : ILLMAgent
     public string SettingFile { private set; get; } = null;
 
     private const string SettingFileName = "az-ps.agent.json";
-    private readonly Stopwatch _watch = new();
 
     private string _configRoot;
     private RenderingStyle _renderingStyle;
     private AzPSChatService _chatService;
     private MetricHelper _metricHelper;
-    private LinkedList<HistoryMessage> _historyForTelemetry;
 
     public void Dispose()
     {
@@ -51,7 +49,6 @@ public sealed class AzPSAgent : ILLMAgent
             ["Transparency"] = "https://aka.ms/CopilotAzCLIPSTransparency",
         };
 
-        _historyForTelemetry = [];
         _metricHelper = new MetricHelper(AzPSChatService.Endpoint);
         _chatService = new AzPSChatService(config.IsInteractive, tenantId);
     }
@@ -64,32 +61,10 @@ public sealed class AzPSAgent : ILLMAgent
     {
         // DisLike Action
         string DetailedMessage = null;
-        LinkedList<HistoryMessage> history = null;
         if (actionPayload.Action == UserAction.Dislike)
         {
             DislikePayload dislikePayload = (DislikePayload)actionPayload;
             DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
-            if (dislikePayload.ShareConversation)
-            {
-                history = _historyForTelemetry;
-            }
-            else
-            {
-                _historyForTelemetry.Clear();
-            }
-        }
-        // Like Action
-        else if (actionPayload.Action == UserAction.Like)
-        {
-            LikePayload likePayload = (LikePayload)actionPayload;
-            if (likePayload.ShareConversation)
-            {
-                history = _historyForTelemetry;
-            }
-            else
-            {
-                _historyForTelemetry.Clear();
-            }
         }
 
         // TODO: Extract into RecrodActionTelemetry : RecordTelemetry()
@@ -114,10 +89,6 @@ public sealed class AzPSAgent : ILLMAgent
 
     public async Task<bool> ChatAsync(string input, IShell shell)
     {
-        // Measure time spent
-        _watch.Restart();
-        var startTime = DateTime.Now;
-
         IHost host = shell.Host;
         CancellationToken token = shell.CancellationToken;
 
@@ -159,24 +130,15 @@ public sealed class AzPSAgent : ILLMAgent
             string accumulatedContent = streamingRender.AccumulatedContent;
             _chatService.AddResponseToHistory(accumulatedContent);
 
-            // Measure time spent
-            _watch.Stop();
-
             if (!MetricHelper.TelemetryOptOut)
             {
                 // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
-                var EndTime = DateTime.Now;
-                var Duration = TimeSpan.FromTicks(_watch.ElapsedTicks);
-
-                // Append last Q&A history in HistoryMessage
-                _historyForTelemetry.AddLast(new HistoryMessage("user", input, _chatService.CorrelationID));
-                _historyForTelemetry.AddLast(new HistoryMessage("assistant", accumulatedContent, _chatService.CorrelationID));
 
                 _metricHelper.LogTelemetry(
                     new AzTrace()
                     {
                         CorrelationID = _chatService.CorrelationID,
-                        EventType = "Question",
+                        EventType = "Chat",
                         Handler = "Azure PowerShell"
                     });
             }
@@ -198,8 +160,7 @@ public sealed class AzPSAgent : ILLMAgent
         }
         finally
         {
-            // Stop the watch in case of early return or exception.
-            _watch.Stop();
+
         }
 
         return true;

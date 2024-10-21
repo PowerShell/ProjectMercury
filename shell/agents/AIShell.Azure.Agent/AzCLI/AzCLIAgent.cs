@@ -26,7 +26,6 @@ public sealed class AzCLIAgent : ILLMAgent
     internal AzCLIChatService _chatService;
     private StringBuilder _text;
     internal MetricHelper _metricHelper;
-    // private LinkedList<HistoryMessage> _historyForTelemetry;
 
     public void Dispose()
     {
@@ -37,7 +36,6 @@ public sealed class AzCLIAgent : ILLMAgent
     {
         _text = new StringBuilder();
         _chatService = new AzCLIChatService();
-        // _historyForTelemetry = [];
         _metricHelper = new MetricHelper(AzCLIChatService.Endpoint);
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
@@ -60,26 +58,10 @@ public sealed class AzCLIAgent : ILLMAgent
         // Send telemetry about the user action.
         // DisLike Action
         string DetailedMessage = null;
-        // LinkedList<HistoryMessage> history = null;
         if (actionPayload.Action == UserAction.Dislike)
         {
             DislikePayload dislikePayload = (DislikePayload)actionPayload;
             DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
-            
-            /*
-            if (dislikePayload.ShareConversation)
-            {
-                history = _historyForTelemetry;
-            }
-            else
-            {
-                _historyForTelemetry.Clear();
-            }*/
-        }
-        // Like Action
-        else if (actionPayload.Action == UserAction.Like)
-        {
-            LikePayload likePayload = (LikePayload)actionPayload;
         }
 
         _metricHelper.LogTelemetry(
@@ -131,23 +113,18 @@ public sealed class AzCLIAgent : ILLMAgent
                 string answer = GenerateAnswer(input, data);
                 host.RenderFullResponse(answer);
 
-                /*
                 if (!MetricHelper.TelemetryOptOut)
                 {
                     // TODO: extract into RecordQuestionTelemetry() : RecordTelemetry()
-
-                    // Append last Q&A history in HistoryMessage
-                    _historyForTelemetry.AddLast(new HistoryMessage("user", input, _chatService.CorrelationID));
-                    _historyForTelemetry.AddLast(new HistoryMessage("assistant", answer, _chatService.CorrelationID));
 
                     _metricHelper.LogTelemetry(
                         new AzTrace()
                         {
                             CorrelationID = _chatService.CorrelationID,
-                            EventType = "Question",
+                            EventType = "Chat",
                             Handler = "Azure CLI"
                         });
-                }*/
+                }
             }
         }
         catch (RefreshTokenException ex)

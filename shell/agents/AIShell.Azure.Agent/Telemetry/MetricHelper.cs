@@ -92,7 +92,7 @@ public class MetricHelper
             { "DetailedMessage", trace.DetailedMessage }
         };
 
-        _telemetryClient.TrackTrace("AIShell-Test1017", eventProperties);
+        _telemetryClient.TrackTrace("AIShell-Test1021", eventProperties);
 
         // Explicitly call Flush() followed by sleep is required in Console Apps.
         // This is to ensure that even if application terminates, telemetry is sent to the back-end.

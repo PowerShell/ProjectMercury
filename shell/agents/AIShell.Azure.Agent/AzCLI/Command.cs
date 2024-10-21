@@ -73,7 +73,7 @@ internal sealed class ReplaceCommand : CommandBase
 
         try
         {
-            List<string> DetailedMessage = [];
+            Dictionary<string, Boolean> DetailedMessage = new();
             for (int i = 0; i < items.Count; i++)
             {
                 var item = items[i];
@@ -125,11 +125,11 @@ internal sealed class ReplaceCommand : CommandBase
                         _productNames.Add(prodName.ToLower());
                         _environmentNames.Add(envName.ToLower());
                     }
-                    DetailedMessage.Add(string.Format("{0} =: {1}", item.Name, value));
+                    DetailedMessage.Add(item.Name, true);
                 }
                 else
                 {
-                    DetailedMessage.Add(string.Format("{0} {1}", item.Name, "not replaced"));
+                    DetailedMessage.Add(item.Name, false);
                 }
 
                 // Write an extra new line.
@@ -144,7 +144,6 @@ internal sealed class ReplaceCommand : CommandBase
                     EventType = "Feedback",
                     Handler = "Azure CLI",
                     DetailedMessage = JsonSerializer.Serialize(DetailedMessage)
-                    // HistoryMessage = history
                 });
         }
         catch (OperationCanceledException)
