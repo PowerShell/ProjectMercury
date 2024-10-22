@@ -308,7 +308,6 @@ internal class ChatSession : IDisposable
                         activity.ExtractMetadata(out string[] suggestion, out ConversationState state);
                         ret.SuggestedUserResponses = suggestion;
                         ret.ConversationState = state;
-                        ret.ReplyTo = activityId;
                     }
 
                     return ret;
