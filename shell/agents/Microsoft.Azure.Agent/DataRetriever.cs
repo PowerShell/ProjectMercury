@@ -4,7 +4,9 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+
 using AIShell.Abstraction;
+using Serilog;
 
 namespace Microsoft.Azure.Agent;
 
@@ -573,11 +575,13 @@ internal class DataRetriever : IDisposable
             else
             {
                 // TODO: telemetry.
+                Log.Error("[QueryForMetadata] Received status code '{0}' for command '{1}'", response.StatusCode, azCommand);
             }
         }
-        catch (Exception)
+        catch (Exception e)
         {
             // TODO: telemetry.
+            Log.Error(e, "[QueryForMetadata] Exception while processing command: {0}", azCommand);
         }
 
         return command;
