@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+
 using AIShell.Abstraction;
 
 namespace Microsoft.Azure.Agent;
@@ -23,10 +24,10 @@ internal class ChatSession : IDisposable
     private readonly HttpClient _httpClient;
     private readonly Dictionary<string, object> _flights;
 
-    internal ChatSession()
+    internal ChatSession(HttpClient httpClient)
     {
         _dl_secret = Environment.GetEnvironmentVariable("DL_SECRET");
-        _httpClient = new HttpClient();
+        _httpClient = httpClient;
 
         // Keys and values for flights are from the portal request.
         _flights = new Dictionary<string, object>()
@@ -75,8 +76,7 @@ internal class ChatSession : IDisposable
             else
             {
                 host.WriteErrorLine()
-                    .WriteErrorLine($"Failed to start a conversation due to the following error: {e.Message}")
-                    .WriteErrorLine(e.StackTrace)
+                    .WriteErrorLine($"Failed to start a conversation due to the following error: {e.Message}\n{e.StackTrace}")
                     .WriteErrorLine()
                     .WriteErrorLine("Please try '/refresh' to start a new conversation.")
                     .WriteErrorLine();
@@ -149,7 +149,7 @@ internal class ChatSession : IDisposable
                 int chatNumber = conversationState.DailyConversationNumber;
                 int requestNumber = conversationState.TurnNumber;
 
-                host.WriteLine($"\n{activity.Text} This is chat #{chatNumber}, request #{requestNumber}.\n");
+                host.WriteLine($"\n{activity.Text}\nThis is chat #{chatNumber}, request #{requestNumber}.\n");
                 return;
             }
         }
@@ -199,14 +199,14 @@ internal class ChatSession : IDisposable
             text = input,
             attachments = new object[] {
                 new {
-                    contentType = "application/json",
+                    contentType = Utils.JsonContentType,
                     name = "azurecopilot/clienthandlerdefinitions",
                     content =  new {
                         clientHandlers = Array.Empty<object>()
                     }
                 },
                 new {
-                    contentType = "application/json",
+                    contentType = Utils.JsonContentType,
                     name = "azurecopilot/viewcontext",
                     content = new {
                         viewContext = new {
@@ -217,7 +217,7 @@ internal class ChatSession : IDisposable
                     }
                 },
                 new {
-                    contentType = "application/json",
+                    contentType = Utils.JsonContentType,
                     name = "azurecopilot/flights",
                     content = new {
                         flights = _flights
@@ -227,7 +227,7 @@ internal class ChatSession : IDisposable
         };
 
         var json = JsonSerializer.Serialize(requestData, Utils.JsonOptions);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var content = new StringContent(json, Encoding.UTF8, Utils.JsonContentType);
         var request = new HttpRequestMessage(HttpMethod.Post, _conversationUrl) { Content = content };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
@@ -305,7 +305,6 @@ internal class ChatSession : IDisposable
 
     public void Dispose()
     {
-        _httpClient.Dispose();
         _copilotReceiver?.Dispose();
     }
 }

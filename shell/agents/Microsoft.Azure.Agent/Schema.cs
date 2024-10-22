@@ -224,19 +224,50 @@ internal class ResponseData
 
 internal class ArgumentPlaceholder
 {
-    internal ArgumentPlaceholder(string query, ResponseData data)
+    internal ArgumentPlaceholder(string query, ResponseData data, HttpClient httpClient)
     {
         ArgumentException.ThrowIfNullOrEmpty(query);
         ArgumentNullException.ThrowIfNull(data);
 
         Query = query;
         ResponseData = data;
-        DataRetriever = new(data);
+        DataRetriever = new(data, httpClient);
     }
 
     public string Query { get; set; }
     public ResponseData ResponseData { get; set; }
     public DataRetriever DataRetriever { get; }
+}
+
+internal class AzCLIParameter
+{
+    public List<string> Options { get; set; }
+    public List<string> Choices { get; set; }
+    public bool Required { get; set; }
+
+    [JsonPropertyName("has_completer")]
+    public bool HasCompleter { get; set; }
+}
+
+internal class AzCLICommand
+{
+    public List<AzCLIParameter> Parameters { get; set; }
+
+    public AzCLIParameter FindParameter(string name)
+    {
+        foreach (var param in Parameters)
+        {
+            foreach (var option in param.Options)
+            {
+                if (option.Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return param;
+                }
+            }
+        }
+
+        return null;
+    }
 }
 
 #endregion

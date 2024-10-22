@@ -61,7 +61,7 @@ internal sealed class ReplaceCommand : CommandBase
         string subText = items.Count > 1
             ? $"all {items.Count} argument placeholders"
             : "the argument placeholder";
-        host.WriteLine($"\nWe'll provide assistance in replacing {subText} and regenerating the result. You can press 'Enter' to skip to the next parameter or press 'Ctrl+c' to exit the assistance.\n");
+        host.WriteLine($"\nWe'll provide assistance in replacing {subText} and regenerating the result.\nYou can press 'Enter' to skip to the next parameter or press 'Ctrl+c' to exit the assistance.\n");
         host.RenderDivider("Input Values", DividerAlignment.Left);
         host.WriteLine();
 
@@ -72,13 +72,12 @@ internal sealed class ReplaceCommand : CommandBase
                 var item = items[i];
                 var (command, parameter) = dataRetriever.GetMappedCommand(item.Name);
 
-                string desc = item.Desc.TrimEnd('.');
-                string coloredCmd = parameter is null ? null : SyntaxHighlightAzCommand(command, parameter, item.Name);
-                string cmdPart = coloredCmd is null ? null : $" [{coloredCmd}]";
-
-                host.WriteLine(item.Type is "string"
-                    ? $"{i+1}. {desc}{cmdPart}"
-                    : $"{i+1}. {desc}{cmdPart}. Value type: {item.Type}");
+                string caption = parameter is null ? item.Name : SyntaxHighlightAzCommand(command, parameter, item.Name);
+                host.WriteLine($"{i+1}. {caption}");
+                if (item.Name != item.Desc)
+                {
+                    host.WriteLine(item.Desc);
+                }
 
                 // Get the task for creating the 'ArgumentInfo' object and show a spinner
                 // if we have to wait for the task to complete.
@@ -109,6 +108,13 @@ internal sealed class ReplaceCommand : CommandBase
                 string value = host.PromptForArgument(argInfo, printCaption: false);
                 if (!string.IsNullOrEmpty(value))
                 {
+                    // Add quotes for the value if needed.
+                    value = value.Trim();
+                    if (value.StartsWith('-') || value.Contains(' '))
+                    {
+                        value = $"\"{value}\"";
+                    }
+
                     _values.Add(item.Name, value);
                     _agent.SaveUserValue(item.Name, value);
 

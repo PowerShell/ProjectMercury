@@ -1,19 +1,25 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+
 using AIShell.Abstraction;
+using Serilog;
 
 namespace Microsoft.Azure.Agent;
 
 internal class DataRetriever : IDisposable
 {
-    private static readonly Dictionary<string, NamingRule> s_azNamingRules;
-    private static readonly ConcurrentDictionary<string, Command> s_azStaticDataCache;
+    private const string MetadataQueryTemplate = "{{\"command\":\"{0}\"}}";
+    private const string MetadataEndpoint = "https://cli-validation-tool-meta-qry.azurewebsites.net/api/command_metadata";
 
-    private readonly string _staticDataRoot;
+    private static readonly Dictionary<string, NamingRule> s_azNamingRules;
+    private static readonly ConcurrentDictionary<string, AzCLICommand> s_azStaticDataCache;
+
     private readonly Task _rootTask;
+    private readonly HttpClient _httpClient;
     private readonly SemaphoreSlim _semaphore;
     private readonly List<ArgumentPair> _placeholders;
     private readonly Dictionary<string, ArgumentPair> _placeholderMap;
@@ -236,7 +242,7 @@ internal class DataRetriever : IDisposable
             new("Container Registry",
                 "cr",
                 "The name only allows alphanumeric characters. Length: 5 to 50 chars.",
-                "cr<product>[<environment>][<identifier>]",
+                "cr<prod>[<env>][<id>]",
                 ["crnavigatorprod001", "crhadoopdev001"],
                 "az acr create --name",
                 "New-AzContainerRegistry -Name"),
@@ -244,7 +250,7 @@ internal class DataRetriever : IDisposable
             new("Storage Account",
                 "st",
                 "The name can only contain lowercase letters and numbers. Length: 3 to 24 chars.",
-                "st<product>[<environment>][<identifier>]",
+                "st<prod>[<env>][<id>]",
                 ["stsalesappdataqa", "sthadoopoutputtest"],
                 "az storage account create --name",
                 "New-AzStorageAccount -Name"),
@@ -302,11 +308,11 @@ internal class DataRetriever : IDisposable
         s_azStaticDataCache = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    internal DataRetriever(ResponseData data)
+    internal DataRetriever(ResponseData data, HttpClient httpClient)
     {
         _stop = false;
+        _httpClient = httpClient;
         _semaphore = new SemaphoreSlim(3, 3);
-        _staticDataRoot = @"E:\yard\tmp\az-cli-out\az";
         _placeholders = new(capacity: data.PlaceholderSet.Count);
         _placeholderMap = new(capacity: data.PlaceholderSet.Count);
 
@@ -324,38 +330,50 @@ internal class DataRetriever : IDisposable
 
             foreach (var cmd in data.CommandSet)
             {
-                string script = cmd.Script.Trim();
+                bool placeholderFound = false;
+                // Az Copilot may return a code block that contains multiple commands.
+                string[] scripts = cmd.Script.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-                // Handle AzCLI commands.
-                if (script.StartsWith("az ", StringComparison.OrdinalIgnoreCase))
+                foreach (string script in scripts)
                 {
-                    if (!cmds.TryGetValue(script, out command))
+                    // Handle AzCLI commands.
+                    if (script.StartsWith("az ", StringComparison.OrdinalIgnoreCase))
                     {
-                        int firstParamIndex = script.IndexOf("--");
-                        command = script.AsSpan(0, firstParamIndex).Trim().ToString();
-                        cmds.Add(script, command);
+                        if (!cmds.TryGetValue(script, out command))
+                        {
+                            int firstParamIndex = script.IndexOf("--");
+                            command = script.AsSpan(0, firstParamIndex).Trim().ToString();
+                            cmds.Add(script, command);
+                        }
+
+                        int argIndex = script.IndexOf(item.Name, StringComparison.OrdinalIgnoreCase);
+                        if (argIndex is -1)
+                        {
+                            continue;
+                        }
+
+                        int paramIndex = script.LastIndexOf("--", argIndex);
+                        parameter = script.AsSpan(paramIndex, argIndex - paramIndex).Trim().ToString();
+
+                        placeholderFound = true;
+                        break;
                     }
 
-                    int argIndex = script.IndexOf(item.Name, StringComparison.OrdinalIgnoreCase);
-                    if (argIndex is -1)
+                    // It's a non-AzCLI command, such as "ssh".
+                    if (script.Contains(item.Name, StringComparison.OrdinalIgnoreCase))
                     {
-                        continue;
+                        // Leave the parameter to be null for non-AzCLI commands, as there is
+                        // no reliable way to parse an arbitrary command
+                        command = script;
+                        parameter = null;
+
+                        placeholderFound = true;
+                        break;
                     }
-
-                    int paramIndex = script.LastIndexOf("--", argIndex);
-                    parameter = script.AsSpan(paramIndex, argIndex - paramIndex).Trim().ToString();
-
-                    break;
                 }
 
-                // It's a non-AzCLI command, such as "ssh".
-                if (script.Contains(item.Name, StringComparison.OrdinalIgnoreCase))
+                if (placeholderFound)
                 {
-                    // Leave the parameter to be null for non-AzCLI commands, as there is
-                    // no reliable way to parse an arbitrary command
-                    command = script;
-                    parameter = null;
-
                     break;
                 }
             }
@@ -421,12 +439,7 @@ internal class DataRetriever : IDisposable
         string cmdAndParam = $"{pair.Command} {pair.Parameter}";
         if (s_azNamingRules.TryGetValue(cmdAndParam, out NamingRule rule))
         {
-            string restriction = rule.PatternText is null
-                ? rule.GeneralRule
-                : $"""
-                     - {rule.GeneralRule}
-                     - Recommended pattern: {rule.PatternText}, e.g. {string.Join(", ", rule.Example)}.
-                    """;
+            string restriction = rule.PatternText is null ? null : $"Recommended pattern: {rule.PatternText}";
             return new ArgumentInfoWithNamingRule(item.Name, item.Desc, restriction, rule);
         }
 
@@ -439,41 +452,30 @@ internal class DataRetriever : IDisposable
 
         if (_stop) { return null; }
 
-        List<string> suggestions = GetArgValues(pair, out Option option);
-        // If the option's description is less than the placeholder's description in length, then it's
-        // unlikely to provide more information than the latter. In that case, we don't use it.
-        string optionDesc = option?.Description?.Length > item.Desc.Length ? option.Description : null;
-        return new ArgumentInfo(item.Name, item.Desc, optionDesc, dataType, suggestions);
+        List<string> suggestions = GetArgValues(pair);
+        return new ArgumentInfo(item.Name, item.Desc, restriction: null, dataType, suggestions);
     }
 
-    private List<string> GetArgValues(ArgumentPair pair, out Option option)
+    private List<string> GetArgValues(ArgumentPair pair)
     {
         // First, try to get static argument values if they exist.
+        bool hasCompleter = true;
         string command = pair.Command;
-        if (!s_azStaticDataCache.TryGetValue(command, out Command commandData))
+
+        AzCLICommand commandData = s_azStaticDataCache.GetOrAdd(command, QueryForMetadata);
+        AzCLIParameter param = commandData?.FindParameter(pair.Parameter);
+
+        if (param is not null)
         {
-            string[] cmdElements = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            string dirPath = _staticDataRoot;
-            for (int i = 1; i < cmdElements.Length - 1; i++)
+            if (param.Choices?.Count > 0)
             {
-                dirPath = Path.Combine(dirPath, cmdElements[i]);
+                return param.Choices;
             }
 
-            string filePath = Path.Combine(dirPath, cmdElements[^1] + ".json");
-            commandData = File.Exists(filePath)
-                ? JsonSerializer.Deserialize<Command>(File.OpenRead(filePath))
-                : null;
-            s_azStaticDataCache.TryAdd(command, commandData);
+            hasCompleter = param.HasCompleter;
         }
 
-        option = commandData?.FindOption(pair.Parameter);
-        List<string> staticValues = option?.Arguments;
-        if (staticValues?.Count > 0)
-        {
-            return staticValues;
-        }
-
-        if (_stop) { return null; }
+        if (_stop || !hasCompleter) { return null; }
 
         // Then, try to get dynamic argument values using AzCLI tab completion.
         string commandLine = $"{pair.Command} {pair.Parameter} ";
@@ -547,6 +549,44 @@ internal class DataRetriever : IDisposable
         }
     }
 
+    private AzCLICommand QueryForMetadata(string azCommand)
+    {
+        AzCLICommand command = null;
+        var reqBody = new StringContent(string.Format(MetadataQueryTemplate, azCommand), Encoding.UTF8, Utils.JsonContentType);
+        var request = new HttpRequestMessage(HttpMethod.Get, MetadataEndpoint) { Content = reqBody };
+
+        try
+        {
+            using var cts = new CancellationTokenSource(1200);
+            var response = _httpClient.Send(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+
+            if (response.IsSuccessStatusCode)
+            {
+                using Stream stream = response.Content.ReadAsStream(cts.Token);
+                using JsonDocument document = JsonDocument.Parse(stream);
+
+                JsonElement root = document.RootElement;
+                if (root.TryGetProperty("data", out JsonElement data) &&
+                    data.TryGetProperty("metadata", out JsonElement metadata))
+                {
+                    command = metadata.Deserialize<AzCLICommand>(Utils.JsonOptions);
+                }
+            }
+            else
+            {
+                // TODO: telemetry.
+                Log.Error("[QueryForMetadata] Received status code '{0}' for command '{1}'", response.StatusCode, azCommand);
+            }
+        }
+        catch (Exception e)
+        {
+            // TODO: telemetry.
+            Log.Error(e, "[QueryForMetadata] Exception while processing command: {0}", azCommand);
+        }
+
+        return command;
+    }
+
     internal (string command, string parameter) GetMappedCommand(string placeholderName)
     {
         if (_placeholderMap.TryGetValue(placeholderName, out ArgumentPair pair))
@@ -580,6 +620,22 @@ internal class DataRetriever : IDisposable
         _stop = true;
         _rootTask.Wait();
         _semaphore.Dispose();
+    }
+
+    internal static void WarmUpMetadataService(HttpClient httpClient)
+    {
+        // Send a request to the AzCLI metadata service to warm up the service (code start is slow).
+        // We query for the command 'az sql server list' which only has 2 parameters,
+        // so it should cause minimum processing on the server side.
+        HttpRequestMessage request = new(HttpMethod.Get, MetadataEndpoint)
+        {
+            Content = new StringContent(
+                "{\"command\":\"az sql server list\"}",
+                Encoding.UTF8,
+                Utils.JsonContentType)
+        };
+
+        _ = httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
     }
 }
 
@@ -646,7 +702,7 @@ internal class NamingRule
 
         if (abbreviation is not null)
         {
-            PatternText = $"<product>-{abbreviation}[-<environment>][-<identifier>]";
+            PatternText = $"<prod>-{abbreviation}[-<env>][-<id>]";
             PatternRegex = new Regex($"^(?<prod>[a-zA-Z0-9]+)-{abbreviation}(?:-(?<env>[a-zA-Z0-9]+))?(?:-[a-zA-Z0-9]+)?$", RegexOptions.Compiled);
 
             string product = s_products[Random.Shared.Next(0, s_products.Length)];
@@ -697,85 +753,5 @@ internal class NamingRule
         }
 
         return false;
-    }
-}
-
-public class Option
-{
-    public string Name { get; }
-    public string[] Alias { get; }
-    public string[] Short { get; }
-    public string Attribute { get; }
-    public string Description { get; set; }
-    public List<string> Arguments { get; set; }
-
-    public Option(string name, string description, string[] alias, string[] @short, string attribute, List<string> arguments)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentException.ThrowIfNullOrEmpty(description);
-
-        Name = name;
-        Alias = alias;
-        Short = @short;
-        Attribute = attribute;
-        Description = description;
-        Arguments = arguments;
-    }
-}
-
-public sealed class Command
-{
-    public List<Option> Options { get; }
-    public string Examples { get; }
-    public string Name { get; }
-    public string Description { get; }
-
-    public Command(string name, string description, List<Option> options, string examples)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentException.ThrowIfNullOrEmpty(description);
-        ArgumentNullException.ThrowIfNull(options);
-
-        Options = options;
-        Examples = examples;
-        Name = name;
-        Description = description;
-    }
-
-    public Option FindOption(string name)
-    {
-        foreach (Option option in Options)
-        {
-            if (name.StartsWith("--"))
-            {
-                if (string.Equals(option.Name, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    return option;
-                }
-
-                if (option.Alias is not null)
-                {
-                    foreach (string alias in option.Alias)
-                    {
-                        if (string.Equals(alias, name, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return option;
-                        }
-                    }
-                }
-            }
-            else if (option.Short is not null)
-            {
-                foreach (string s in option.Short)
-                {
-                    if (string.Equals(s, name, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return option;
-                    }
-                }
-            }
-        }
-
-        return null;
     }
 }
