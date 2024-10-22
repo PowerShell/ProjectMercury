@@ -38,14 +38,10 @@ public class AzTrace
         return installationId;
     }
 
-    // "Azure PowerShell / Azure CLI"
     public string Handler;
     // CorrelationId from client side.
     public string CorrelationId;
     public string ActivityId;
-    public TimeSpan? Duration;
-    public DateTime? StartTime;
-    public DateTime? EndTime;
     public string InstallationId = s_installationId;
     public string EventType;
     public string Command;
@@ -54,7 +50,6 @@ public class AzTrace
     /// Reason of dislike
     /// </summary>
     public string DetailedMessage;
-    internal LinkedList<HistoryMessage> HistoryMessage;
     /// <summary>
     /// Agent Information - may contain:
     /// Handler Version

@@ -84,6 +84,7 @@ public class MetricHelper
 
         Dictionary<string, string> eventProperties = new()
         {
+            { "ActivityId", trace.ActivityId},
             { "CorrelationId", trace.CorrelationId },
             { "InstallationId", trace.InstallationId },
             { "Handler", trace.Handler },
