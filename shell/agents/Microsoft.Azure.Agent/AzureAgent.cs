@@ -36,6 +36,7 @@ public sealed class AzureAgent : ILLMAgent
         """;
 
     private int _turnsLeft;
+    private CopilotResponse _copilotResponse;
 
     private readonly string _instructions;
     private readonly StringBuilder _buffer;
@@ -120,28 +121,28 @@ public sealed class AzureAgent : ILLMAgent
         try
         {
             string query = $"{input}\n\n---\n\n{_instructions}";
-            CopilotResponse copilotResponse = await host.RunWithSpinnerAsync(
+            _copilotResponse = await host.RunWithSpinnerAsync(
                 status: "Thinking ...",
                 spinnerKind: SpinnerKind.Processing,
                 func: async context => await _chatSession.GetChatResponseAsync(query, context, token)
             ).ConfigureAwait(false);
 
-            if (copilotResponse is null)
+            if (_copilotResponse is null)
             {
                 // User cancelled the operation.
                 return true;
             }
 
-            if (copilotResponse.ChunkReader is null)
+            if (_copilotResponse.ChunkReader is null)
             {
                 ArgPlaceholder?.DataRetriever?.Dispose();
                 ArgPlaceholder = null;
 
                 // Process CLI handler response specially to support parameter injection.
                 ResponseData data = null;
-                if (copilotResponse.TopicName == CopilotActivity.CLIHandlerTopic)
+                if (_copilotResponse.TopicName == CopilotActivity.CLIHandlerTopic)
                 {
-                    data = ParseCLIHandlerResponse(copilotResponse, shell);
+                    data = ParseCLIHandlerResponse(shell);
                 }
 
                 if (data?.PlaceholderSet is not null)
@@ -149,7 +150,7 @@ public sealed class AzureAgent : ILLMAgent
                     ArgPlaceholder = new ArgumentPlaceholder(input, data, _httpClient);
                 }
 
-                string answer = data is null ? copilotResponse.Text : GenerateAnswer(data);
+                string answer = data is null ? _copilotResponse.Text : GenerateAnswer(data);
                 host.RenderFullResponse(answer);
             }
             else
@@ -161,12 +162,12 @@ public sealed class AzureAgent : ILLMAgent
 
                     while (true)
                     {
-                        CopilotActivity activity = copilotResponse.ChunkReader.ReadChunk(token);
+                        CopilotActivity activity = _copilotResponse.ChunkReader.ReadChunk(token);
                         if (activity is null)
                         {
                             prevActivity.ExtractMetadata(out string[] suggestion, out ConversationState state);
-                            copilotResponse.SuggestedUserResponses = suggestion;
-                            copilotResponse.ConversationState = state;
+                            _copilotResponse.SuggestedUserResponses = suggestion;
+                            _copilotResponse.ConversationState = state;
                             break;
                         }
 
@@ -182,7 +183,7 @@ public sealed class AzureAgent : ILLMAgent
                 }
             }
 
-            var conversationState = copilotResponse.ConversationState;
+            var conversationState = _copilotResponse.ConversationState;
             _turnsLeft = conversationState.TurnLimit - conversationState.TurnNumber;
             if (_turnsLeft <= 5)
             {
@@ -210,9 +211,9 @@ public sealed class AzureAgent : ILLMAgent
         return true;
     }
 
-    private ResponseData ParseCLIHandlerResponse(CopilotResponse copilotResponse, IShell shell)
+    private ResponseData ParseCLIHandlerResponse(IShell shell)
     {
-        string text = copilotResponse.Text;
+        string text = _copilotResponse.Text;
         List<CodeBlock> codeBlocks = shell.ExtractCodeBlocks(text, out List<SourceInfo> sourceInfos);
         if (codeBlocks is null || codeBlocks.Count is 0)
         {
@@ -264,7 +265,7 @@ public sealed class AzureAgent : ILLMAgent
             Text = text,
             CommandSet = commands,
             PlaceholderSet = placeholders,
-            Locale = copilotResponse.Locale,
+            Locale = _copilotResponse.Locale,
         };
 
         string first = placeholders[0].Name;
