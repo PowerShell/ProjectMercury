@@ -1,5 +1,8 @@
 using System.CommandLine;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Unicode;
 using AIShell.Abstraction;
 
 namespace Microsoft.Azure.Agent;
@@ -67,6 +70,8 @@ internal sealed class ReplaceCommand : CommandBase
 
         try
         {
+            // Detailed Message recorded indicating whether each placeholder is replaced.
+            Dictionary<string, Boolean> DetailedMessage = new();
             for (int i = 0; i < items.Count; i++)
             {
                 var item = items[i];
@@ -117,6 +122,7 @@ internal sealed class ReplaceCommand : CommandBase
 
                     _values.Add(item.Name, value);
                     _agent.SaveUserValue(item.Name, value);
+                    DetailedMessage.Add(item.Name, true);
 
                     if (nameArgInfo is not null && nameArgInfo.NamingRule.TryMatchName(value, out string prodName, out string envName))
                     {
@@ -124,9 +130,34 @@ internal sealed class ReplaceCommand : CommandBase
                         _environmentNames.Add(envName.ToLower());
                     }
                 }
+                else
+                {
+                    DetailedMessage.Add(item.Name, false);
+                }
 
                 // Write an extra new line.
                 host.WriteLine();
+            }
+
+            // Customize the Json Serializer Options to avoid unnecessary encoding.
+            var options = new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+
+            // Send Telemetry for Replace Action.
+            if (!MetricHelper.TelemetryOptOut)
+            {
+                MetricHelper.metricHelper.LogTelemetry(
+                    new AzTrace()
+                    {
+                        Command = "Replace",
+                        ConversationId = _agent._chatSession.ConversationId,
+                        ActivityId = _agent._copilotResponse.ReplyToId,
+                        EventType = "UserAction",
+                        TopicName = _agent._copilotResponse.TopicName,
+                        DetailedMessage = JsonSerializer.Serialize(DetailedMessage, options)
+                    });
             }
         }
         catch (OperationCanceledException)

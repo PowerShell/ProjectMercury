@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 
 using AIShell.Abstraction;
+using Azure;
 using Serilog;
 
 namespace Microsoft.Azure.Agent;
@@ -577,13 +578,46 @@ internal class DataRetriever : IDisposable
             }
             else
             {
-                // TODO: telemetry.
+                if (!MetricHelper.TelemetryOptOut)
+                {
+                    Dictionary<string, string> errorMessage = new Dictionary<string, string>
+                    {
+                        { "StatusCode", response.StatusCode.ToString() },
+                        { "Command", azCommand },
+                        { "ErrorMessage", $"[QueryForMetadata] Received status code {response.StatusCode} for command {azCommand}" },
+                    };
+                    MetricHelper.metricHelper.LogTelemetry(
+                        new AzTrace()
+                        {
+                            // ConversationId = _agent._chatSession.ConversationId,
+                            // ActivityId = _agent._copilotResponse.ReplyToId,
+                            EventType = "Exception",
+                            // TopicName = _agent._copilotResponse.TopicName,
+                            DetailedMessage = JsonSerializer.Serialize(errorMessage)
+                        });
+                }
                 Log.Error("[QueryForMetadata] Received status code '{0}' for command '{1}'", response.StatusCode, azCommand);
             }
         }
         catch (Exception e)
         {
-            // TODO: telemetry.
+            if (!MetricHelper.TelemetryOptOut)
+            {
+                Dictionary<string, string> errorMessage = new Dictionary<string, string>
+                {
+                    { "Command", azCommand },
+                    { "ErrorMessage", $"[QueryForMetadata] Exception while processing command: {azCommand}" },
+                };
+                MetricHelper.metricHelper.LogTelemetry(
+                    new AzTrace()
+                    {
+                        // ConversationId = _agent._chatSession.ConversationId,
+                        // ActivityId = _agent._copilotResponse.ReplyToId,
+                        EventType = "Exception",
+                        // TopicName = _agent._copilotResponse.TopicName,
+                        DetailedMessage = JsonSerializer.Serialize(errorMessage)
+                    });
+            }
             Log.Error(e, "[QueryForMetadata] Exception while processing command: {0}", azCommand);
         }
 

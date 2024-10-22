@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
-
+using System.Text.Json;
 using AIShell.Abstraction;
 using Azure.Identity;
 using Serilog;
@@ -37,14 +37,15 @@ public sealed class AzureAgent : ILLMAgent
         """;
 
     private int _turnsLeft;
-    private CopilotResponse _copilotResponse;
+    internal CopilotResponse _copilotResponse;
     private AgentSetting _setting;
 
     private readonly string _instructions;
     private readonly StringBuilder _buffer;
     private readonly HttpClient _httpClient;
-    private readonly ChatSession _chatSession;
+    internal readonly ChatSession _chatSession;
     private readonly Dictionary<string, string> _valueStore;
+    // private MetricHelper _metricHelper;
 
     public AzureAgent()
     {
@@ -113,8 +114,34 @@ public sealed class AzureAgent : ILLMAgent
     }
 
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
-    public bool CanAcceptFeedback(UserAction action) => false;
-    public void OnUserAction(UserActionPayload actionPayload) {}
+    public bool CanAcceptFeedback(UserAction action) => !MetricHelper.TelemetryOptOut;
+    public void OnUserAction(UserActionPayload actionPayload) {
+        // Send telemetry about the user action.
+        // DisLike Action
+        string DetailedMessage = null;
+        bool IsUserFeedback = false;
+        if (actionPayload.Action == UserAction.Dislike)
+        {
+            IsUserFeedback = true;
+            DislikePayload dislikePayload = (DislikePayload)actionPayload;
+            DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
+        }
+        else if (actionPayload.Action == UserAction.Like)
+        {
+            IsUserFeedback = true;
+        }
+
+        MetricHelper.metricHelper.LogTelemetry(
+            new AzTrace()
+            {
+                Command = actionPayload.Action.ToString(),
+                ConversationId = _chatSession.ConversationId,
+                ActivityId = _copilotResponse.ReplyToId,
+                EventType = IsUserFeedback ? "Feedback" : "UserAction",
+                TopicName = _copilotResponse.TopicName,
+                DetailedMessage = DetailedMessage
+            });
+    }
 
     public async Task RefreshChatAsync(IShell shell, bool force)
     {
@@ -254,6 +281,18 @@ public sealed class AzureAgent : ILLMAgent
                     host.WriteLine("\nYou've reached the maximum length of a conversation. To continue, please run '/refresh' to start a new conversation.\n");
                 }
             }
+
+            if (!MetricHelper.TelemetryOptOut)
+            {
+                MetricHelper.metricHelper.LogTelemetry(
+                    new AzTrace()
+                    {
+                        ConversationId = _chatSession.ConversationId,
+                        EventType = "Chat",
+                        TopicName = _copilotResponse.TopicName,
+                        ActivityId = _copilotResponse.ReplyToId
+                    });
+            }
         }
         catch (Exception ex) when (ex is TokenRequestException or ConnectionDroppedException)
         {
@@ -363,6 +402,18 @@ public sealed class AzureAgent : ILLMAgent
         {
             // The placeholder section is not in the format as we've instructed ...
             // TODO: send telemetry about this case.
+            if (!MetricHelper.TelemetryOptOut)
+            {
+                MetricHelper.metricHelper.LogTelemetry(
+                    new AzTrace()
+                    {
+                        ConversationId = _chatSession.ConversationId,
+                        ActivityId = _copilotResponse.ReplyToId,
+                        EventType = "Exception",
+                        TopicName = _copilotResponse.TopicName,
+                        DetailedMessage = $"Placeholder section not in expected format:{text}"
+                    });
+            }
             Log.Error("Placeholder section not in expected format:\n{0}", text);
         }
 
