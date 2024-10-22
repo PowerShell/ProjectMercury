@@ -16,6 +16,7 @@ internal class ChatSession : IDisposable
 
     private string _token;
     private string _streamUrl;
+    private string _conversationId;
     private string _conversationUrl;
     private DateTime _expireOn;
     private AzureCopilotReceiver _copilotReceiver;
@@ -23,6 +24,8 @@ internal class ChatSession : IDisposable
     private readonly string _dl_secret;
     private readonly HttpClient _httpClient;
     private readonly Dictionary<string, object> _flights;
+
+    internal string ConversationId => _conversationId;
 
     internal ChatSession(HttpClient httpClient)
     {
@@ -88,6 +91,7 @@ internal class ChatSession : IDisposable
     {
         _token = null;
         _streamUrl = null;
+        _conversationId = null;
         _conversationUrl = null;
         _expireOn = DateTime.MinValue;
 
@@ -135,7 +139,8 @@ internal class ChatSession : IDisposable
         SessionPayload spl = JsonSerializer.Deserialize<SessionPayload>(content, Utils.JsonOptions);
 
         _token = spl.Token;
-        _conversationUrl = $"{CONVERSATION_URL}/{spl.ConversationId}/activities";
+        _conversationId = spl.ConversationId;
+        _conversationUrl = $"{CONVERSATION_URL}/{_conversationId}/activities";
         _streamUrl = spl.StreamUrl;
         _expireOn = DateTime.UtcNow.AddSeconds(spl.ExpiresIn);
         _copilotReceiver = await AzureCopilotReceiver.CreateAsync(_streamUrl);
@@ -278,8 +283,8 @@ internal class ChatSession : IDisposable
                 {
                     CopilotResponse ret = activity.InputHint switch
                     {
-                        "typing"         => new CopilotResponse(new ChunkReader(_copilotReceiver, activity), activity.Locale, activity.TopicName),
-                        "acceptingInput" => new CopilotResponse(activity.Text, activity.Locale, activity.TopicName),
+                        "typing"         => new CopilotResponse(activity, new ChunkReader(_copilotReceiver, activity)),
+                        "acceptingInput" => new CopilotResponse(activity),
                         _ => throw CorruptDataException.Create($"The 'inputHint' is {activity.InputHint}.", activity)
                     };
 

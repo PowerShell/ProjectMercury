@@ -102,30 +102,28 @@ internal class ConversationState
 
 internal class CopilotResponse
 {
-    internal CopilotResponse(ChunkReader chunkReader, string locale, string topicName)
+    internal CopilotResponse(CopilotActivity activity, ChunkReader chunkReader)
+        : this(activity)
     {
         ArgumentNullException.ThrowIfNull(chunkReader);
-        ArgumentException.ThrowIfNullOrEmpty(topicName);
-
         ChunkReader = chunkReader;
-        Locale = locale;
-        TopicName = topicName;
     }
 
-    internal CopilotResponse(string text, string locale, string topicName)
+    internal CopilotResponse(CopilotActivity activity)
     {
-        ArgumentException.ThrowIfNullOrEmpty(text);
-        ArgumentException.ThrowIfNullOrEmpty(topicName);
+        ArgumentNullException.ThrowIfNull(activity);
 
-        Text = text;
-        Locale = locale;
-        TopicName = topicName;
+        Text = activity.Text;
+        Locale = activity.Locale;
+        TopicName = activity.TopicName;
+        ReplyToId = activity.ReplyToId;
     }
 
     internal ChunkReader ChunkReader { get; }
     internal string Text { get; }
     internal string Locale { get; }
     internal string TopicName { get; }
+    internal string ReplyToId { get; }
     internal string[] SuggestedUserResponses { get; set; }
     internal ConversationState ConversationState { get; set; }
 }
