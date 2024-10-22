@@ -168,6 +168,7 @@ internal class CopilotResponse
     internal ChunkReader ChunkReader { get; }
     internal string Text { get; }
     internal string Locale { get; }
+    public string ReplyTo { get; set; }
     internal string TopicName { get; }
     internal string ReplyToId { get; }
     internal string[] SuggestedUserResponses { get; set; }

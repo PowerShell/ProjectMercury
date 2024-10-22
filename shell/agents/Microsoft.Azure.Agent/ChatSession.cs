@@ -19,6 +19,7 @@ internal class ChatSession : IDisposable
     private string _streamUrl;
     private string _conversationId;
     private string _conversationUrl;
+    private string _correlationId;
     private DateTime _expireOn;
     private AzureCopilotReceiver _copilotReceiver;
 
@@ -27,6 +28,7 @@ internal class ChatSession : IDisposable
     private readonly Dictionary<string, object> _flights;
 
     internal string ConversationId => _conversationId;
+    internal string CorrelationId => _correlationId;
 
     internal ChatSession(HttpClient httpClient)
     {
@@ -94,10 +96,17 @@ internal class ChatSession : IDisposable
         _streamUrl = null;
         _conversationId = null;
         _conversationUrl = null;
+        _correlationId = null;
         _expireOn = DateTime.MinValue;
 
         _copilotReceiver?.Dispose();
         _copilotReceiver = null;
+    }
+
+    private string NewCorrelationID()
+    {
+        _correlationId = Guid.NewGuid().ToString();
+        return _correlationId;
     }
 
     private async Task GenerateTokenAsync(IHost host, CancellationToken cancellationToken)
@@ -239,6 +248,9 @@ internal class ChatSession : IDisposable
         var request = new HttpRequestMessage(HttpMethod.Post, _conversationUrl) { Content = content };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
+        // These headers are for server side telemetry. We refresh correlation ID for each query.
+        request.Headers.Add("CorrelationId", NewCorrelationID());
+        request.Headers.Add("ClientType", "AIShell");
         return request;
     }
 
@@ -296,6 +308,7 @@ internal class ChatSession : IDisposable
                         activity.ExtractMetadata(out string[] suggestion, out ConversationState state);
                         ret.SuggestedUserResponses = suggestion;
                         ret.ConversationState = state;
+                        ret.ReplyTo = activityId;
                     }
 
                     return ret;
@@ -307,6 +320,7 @@ internal class ChatSession : IDisposable
         catch (OperationCanceledException)
         {
             // TODO: we may need to notify azure copilot somehow about the cancellation.
+            // TODO: Decide whether to record the cancellation in Telemetry
             return null;
         }
     }
