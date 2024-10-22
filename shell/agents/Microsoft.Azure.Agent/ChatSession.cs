@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using AIShell.Abstraction;
+using Serilog;
 
 namespace Microsoft.Azure.Agent;
 
@@ -144,6 +145,8 @@ internal class ChatSession : IDisposable
         _streamUrl = spl.StreamUrl;
         _expireOn = DateTime.UtcNow.AddSeconds(spl.ExpiresIn);
         _copilotReceiver = await AzureCopilotReceiver.CreateAsync(_streamUrl);
+
+        Log.Debug("[ChatSession] Conversation started. Id: {0}", _conversationId);
 
         while (true)
         {
