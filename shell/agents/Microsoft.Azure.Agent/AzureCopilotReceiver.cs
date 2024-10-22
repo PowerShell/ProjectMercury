@@ -66,7 +66,7 @@ internal class AzureCopilotReceiver : IDisposable
 
             if (closingMessage is not null)
             {
-                Log.Error("[AzureCopilotReceiver] Sending web socket closing request, message: '{}'", closingMessage);
+                Log.Error("[AzureCopilotReceiver] Sending web socket closing request, message: '{0}'", closingMessage);
                 await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, closingMessage, CancellationToken.None);
                 _activityQueue.CompleteAdding();
                 break;

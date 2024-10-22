@@ -575,7 +575,7 @@ internal class DataRetriever : IDisposable
             else
             {
                 // TODO: telemetry.
-                Log.Error("[QueryForMetadata] Metadata service returns status code: {0}. Query command: {1}", response.StatusCode, azCommand);
+                Log.Error("[QueryForMetadata] Received status code '{0}' for command '{1}'", response.StatusCode, azCommand);
             }
         }
         catch (Exception e)
