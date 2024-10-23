@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
-
+using System.Text.Json;
 using AIShell.Abstraction;
 using Serilog;
 
@@ -44,6 +44,7 @@ public sealed class AzureAgent : ILLMAgent
     private readonly HttpClient _httpClient;
     private readonly ChatSession _chatSession;
     private readonly Dictionary<string, string> _valueStore;
+    private MetricHelper _metricHelper;
 
     public AzureAgent()
     {
@@ -89,6 +90,7 @@ public sealed class AzureAgent : ILLMAgent
 
         _turnsLeft = int.MaxValue;
         _setting = AgentSetting.LoadFromFile(SettingFile);
+        _metricHelper = new MetricHelper(ChatSession.CONVERSATION_URL);
 
         if (_setting is null)
         {
@@ -112,8 +114,33 @@ public sealed class AzureAgent : ILLMAgent
     }
 
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
-    public bool CanAcceptFeedback(UserAction action) => false;
-    public void OnUserAction(UserActionPayload actionPayload) {}
+    public bool CanAcceptFeedback(UserAction action) => !MetricHelper.TelemetryOptOut;
+    public void OnUserAction(UserActionPayload actionPayload) {
+        // Send telemetry about the user action.
+        // DisLike Action
+        string DetailedMessage = null;
+        bool IsUserFeedback = false;
+        if (actionPayload.Action == UserAction.Dislike)
+        {
+            IsUserFeedback = true;
+            DislikePayload dislikePayload = (DislikePayload)actionPayload;
+            DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
+        }
+        else if (actionPayload.Action == UserAction.Like)
+        {
+            IsUserFeedback = true;
+        }
+
+        _metricHelper.LogTelemetry(
+            new AzTrace()
+            {
+                Command = actionPayload.Action.ToString(),
+                CorrelationId = _chatSession.CorrelationId,
+                EventType = IsUserFeedback ? "Feedback" : "UserAction",
+                Handler = _copilotResponse.TopicName,
+                DetailedMessage = DetailedMessage
+            });
+    }
 
     public async Task RefreshChatAsync(IShell shell)
     {
@@ -166,6 +193,18 @@ public sealed class AzureAgent : ILLMAgent
 
                 string answer = data is null ? _copilotResponse.Text : GenerateAnswer(data);
                 host.RenderFullResponse(answer);
+
+                if (!MetricHelper.TelemetryOptOut)
+                {
+                    _metricHelper.LogTelemetry(
+                        new AzTrace()
+                        {
+                            CorrelationId = _chatSession.CorrelationId,
+                            EventType = "Chat",
+                            Handler = _copilotResponse.TopicName,
+                            ActivityId = _copilotResponse.ReplyToId
+                        });
+                }
             }
             else
             {
@@ -323,6 +362,17 @@ public sealed class AzureAgent : ILLMAgent
         {
             // The placeholder section is not in the format as we've instructed ...
             // TODO: send telemetry about this case.
+            if (!MetricHelper.TelemetryOptOut)
+            {
+                _metricHelper.LogTelemetry(
+                    new AzTrace()
+                    {
+                        CorrelationId = _chatSession.CorrelationId,
+                        EventType = "Exception",
+                        Handler = _copilotResponse.TopicName,
+                        DetailedMessage = "The placeholder section is not in the format as we've instructed"
+                    });
+            }
             Log.Error("Placeholder section not in expected format:\n{0}", text);
         }
 
@@ -380,6 +430,7 @@ public sealed class AzureAgent : ILLMAgent
             }
         }
 
+        Dictionary<string, Boolean> DetailedMessage = new();
         if (pairs.Count == placeholders.Count)
         {
             data.PlaceholderSet = null;
@@ -388,8 +439,26 @@ public sealed class AzureAgent : ILLMAgent
         {
             for (int i = indices.Count - 1; i >= 0; i--)
             {
+                DetailedMessage.Add(placeholders[indices[i]].Name.Trim(new Char[] { '<', '>'}), true);
                 placeholders.RemoveAt(indices[i]);
             }
+            foreach (var i in placeholders)
+            {
+                DetailedMessage.Add(i.Name.Trim(new Char[] { '<', '>' }), false);
+            }
+        }
+
+        if (!MetricHelper.TelemetryOptOut)
+        {
+            _metricHelper.LogTelemetry(
+                new AzTrace()
+                {
+                    Command = "Replace",
+                    CorrelationId = _chatSession.CorrelationId,
+                    EventType = "UserAction",
+                    Handler = _copilotResponse.TopicName,
+                    DetailedMessage = JsonSerializer.Serialize(DetailedMessage)
+                });
         }
     }
 
