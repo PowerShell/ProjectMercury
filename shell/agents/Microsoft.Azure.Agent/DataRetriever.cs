@@ -433,6 +433,7 @@ internal class DataRetriever : IDisposable
         // Handle non-AzCLI command.
         if (pair.Parameter is null)
         {
+            Log.Debug("[DataRetriever] Non-AzCLI command: '{0}'", pair.Command);
             return new ArgumentInfo(item.Name, item.Desc, dataType);
         }
 
@@ -480,6 +481,8 @@ internal class DataRetriever : IDisposable
         // Then, try to get dynamic argument values using AzCLI tab completion.
         string commandLine = $"{pair.Command} {pair.Parameter} ";
         string tempFile = Path.GetTempFileName();
+
+        Log.Debug("[DataRetriever] Perform tab completion for '{0}'", commandLine);
 
         try
         {

@@ -1,9 +1,55 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using AIShell.Abstraction;
 
 namespace Microsoft.Azure.Agent;
+
+internal class AgentSetting
+{
+    public bool Logging { get; set; }
+    public bool Telemetry { get; set; }
+
+    public AgentSetting()
+    {
+        // Enable logging and telemetry by default.
+        Logging = true;
+        Telemetry = true;
+    }
+
+    internal static AgentSetting Default => new();
+
+    internal static AgentSetting LoadFromFile(string path)
+    {
+        FileInfo file = new(path);
+        if (file.Exists)
+        {
+            try
+            {
+                using var stream = file.OpenRead();
+                return JsonSerializer.Deserialize<AgentSetting>(stream, Utils.JsonOptions);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidDataException($"Parsing settings from '{path}' failed with the following error: {e.Message}", e);
+            }
+        }
+
+        return null;
+    }
+
+    internal static void NewSettingFile(string path)
+    {
+        const string content = """
+            {
+              "logging": true,
+              "telemetry": true
+            }
+            """;
+        File.WriteAllText(path, content, Encoding.UTF8);
+    }
+}
 
 internal class TokenPayload
 {

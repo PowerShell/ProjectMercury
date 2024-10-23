@@ -17,7 +17,7 @@ public sealed class AzureAgent : ILLMAgent
 
     internal ArgumentPlaceholder ArgPlaceholder { set; get; }
 
-    private const string SettingFileName = "az.agent.json";
+    private const string SettingFileName = "az.config.json";
     private const string LoggingFileName = "log..txt";
     private const string InstructionPrompt = """
         NOTE: follow the below instructions when generating responses that include Azure CLI commands with placeholders:
@@ -37,6 +37,7 @@ public sealed class AzureAgent : ILLMAgent
 
     private int _turnsLeft;
     private CopilotResponse _copilotResponse;
+    private AgentSetting _setting;
 
     private readonly string _instructions;
     private readonly StringBuilder _buffer;
@@ -84,17 +85,30 @@ public sealed class AzureAgent : ILLMAgent
 
     public void Initialize(AgentConfig config)
     {
-        _turnsLeft = int.MaxValue;
         SettingFile = Path.Combine(config.ConfigurationRoot, SettingFileName);
 
-        string logFile = Path.Combine(config.ConfigurationRoot, LoggingFileName);
-        Log.Logger = new LoggerConfiguration()
-            .WriteTo.Async(a => a.File(
-                path: logFile,
-                outputTemplate: "{Timestamp:HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
-                rollingInterval: RollingInterval.Day))
-            .CreateLogger();
-        Log.Information("Azure agent initialized.");
+        _turnsLeft = int.MaxValue;
+        _setting = AgentSetting.LoadFromFile(SettingFile);
+
+        if (_setting is null)
+        {
+            // Use default setting and create a setting file with the default settings.
+            _setting = AgentSetting.Default;
+            AgentSetting.NewSettingFile(SettingFile);
+        }
+
+        if (_setting.Logging)
+        {
+            string logFile = Path.Combine(config.ConfigurationRoot, LoggingFileName);
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Async(a => a.File(
+                    path: logFile,
+                    outputTemplate: "{Timestamp:HH:mm:ss} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    rollingInterval: RollingInterval.Day))
+                .CreateLogger();
+            Log.Information("Azure agent initialized.");
+        }
     }
 
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];

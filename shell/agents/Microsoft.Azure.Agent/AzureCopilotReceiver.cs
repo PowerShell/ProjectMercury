@@ -43,6 +43,8 @@ internal class AzureCopilotReceiver : IDisposable
 
     private async Task ProcessActivities()
     {
+        Log.Debug("[AzureCopilotReceiver] Receiver is up and running.");
+
         while (_webSocket.State is WebSocketState.Open)
         {
             string closingMessage = null;
@@ -55,18 +57,18 @@ internal class AzureCopilotReceiver : IDisposable
                 {
                     closingMessage = "Close message received";
                     _activityQueue.Add(new CopilotActivity { Error = new ConnectionDroppedException("The server websocket is closing. Connection dropped.") });
+                    Log.Information("[AzureCopilotReceiver] Web socket closed by server.");
                 }
             }
             catch (OperationCanceledException)
             {
                 // Close the web socket before the thread is going away.
                 closingMessage = "Client closing";
-                Log.Error("[AzureCopilotReceiver] Receiver thread cancelled, which means the instance was disposed.");
+                Log.Information("[AzureCopilotReceiver] Receiver was cancelled and disposed.");
             }
 
             if (closingMessage is not null)
             {
-                Log.Error("[AzureCopilotReceiver] Sending web socket closing request, message: '{0}'", closingMessage);
                 await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, closingMessage, CancellationToken.None);
                 _activityQueue.CompleteAdding();
                 break;
