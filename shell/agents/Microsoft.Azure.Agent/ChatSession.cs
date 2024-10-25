@@ -71,7 +71,7 @@ internal class ChatSession : IDisposable
             {
                 // End the existing conversation.
                 context.Status("End current chat ...");
-                await EndConversation();
+                EndConversation();
                 Reset();
             }
             else
@@ -280,9 +280,9 @@ internal class ChatSession : IDisposable
         return contentObj["id"].ToString();
     }
 
-    private async Task EndConversation()
+    private void EndConversation()
     {
-        if (CheckDLTokenHealth() is TokenHealth.Expired)
+        if (_token is null || CheckDLTokenHealth() is TokenHealth.Expired)
         {
             // Chat session already expired, no need to send request to end the conversation.
             return;
@@ -290,8 +290,9 @@ internal class ChatSession : IDisposable
 
         var content = new StringContent("{\"type\":\"endOfConversation\",\"from\":{\"id\":\"user\"}}", Encoding.UTF8, Utils.JsonContentType);
         var request = new HttpRequestMessage(HttpMethod.Post, _conversationUrl) { Content = content };
+
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-        await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None);
+        _httpClient.Send(request, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None);
     }
 
     internal async Task<CopilotResponse> GetChatResponseAsync(string input, IStatusContext context, CancellationToken cancellationToken)
@@ -350,13 +351,9 @@ internal class ChatSession : IDisposable
         }
     }
 
-    public async void Dispose()
+    public void Dispose()
     {
-        if (_token is not null)
-        {
-            await EndConversation();
-        }
-
+        EndConversation();
         _copilotReceiver?.Dispose();
     }
 }
