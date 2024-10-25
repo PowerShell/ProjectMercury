@@ -13,7 +13,7 @@ internal class LLMAgent
     {
         Impl = agent;
         LoadContext = loadContext;
-        Prompt = agent.Name;
+        Prompt = $"@{agent.Name}";
     }
 
     internal void Display(Host host, string description = null)

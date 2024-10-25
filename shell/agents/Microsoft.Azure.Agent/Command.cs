@@ -238,8 +238,7 @@ internal sealed class ReplaceCommand : CommandBase
 
         if (data.PlaceholderSet is null)
         {
-            _agent.ArgPlaceholder.DataRetriever.Dispose();
-            _agent.ArgPlaceholder = null;
+            _agent.ResetArgumentPlaceholder();
         }
 
         return _agent.GenerateAnswer(data);

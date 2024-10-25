@@ -285,7 +285,7 @@ internal sealed class Shell : IShell
             chosenAgent ??= _agents.Count is 1
                 ? _agents[0]
                 : Host.PromptForSelectionAsync(
-                    title: "[orange1]Please select an [Blue]agent[/] to use[/]:",
+                    title: "[orange1]Please select an [Blue]agent[/] to use[/]:\n[grey](You can switch to another agent later by [Blue]@[/] tagging its name)[/]",
                     choices: _agents,
                     converter: static a => a.Impl.Name)
                 .GetAwaiter().GetResult();
@@ -539,6 +539,18 @@ internal sealed class Shell : IShell
     }
 
     /// <summary>
+    /// Give an agent the opportunity to refresh its chat session, in the unforced way.
+    /// </summary>
+    private async Task RefreshChatAsNeeded(LLMAgent agent)
+    {
+        if (_shouldRefresh)
+        {
+            _shouldRefresh = false;
+            await agent?.Impl.RefreshChatAsync(this, force: false);
+        }
+    }
+
+    /// <summary>
     /// Run a chat REPL.
     /// </summary>
     internal async Task RunREPLAsync()
@@ -552,11 +564,7 @@ internal sealed class Shell : IShell
 
             try
             {
-                if (_shouldRefresh)
-                {
-                    _shouldRefresh = false;
-                    await agent?.Impl.RefreshChatAsync(this, force: false);
-                }
+                await RefreshChatAsNeeded(agent);
 
                 if (Regenerate)
                 {
@@ -594,6 +602,12 @@ internal sealed class Shell : IShell
                     if (input is null)
                     {
                         continue;
+                    }
+                    else
+                    {
+                        // We may be switching to an agent that hasn't setup its chat session yet.
+                        // So, give it a chance to do so in that case.
+                        await RefreshChatAsNeeded(agent);
                     }
                 }
 

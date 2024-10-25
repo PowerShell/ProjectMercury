@@ -138,7 +138,7 @@ public interface ILLMAgent : IDisposable
 
     /// <summary>
     /// Refresh the current chat or force starting a new chat session.
-    /// This method allows an agent to reset chat states, interact with user for authentication, print welcome message, and more.
+    /// This method allows an agent to reset chat states, refresh token or settings, interact with user for authentication, print welcome message, and more.
     /// </summary>
     /// <param name="shell">The interface for interacting with the shell.</param>
     /// <param name="force">Whether or not to force creating a new chat session.</param>
