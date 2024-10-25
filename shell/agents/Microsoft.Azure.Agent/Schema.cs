@@ -51,13 +51,35 @@ internal class AgentSetting
     }
 }
 
-internal class TokenPayload
+internal enum TokenHealth
+{
+    Good,
+    TimeToRefresh,
+    Expired
+}
+
+internal class RefreshDLToken
 {
     public string ConversationId { get; set; }
     public string Token { get; set; }
 
     [JsonPropertyName("expires_in")]
     public int ExpiresIn { get; set; }
+}
+
+internal class NewDLToken
+{
+    public string Endpoint { get; set; }
+    public string Token { get; set; }
+    public int TokenExpiryTimeInSeconds { get; set; }
+}
+
+internal class DirectLineToken
+{
+    public string Id { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime LastModifiedAt { get; set; }
+    public NewDLToken DirectLine { get; set; }
 }
 
 internal class SessionPayload

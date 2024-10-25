@@ -555,7 +555,7 @@ internal sealed class Shell : IShell
                 if (_shouldRefresh)
                 {
                     _shouldRefresh = false;
-                    await agent?.Impl.RefreshChatAsync(this);
+                    await agent?.Impl.RefreshChatAsync(this, force: false);
                 }
 
                 if (Regenerate)
@@ -670,7 +670,7 @@ internal sealed class Shell : IShell
 
         try
         {
-            await _activeAgent.Impl.RefreshChatAsync(this);
+            await _activeAgent.Impl.RefreshChatAsync(this, force: false);
             await _activeAgent.Impl.ChatAsync(prompt, this);
         }
         catch (OperationCanceledException)

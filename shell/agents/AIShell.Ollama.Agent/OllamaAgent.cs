@@ -87,7 +87,7 @@ public sealed class OllamaAgent : ILLMAgent
     /// Refresh the current chat by starting a new chat session.
     /// This method allows an agent to reset chat states, interact with user for authentication, print welcome message, and more.
     /// </summary>
-    public Task RefreshChatAsync(IShell shell) => Task.CompletedTask;
+    public Task RefreshChatAsync(IShell shell, bool force) => Task.CompletedTask;
 
     /// <summary>
     /// Main chat function that takes the users input and passes it to the LLM and renders it.

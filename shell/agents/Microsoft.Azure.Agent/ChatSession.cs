@@ -5,15 +5,17 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using AIShell.Abstraction;
+using Azure.Core;
+using Azure.Identity;
 using Serilog;
 
 namespace Microsoft.Azure.Agent;
 
 internal class ChatSession : IDisposable
 {
-    private const string DL_TOKEN_URL = "https://directline.botframework.com/v3/directline/tokens/generate";
+    private const string DL_TOKEN_URL = "https://copilotweb.production.portalrp.azure.com/api/conversations/start?api-version=2024-11-15";
     private const string REFRESH_TOKEN_URL = "https://directline.botframework.com/v3/directline/tokens/refresh";
-    internal const string CONVERSATION_URL = "https://directline.botframework.com/v3/directline/conversations";
+    private const string CONVERSATION_URL = "https://directline.botframework.com/v3/directline/conversations";
 
     private string _token;
     private string _streamUrl;
@@ -22,7 +24,6 @@ internal class ChatSession : IDisposable
     private DateTime _expireOn;
     private AzureCopilotReceiver _copilotReceiver;
 
-    private readonly string _dl_secret;
     private readonly HttpClient _httpClient;
     private readonly Dictionary<string, object> _flights;
 
@@ -30,7 +31,6 @@ internal class ChatSession : IDisposable
 
     internal ChatSession(HttpClient httpClient)
     {
-        _dl_secret = Environment.GetEnvironmentVariable("DL_SECRET");
         _httpClient = httpClient;
 
         // Keys and values for flights are from the portal request.
@@ -59,32 +59,45 @@ internal class ChatSession : IDisposable
             ["chitchatprompt"] = true,
             // TODO: the streaming is slow and not sending chunks, very clumsy for now.
             // ["streamresponse"] = true,
+            // ["azurepluginstore"] = true,
         };
     }
 
-    internal async Task RefreshAsync(IHost host, CancellationToken cancellationToken)
+    internal async Task<string> RefreshAsync(IStatusContext context, bool force, CancellationToken cancellationToken)
     {
-        try
+        if (_token is not null)
         {
-            await GenerateTokenAsync(host, cancellationToken);
-            await StartConversationAsync(host, cancellationToken);
-        }
-        catch (Exception e)
-        {
-            Reset();
-            if (e is OperationCanceledException)
+            if (force)
             {
-                host.WriteErrorLine()
-                    .WriteErrorLine("Operation cancelled. Please run '/refresh' to start a new conversation.");
+                // End the existing conversation.
+                context.Status("End current chat ...");
+                await EndConversation();
+                Reset();
             }
             else
             {
-                host.WriteErrorLine()
-                    .WriteErrorLine($"Failed to start a conversation due to the following error: {e.Message}\n{e.StackTrace}")
-                    .WriteErrorLine()
-                    .WriteErrorLine("Please try '/refresh' to start a new conversation.")
-                    .WriteErrorLine();
+                try
+                {
+                    context.Status("Refresh DirectLine token ...");
+                    await RenewTokenAsync(cancellationToken);
+                    return null;
+                }
+                catch (Exception)
+                {
+                    // Refreshing failed. We will create a new chat session.
+                }
             }
+        }
+
+        try
+        {
+            _token = await GenerateTokenAsync(context, cancellationToken);
+            return await StartConversationAsync(context, cancellationToken);
+        }
+        catch (Exception)
+        {
+            Reset();
+            throw;
         }
     }
 
@@ -100,43 +113,38 @@ internal class ChatSession : IDisposable
         _copilotReceiver = null;
     }
 
-    private async Task GenerateTokenAsync(IHost host, CancellationToken cancellationToken)
+    private async Task<string> GenerateTokenAsync(IStatusContext context, CancellationToken cancellationToken)
     {
-        // TODO: use spinner when generating token. Also use interaction for authentication is needed.
-        string manualToken = Environment.GetEnvironmentVariable("DL_TOKEN");
-        if (!string.IsNullOrEmpty(manualToken))
-        {
-            _token = manualToken;
-            return;
-        }
+        context.Status("Get Azure CLI login token ...");
+        // Get an access token from the AzCLI login, using the specific audience guid.
+        AccessToken accessToken = await new AzureCliCredential()
+            .GetTokenAsync(
+                new TokenRequestContext(["7000789f-b583-4714-ab18-aef39213018a/.default"]),
+                cancellationToken);
 
-        if (string.IsNullOrEmpty(_dl_secret))
-        {
-            throw new TokenRequestException("You have to manually grab the Direct Line token from portal and set it to the environment variable 'DL_TOKEN' until we figure out authentication.");
-        }
-
-        // TODO: figure out how to get the token when copilot API is ready.
-        HttpRequestMessage request = new(HttpMethod.Post, DL_TOKEN_URL);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _dl_secret);
+        context.Status("Request for DirectLine token ...");
+        StringContent content = new("{\"conversationType\": \"Chat\"}", Encoding.UTF8, Utils.JsonContentType);
+        HttpRequestMessage request = new(HttpMethod.Post, DL_TOKEN_URL) { Content = content };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Token);
 
         HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        Stream content = await response.Content.ReadAsStreamAsync(cancellationToken);
-        TokenPayload tpl = JsonSerializer.Deserialize<TokenPayload>(content, Utils.JsonOptions);
-
-        _token = tpl.Token;
+        using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var dlToken = JsonSerializer.Deserialize<DirectLineToken>(stream, Utils.JsonOptions);
+        return dlToken.DirectLine.Token;
     }
 
-    private async Task StartConversationAsync(IHost host, CancellationToken cancellationToken)
+    private async Task<string> StartConversationAsync(IStatusContext context, CancellationToken cancellationToken)
     {
+        context.Status("Start a new chat session ...");
         HttpRequestMessage request = new(HttpMethod.Post, CONVERSATION_URL);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
 
         HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        Stream content = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using Stream content = await response.Content.ReadAsStreamAsync(cancellationToken);
         SessionPayload spl = JsonSerializer.Deserialize<SessionPayload>(content, Utils.JsonOptions);
 
         _token = spl.Token;
@@ -156,22 +164,39 @@ internal class ChatSession : IDisposable
                 activity.ExtractMetadata(out _, out ConversationState conversationState);
                 int chatNumber = conversationState.DailyConversationNumber;
                 int requestNumber = conversationState.TurnNumber;
-
-                host.WriteLine($"\n{activity.Text}\nThis is chat #{chatNumber}, request #{requestNumber}.\n");
-                return;
+                return $"{activity.Text}\nThis is chat #{chatNumber}, request #{requestNumber}.\n";
             }
         }
     }
 
-    private void RenewToken(CancellationToken cancellationToken)
+    private TokenHealth CheckDLTokenHealth()
     {
+        ArgumentNullException.ThrowIfNull(_token, nameof(_token));
+
         var now = DateTime.UtcNow;
         if (now > _expireOn || now.AddMinutes(2) >= _expireOn)
+        {
+            return TokenHealth.Expired;
+        }
+
+        if (now.AddMinutes(10) < _expireOn)
+        {
+            return TokenHealth.Good;
+        }
+
+        return TokenHealth.TimeToRefresh;
+    }
+
+    private async Task RenewTokenAsync(CancellationToken cancellationToken)
+    {
+        TokenHealth health = CheckDLTokenHealth();
+        if (health is TokenHealth.Expired)
         {
             Reset();
             throw new TokenRequestException("The chat session has expired. Please start a new chat session.");
         }
-        else if (now.AddMinutes(10) < _expireOn)
+
+        if (health is TokenHealth.Good)
         {
             return;
         }
@@ -181,14 +206,14 @@ internal class ChatSession : IDisposable
             HttpRequestMessage request = new(HttpMethod.Post, REFRESH_TOKEN_URL);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
 
-            var response = _httpClient.Send(request, cancellationToken);
+            var response = await _httpClient.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
 
-            Stream content = response.Content.ReadAsStream(cancellationToken);
-            TokenPayload tpl = JsonSerializer.Deserialize<TokenPayload>(content, Utils.JsonOptions);
+            using Stream content = await response.Content.ReadAsStreamAsync(cancellationToken);
+            RefreshDLToken dlToken = JsonSerializer.Deserialize<RefreshDLToken>(content, Utils.JsonOptions);
 
-            _token = tpl.Token;
-            _expireOn = DateTime.UtcNow.AddSeconds(tpl.ExpiresIn);
+            _token = dlToken.Token;
+            _expireOn = DateTime.UtcNow.AddSeconds(dlToken.ExpiresIn);
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
@@ -250,19 +275,33 @@ internal class ChatSession : IDisposable
         response.EnsureSuccessStatusCode();
 
         // Retrieve the activity id of this query.
-        Stream content = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using Stream content = await response.Content.ReadAsStreamAsync(cancellationToken);
         JsonObject contentObj = JsonNode.Parse(content).AsObject();
         return contentObj["id"].ToString();
+    }
+
+    private async Task EndConversation()
+    {
+        if (CheckDLTokenHealth() is TokenHealth.Expired)
+        {
+            // Chat session already expired, no need to send request to end the conversation.
+            return;
+        }
+
+        var content = new StringContent("{\"type\":\"endOfConversation\",\"from\":{\"id\":\"user\"}}", Encoding.UTF8, Utils.JsonContentType);
+        var request = new HttpRequestMessage(HttpMethod.Post, _conversationUrl) { Content = content };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
+        await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None);
     }
 
     internal async Task<CopilotResponse> GetChatResponseAsync(string input, IStatusContext context, CancellationToken cancellationToken)
     {
         try
         {
-            // context?.Status("Refreshing Token ...");
-            // RenewToken(cancellationToken);
+            context?.Status("Refreshing Token ...");
+            await RenewTokenAsync(cancellationToken);
 
-            context?.Status("Generating ...");
+            context?.Status("Sending query ...");
             string activityId = await SendQueryToCopilot(input, cancellationToken);
 
             while (true)
@@ -311,8 +350,13 @@ internal class ChatSession : IDisposable
         }
     }
 
-    public void Dispose()
+    public async void Dispose()
     {
+        if (_token is not null)
+        {
+            await EndConversation();
+        }
+
         _copilotReceiver?.Dispose();
     }
 }
