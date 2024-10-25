@@ -606,7 +606,7 @@ internal sealed class Shell : IShell
                     else
                     {
                         // We may be switching to an agent that hasn't setup its chat session yet.
-                        // So, give it a chance to do so in that case.
+                        // So, give it a chance to do so before calling its 'Chat' method.
                         await RefreshChatAsNeeded(agent);
                     }
                 }
