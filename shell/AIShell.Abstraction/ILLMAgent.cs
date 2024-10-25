@@ -137,11 +137,12 @@ public interface ILLMAgent : IDisposable
     void Initialize(AgentConfig config);
 
     /// <summary>
-    /// Refresh the current chat by starting a new chat session.
+    /// Refresh the current chat or force starting a new chat session.
     /// This method allows an agent to reset chat states, interact with user for authentication, print welcome message, and more.
     /// </summary>
     /// <param name="shell">The interface for interacting with the shell.</param>
-    Task RefreshChatAsync(IShell shell);
+    /// <param name="force">Whether or not to force creating a new chat session.</param>
+    Task RefreshChatAsync(IShell shell, bool force);
 
     /// <summary>
     /// Initiates a chat with the AI, using the provided input and shell.

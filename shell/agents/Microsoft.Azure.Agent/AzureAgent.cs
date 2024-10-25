@@ -2,6 +2,7 @@
 using System.Text;
 
 using AIShell.Abstraction;
+using Azure.Identity;
 using Serilog;
 
 namespace Microsoft.Azure.Agent;
@@ -115,10 +116,39 @@ public sealed class AzureAgent : ILLMAgent
     public bool CanAcceptFeedback(UserAction action) => false;
     public void OnUserAction(UserActionPayload actionPayload) {}
 
-    public async Task RefreshChatAsync(IShell shell)
+    public async Task RefreshChatAsync(IShell shell, bool force)
     {
-        // Refresh the chat session.
-        await _chatSession.RefreshAsync(shell.Host, shell.CancellationToken);
+        IHost host = shell.Host;
+        CancellationToken cancellationToken = shell.CancellationToken;
+
+        try
+        {
+            string welcome = await host.RunWithSpinnerAsync(
+                status: "Initializing ...",
+                spinnerKind: SpinnerKind.Processing,
+                func: async context => await _chatSession.RefreshAsync(context, force, cancellationToken)
+            ).ConfigureAwait(false);
+
+            if (!string.IsNullOrEmpty(welcome))
+            {
+                host.WriteLine(welcome);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            host.WriteErrorLine("Operation cancelled. Please run '/refresh' to start a new conversation.");
+        }
+        catch (CredentialUnavailableException)
+        {
+            host.WriteErrorLine($"Failed to start a chat session: Access token not available.");
+            host.WriteErrorLine($"The '{Name}' agent depends on the Azure CLI credential to acquire access token. Please run 'az login' from a command-line shell to setup account.");
+        }
+        catch (Exception e)
+        {
+            host.WriteErrorLine($"Failed to start a chat session: {e.Message}\n{e.StackTrace}")
+                .WriteErrorLine()
+                .WriteErrorLine("Please try '/refresh' to start a new conversation.");
+        }
     }
 
     public async Task<bool> ChatAsync(string input, IShell shell)

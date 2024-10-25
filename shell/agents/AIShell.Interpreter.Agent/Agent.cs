@@ -72,7 +72,7 @@ public sealed class InterpreterAgent : ILLMAgent
     }
 
     /// <inheritdoc/>
-    public Task RefreshChatAsync(IShell shell)
+    public Task RefreshChatAsync(IShell shell, bool force)
     {
         // Reload the setting file if needed.
         ReloadSettings();

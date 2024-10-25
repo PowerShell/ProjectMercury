@@ -19,6 +19,6 @@ internal sealed class RefreshCommand : CommandBase
         var shell = (Shell)Shell;
         shell.ShowBanner();
         shell.ShowLandingPage();
-        shell.ActiveAgent.Impl.RefreshChatAsync(Shell).GetAwaiter().GetResult();
+        shell.ActiveAgent.Impl.RefreshChatAsync(Shell, force: true).GetAwaiter().GetResult();
     }
 }

@@ -101,7 +101,7 @@ public sealed class AzCLIAgent : ILLMAgent
             });
     }
 
-    public Task RefreshChatAsync(IShell shell)
+    public Task RefreshChatAsync(IShell shell, bool force)
     {
         // Reset the history so the subsequent chat can start fresh.
         _chatService.ChatHistory.Clear();

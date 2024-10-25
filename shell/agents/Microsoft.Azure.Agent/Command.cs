@@ -110,7 +110,7 @@ internal sealed class ReplaceCommand : CommandBase
                 {
                     // Add quotes for the value if needed.
                     value = value.Trim();
-                    if (value.StartsWith('-') || value.Contains(' '))
+                    if (value.StartsWith('-') || value.Contains(' ') || value.Contains('|'))
                     {
                         value = $"\"{value}\"";
                     }
