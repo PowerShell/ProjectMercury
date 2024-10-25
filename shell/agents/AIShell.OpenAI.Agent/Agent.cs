@@ -79,10 +79,13 @@ public sealed class OpenAIAgent : ILLMAgent
     /// <inheritdoc/>
     public Task RefreshChatAsync(IShell shell, bool force)
     {
-        // Reload the setting file if needed.
-        ReloadSettings();
-        // Reset the history so the subsequent chat can start fresh.
-        _chatService.ChatHistory.Clear();
+        if (force)
+        {
+            // Reload the setting file if needed.
+            ReloadSettings();
+            // Reset the history so the subsequent chat can start fresh.
+            _chatService.ChatHistory.Clear();
+        }
 
         return Task.CompletedTask;
     }

@@ -70,7 +70,7 @@ internal class ChatSession : IDisposable
             if (force)
             {
                 // End the existing conversation.
-                context.Status("End current chat ...");
+                context.Status("Ending current chat ...");
                 EndConversation();
                 Reset();
             }
@@ -78,7 +78,7 @@ internal class ChatSession : IDisposable
             {
                 try
                 {
-                    context.Status("Refresh DirectLine token ...");
+                    context.Status("Refreshing token ...");
                     await RenewTokenAsync(cancellationToken);
                     return null;
                 }

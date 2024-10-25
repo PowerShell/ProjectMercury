@@ -77,7 +77,7 @@ public sealed class AzureAgent : ILLMAgent
 
     public void Dispose()
     {
-        ArgPlaceholder?.DataRetriever?.Dispose();
+        ResetArgumentPlaceholder();
         _chatSession.Dispose();
         _httpClient.Dispose();
 
@@ -120,6 +120,7 @@ public sealed class AzureAgent : ILLMAgent
     {
         IHost host = shell.Host;
         CancellationToken cancellationToken = shell.CancellationToken;
+        ResetArgumentPlaceholder();
 
         try
         {
@@ -179,8 +180,7 @@ public sealed class AzureAgent : ILLMAgent
 
             if (_copilotResponse.ChunkReader is null)
             {
-                ArgPlaceholder?.DataRetriever?.Dispose();
-                ArgPlaceholder = null;
+                ResetArgumentPlaceholder();
 
                 // Process CLI handler response specially to support parameter injection.
                 ResponseData data = null;
@@ -360,6 +360,12 @@ public sealed class AzureAgent : ILLMAgent
         return data;
     }
 
+    internal void ResetArgumentPlaceholder()
+    {
+        ArgPlaceholder?.DataRetriever?.Dispose();
+        ArgPlaceholder = null;
+    }
+
     internal void SaveUserValue(string phName, string value)
     {
         ArgumentException.ThrowIfNullOrEmpty(phName);
@@ -465,7 +471,9 @@ public sealed class AzureAgent : ILLMAgent
                     _buffer.Append($"- `{phItem.Name}`: {phItem.Desc}\n");
                 }
 
-                _buffer.Append("\nRun `/replace` to get assistance in placeholder replacement.\n");
+                // Use green (0,195,0) on grey (48,48,48) for rendering the command '/replace'.
+                // TODO: the color formatting should be exposed by the shell as utility method.
+                _buffer.Append("\nRun \x1b[38;2;0;195;0;48;2;48;48;48m /replace \x1b[0m to get assistance in placeholder replacement.\n");
             }
         }
 
