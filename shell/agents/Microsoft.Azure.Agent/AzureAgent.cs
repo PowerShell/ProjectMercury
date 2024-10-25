@@ -121,12 +121,6 @@ public sealed class AzureAgent : ILLMAgent
         IHost host = shell.Host;
         CancellationToken cancellationToken = shell.CancellationToken;
 
-        while (!Debugger.IsAttached)
-        {
-            Thread.Sleep(300);
-        }
-        Debugger.Break();
-
         try
         {
             string welcome = await host.RunWithSpinnerAsync(
