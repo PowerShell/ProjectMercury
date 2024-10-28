@@ -183,20 +183,29 @@ public sealed class AzureAgent : ILLMAgent
             {
                 ResetArgumentPlaceholder();
 
-                // Process CLI handler response specially to support parameter injection.
-                ResponseData data = null;
-                if (_copilotResponse.TopicName == CopilotActivity.CLIHandlerTopic)
+                if (_copilotResponse.IsError)
                 {
-                    data = ParseCLIHandlerResponse(shell);
+                    host.WriteErrorLine()
+                        .WriteErrorLine(_copilotResponse.Text)
+                        .WriteErrorLine();
                 }
-
-                if (data?.PlaceholderSet is not null)
+                else
                 {
-                    ArgPlaceholder = new ArgumentPlaceholder(input, data, _httpClient);
-                }
+                    // Process CLI handler response specially to support parameter injection.
+                    ResponseData data = null;
+                    if (_copilotResponse.TopicName == CopilotActivity.CLIHandlerTopic)
+                    {
+                        data = ParseCLIHandlerResponse(shell);
+                    }
 
-                string answer = data is null ? _copilotResponse.Text : GenerateAnswer(data);
-                host.RenderFullResponse(answer);
+                    if (data?.PlaceholderSet is not null)
+                    {
+                        ArgPlaceholder = new ArgumentPlaceholder(input, data, _httpClient);
+                    }
+
+                    string answer = data is null ? _copilotResponse.Text : GenerateAnswer(data);
+                    host.RenderFullResponse(answer);
+                }
             }
             else
             {
