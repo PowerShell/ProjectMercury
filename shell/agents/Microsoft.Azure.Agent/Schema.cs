@@ -192,6 +192,9 @@ internal class CopilotResponse
     internal string Locale { get; }
     internal string TopicName { get; }
     internal string ReplyToId { get; }
+
+    internal bool IsError { get; set; }
+    internal string ConversationId { get; set; }
     internal string[] SuggestedUserResponses { get; set; }
     internal ConversationState ConversationState { get; set; }
 }

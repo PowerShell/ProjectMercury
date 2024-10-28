@@ -27,8 +27,6 @@ internal class ChatSession : IDisposable
     private readonly HttpClient _httpClient;
     private readonly Dictionary<string, object> _flights;
 
-    internal string ConversationId => _conversationId;
-
     internal ChatSession(HttpClient httpClient)
     {
         _httpClient = httpClient;
@@ -328,6 +326,7 @@ internal class ChatSession : IDisposable
                     {
                         "typing"         => new CopilotResponse(activity, new ChunkReader(_copilotReceiver, activity)),
                         "acceptingInput" => new CopilotResponse(activity),
+                        "error"          => new CopilotResponse(activity) { IsError = true },
                         _ => throw CorruptDataException.Create($"The 'inputHint' is {activity.InputHint}.", activity)
                     };
 
@@ -338,6 +337,7 @@ internal class ChatSession : IDisposable
                         ret.ConversationState = state;
                     }
 
+                    ret.ConversationId = _conversationId;
                     return ret;
                 }
 
