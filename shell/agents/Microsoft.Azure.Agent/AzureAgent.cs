@@ -56,7 +56,7 @@ public sealed class AzureAgent : ILLMAgent
         _valueStore = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         _instructions = string.Format(InstructionPrompt, Environment.OSVersion.VersionString);
 
-        Name = "Azure";
+        Name = "azure";
         Company = "Microsoft";
         Description = "This AI assistant can generate Azure CLI and Azure PowerShell commands for managing Azure resources, answer questions, and provides information tailored to your specific Azure environment.";
 
@@ -132,6 +132,7 @@ public sealed class AzureAgent : ILLMAgent
 
             if (!string.IsNullOrEmpty(welcome))
             {
+                _turnsLeft = int.MaxValue;
                 host.WriteLine(welcome);
             }
         }
