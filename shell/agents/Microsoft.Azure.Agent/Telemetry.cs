@@ -28,7 +28,7 @@ public class AzTrace
         {
             try
             {
-                userProfilePath = string.IsNullOrEmpty(azureConfigDir) ? Path.Combine(userProfile, ".Azure", "azureProfile.json") : azureConfigDir; // "AzureRmContextSettings.json");
+                userProfilePath = string.IsNullOrEmpty(azureConfigDir) ? Path.Combine(userProfile, ".Azure", "AzureRmContextSettings.json") : azureConfigDir;
                 using var jsonStream = new FileStream(userProfilePath, FileMode.Open, FileAccess.Read);
                 array = JsonSerializer.Deserialize<JsonElement>(jsonStream);
                 s_installationId = array.GetProperty("Settings").GetProperty("InstallationId").GetString();
@@ -153,7 +153,7 @@ internal class Telemetry
         IServiceCollection services = new ServiceCollection()
             .AddApplicationInsightsTelemetryWorkerService((ApplicationInsightsServiceOptions options) =>
                 {
-                    // Application insights in the temp environment.
+                    // Application insights in the test environment.
                     options.ConnectionString = "InstrumentationKey=eea660a1-d969-44f8-abe4-96666e7fb159";
                     options.EnableHeartbeat = false;
                     options.EnableDiagnosticsTelemetryModule = false;
@@ -181,7 +181,7 @@ internal class Telemetry
             ["Details"] = GetDetailedMessage(trace.Details),
         };
 
-        _telemetryClient.TrackTrace("AIShell-Test1022", telemetryEvent);
+        _telemetryClient.TrackTrace("AIShell", telemetryEvent);
         if (e != null) { _telemetryClient.TrackException(e); }
         _telemetryClient.Flush();
     }
