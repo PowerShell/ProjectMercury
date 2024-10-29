@@ -262,7 +262,7 @@ internal class ChatSession : IDisposable
         var request = new HttpRequestMessage(HttpMethod.Post, _conversationUrl) { Content = content };
 
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-        // These header is for server side telemetry to identify where the request comes from.
+        // This header is for server side telemetry to identify where the request comes from.
         request.Headers.Add("ClientType", "AIShell");
         return request;
     }
