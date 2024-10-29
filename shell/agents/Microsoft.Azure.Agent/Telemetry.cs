@@ -13,7 +13,7 @@ public class AzTrace
     {
         string azureConfigDir = Environment.GetEnvironmentVariable("AZURE_CONFIG_DIR");
         string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string userProfilePath = Path.Combine(string.IsNullOrEmpty(azureConfigDir) ? userProfile : azureConfigDir, "azureProfile.json");
+        string userProfilePath = string.IsNullOrEmpty(azureConfigDir) ? Path.Combine(userProfile, ".Azure", "azureProfile.json") : azureConfigDir;
 
         JsonElement array;
         s_installationId = null;
@@ -28,7 +28,7 @@ public class AzTrace
         {
             try
             {
-                Path.Combine(string.IsNullOrEmpty(azureConfigDir) ? userProfile : azureConfigDir, "AzureRmContextSettings.json");
+                userProfilePath = string.IsNullOrEmpty(azureConfigDir) ? Path.Combine(userProfile, ".Azure", "azureProfile.json") : azureConfigDir; // "AzureRmContextSettings.json");
                 using var jsonStream = new FileStream(userProfilePath, FileMode.Open, FileAccess.Read);
                 array = JsonSerializer.Deserialize<JsonElement>(jsonStream);
                 s_installationId = array.GetProperty("Settings").GetProperty("InstallationId").GetString();
