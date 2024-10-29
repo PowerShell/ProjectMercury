@@ -8,48 +8,41 @@ namespace Microsoft.Azure.Agent;
 
 public class AzTrace
 {
-    private static readonly string s_installationId;
-    static AzTrace()
-    {
-        string azureConfigDir = Environment.GetEnvironmentVariable("AZURE_CONFIG_DIR");
-        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string userProfilePath = string.IsNullOrEmpty(azureConfigDir) ? Path.Combine(userProfile, ".Azure", "azureProfile.json") : azureConfigDir;
-
-        JsonElement array;
-        s_installationId = null;
-
-        if (File.Exists(userProfilePath))
-        {
-            using var jsonStream = new FileStream(userProfilePath, FileMode.Open, FileAccess.Read);
-            array = JsonSerializer.Deserialize<JsonElement>(jsonStream);
-            s_installationId = array.GetProperty("installationId").GetString();
-        }
-        else
-        {
-            try
-            {
-                userProfilePath = string.IsNullOrEmpty(azureConfigDir) ? Path.Combine(userProfile, ".Azure", "AzureRmContextSettings.json") : azureConfigDir;
-                using var jsonStream = new FileStream(userProfilePath, FileMode.Open, FileAccess.Read);
-                array = JsonSerializer.Deserialize<JsonElement>(jsonStream);
-                s_installationId = array.GetProperty("Settings").GetProperty("InstallationId").GetString();
-            }
-            catch
-            {
-                // If finally no installation id found, just return null.
-                s_installationId = null;
-            }
-        }
-    }
-
-    internal AzTrace()
-    {
-        InstallationId = s_installationId;
-    }
-
     /// <summary>
     /// Installation id from the Azure CLI installation.
     /// </summary>
-    internal string InstallationId { get; }
+    internal static string InstallationId { get; private set; }
+
+    internal static void Initialize()
+    {
+        InstallationId = null;
+
+        string azureConfigDir = Environment.GetEnvironmentVariable("AZURE_CONFIG_DIR")
+            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".azure");
+        string azCLIProfilePath = Path.Combine(azureConfigDir, "azureProfile.json");
+        string azPSHProfilePath = Path.Combine(azureConfigDir, "AzureRmContextSettings.json");
+
+        try
+        {
+            if (File.Exists(azCLIProfilePath))
+            {
+                using var stream = File.OpenRead(azCLIProfilePath);
+                var jsonElement = JsonSerializer.Deserialize<JsonElement>(stream);
+                InstallationId = jsonElement.GetProperty("installationId").GetString();
+            }
+            else if (File.Exists(azPSHProfilePath))
+            {
+                using var stream = File.OpenRead(azPSHProfilePath);
+                var jsonElement = JsonSerializer.Deserialize<JsonElement>(stream);
+                InstallationId = jsonElement.GetProperty("Settings").GetProperty(nameof(InstallationId)).GetString();
+            }
+        }
+        catch
+        {
+            // Something wrong when reading the config file.
+            InstallationId = null;
+        }
+    }
 
     /// <summary>
     /// Topic name of the response from Azure Copilot.
@@ -174,7 +167,7 @@ internal class Telemetry
         {
             ["QueryId"] = trace.QueryId,
             ["ConversationId"] = trace.ConversationId,
-            ["InstallationId"] = trace.InstallationId,
+            ["InstallationId"] = AzTrace.InstallationId,
             ["TopicName"] = trace.TopicName,
             ["EventType"] = trace.EventType,
             ["ShellCommand"] = trace.ShellCommand,
@@ -209,7 +202,11 @@ internal class Telemetry
     /// <summary>
     /// Initialize telemetry client.
     /// </summary>
-    internal static void Initialize() => s_singleton ??= new Telemetry();
+    internal static void Initialize()
+    {
+        s_singleton ??= new Telemetry();
+        AzTrace.Initialize();
+    }
 
     /// <summary>
     /// Trace a telemetry metric.
