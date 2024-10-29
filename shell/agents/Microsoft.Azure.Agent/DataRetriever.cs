@@ -586,7 +586,7 @@ internal class DataRetriever : IDisposable
                         ["Command"] = azCommand,
                         ["Message"] = "AzCLI metadata service returns unsuccessful status code for query."
                     };
-                    Telemetry.Trace(AzTrace.Exception(response: null, details));
+                    Telemetry.Trace(AzTrace.Exception(details));
                 }
             }
         }
@@ -600,7 +600,7 @@ internal class DataRetriever : IDisposable
                     ["Command"] = azCommand,
                     ["Message"] = "AzCLI metadata query and process raised an exception."
                 };
-                Telemetry.Trace(AzTrace.Exception(response: null, details), e);
+                Telemetry.Trace(AzTrace.Exception(details), e);
             }
         }
 

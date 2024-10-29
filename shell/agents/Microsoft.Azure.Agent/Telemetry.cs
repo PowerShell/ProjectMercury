@@ -132,6 +132,8 @@ public class AzTrace
         // Don't create an object when telemetry is disabled.
         return null;
     }
+
+    internal static AzTrace Exception(object details) => Exception(response: null, details);
 }
 
 internal class Telemetry
@@ -231,7 +233,7 @@ internal class Telemetry
     internal static void Trace(AzTrace trace) => s_singleton?.LogTelemetry(trace, exception: null);
 
     /// <summary>
-    /// Trace a telemetry metric and an Exception with it.
+    /// Trace a telemetry metric and an exception with it.
     /// The method does nothing when telemetry is disabled.
     /// </summary>
     internal static void Trace(AzTrace trace, Exception exception) => s_singleton?.LogTelemetry(trace, exception);
