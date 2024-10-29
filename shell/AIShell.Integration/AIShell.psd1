@@ -12,4 +12,5 @@
     CmdletsToExport = @('Start-AIShell','Invoke-AIShell','Resolve-Error')
     VariablesToExport = '*'
     AliasesToExport = @('aish', 'askai', 'fixit')
+    HelpInfoURI = 'https://aka.ms/aishell-help'
 }
