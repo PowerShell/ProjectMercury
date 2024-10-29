@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace Microsoft.Azure.Agent;
@@ -8,6 +9,7 @@ internal static class Utils
 
     private static readonly JsonSerializerOptions s_jsonOptions;
     private static readonly JsonSerializerOptions s_humanReadableOptions;
+    private static readonly JsonSerializerOptions s_relaxedJsonEscapingOptions;
 
     static Utils()
     {
@@ -22,10 +24,16 @@ internal static class Utils
             WriteIndented = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
+
+        s_relaxedJsonEscapingOptions = new JsonSerializerOptions
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
     }
 
     internal static JsonSerializerOptions JsonOptions => s_jsonOptions;
     internal static JsonSerializerOptions JsonHumanReadableOptions => s_humanReadableOptions;
+    internal static JsonSerializerOptions RelaxedJsonEscapingOptions => s_relaxedJsonEscapingOptions;
 }
 
 internal class TokenRequestException : Exception

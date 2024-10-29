@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
+
 using AIShell.Abstraction;
 using Azure.Identity;
 using Serilog;
@@ -17,6 +17,7 @@ public sealed class AzureAgent : ILLMAgent
     public string SettingFile { private set; get; }
 
     internal ArgumentPlaceholder ArgPlaceholder { set; get; }
+    internal CopilotResponse CopilotResponse { set; get; }
 
     private const string SettingFileName = "az.config.json";
     private const string LoggingFileName = "log..txt";
@@ -37,13 +38,13 @@ public sealed class AzureAgent : ILLMAgent
         """;
 
     private int _turnsLeft;
-    internal CopilotResponse _copilotResponse;
+    private CopilotResponse _copilotResponse;
     private AgentSetting _setting;
 
     private readonly string _instructions;
     private readonly StringBuilder _buffer;
     private readonly HttpClient _httpClient;
-    internal readonly ChatSession _chatSession;
+    private readonly ChatSession _chatSession;
     private readonly Dictionary<string, string> _valueStore;
     // private MetricHelper _metricHelper;
 
@@ -111,36 +112,33 @@ public sealed class AzureAgent : ILLMAgent
                 .CreateLogger();
             Log.Information("Azure agent initialized.");
         }
+
+        if (_setting.Telemetry)
+        {
+            Telemetry.Initialize();
+        }
     }
 
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
-    public bool CanAcceptFeedback(UserAction action) => !MetricHelper.TelemetryOptOut;
+    public bool CanAcceptFeedback(UserAction action) => _setting.Telemetry;
     public void OnUserAction(UserActionPayload actionPayload) {
         // Send telemetry about the user action.
-        // DisLike Action
-        string DetailedMessage = null;
-        bool IsUserFeedback = false;
-        if (actionPayload.Action == UserAction.Dislike)
+        bool isUserFeedback = false;
+        string details = null;
+        UserAction action = actionPayload.Action;
+
+        if (action is UserAction.Dislike)
         {
-            IsUserFeedback = true;
-            DislikePayload dislikePayload = (DislikePayload)actionPayload;
-            DetailedMessage = string.Format("{0} | {1}", dislikePayload.ShortFeedback, dislikePayload.LongFeedback);
+            var dislike = (DislikePayload) actionPayload;
+            isUserFeedback = true;
+            details = string.Format("{0} | {1}", dislike.ShortFeedback, dislike.LongFeedback);
         }
-        else if (actionPayload.Action == UserAction.Like)
+        else if (action is UserAction.Like)
         {
-            IsUserFeedback = true;
+            isUserFeedback = true;
         }
 
-        MetricHelper.metricHelper.LogTelemetry(
-            new AzTrace()
-            {
-                Command = actionPayload.Action.ToString(),
-                ConversationId = _chatSession.ConversationId,
-                ActivityId = _copilotResponse.ReplyToId,
-                EventType = IsUserFeedback ? "Feedback" : "UserAction",
-                TopicName = _copilotResponse.TopicName,
-                DetailedMessage = DetailedMessage
-            });
+        Telemetry.Log(AzTrace.UserAction(action.ToString(), _copilotResponse, details, isUserFeedback));
     }
 
     public async Task RefreshChatAsync(IShell shell, bool force)
@@ -282,16 +280,9 @@ public sealed class AzureAgent : ILLMAgent
                 }
             }
 
-            if (!MetricHelper.TelemetryOptOut)
+            if (Telemetry.Enabled)
             {
-                MetricHelper.metricHelper.LogTelemetry(
-                    new AzTrace()
-                    {
-                        ConversationId = _chatSession.ConversationId,
-                        EventType = "Chat",
-                        TopicName = _copilotResponse.TopicName,
-                        ActivityId = _copilotResponse.ReplyToId
-                    });
+                Telemetry.Log(AzTrace.Chat(_copilotResponse));
             }
         }
         catch (Exception ex) when (ex is TokenRequestException or ConnectionDroppedException)
@@ -401,18 +392,9 @@ public sealed class AzureAgent : ILLMAgent
         else
         {
             // The placeholder section is not in the format as we've instructed ...
-            // TODO: send telemetry about this case.
-            if (!MetricHelper.TelemetryOptOut)
+            if (Telemetry.Enabled)
             {
-                MetricHelper.metricHelper.LogTelemetry(
-                    new AzTrace()
-                    {
-                        ConversationId = _chatSession.ConversationId,
-                        ActivityId = _copilotResponse.ReplyToId,
-                        EventType = "Exception",
-                        TopicName = _copilotResponse.TopicName,
-                        DetailedMessage = $"Placeholder section not in expected format:{text}"
-                    });
+                Telemetry.Log(AzTrace.Exception(_copilotResponse, $"Placeholder section not in expected format: {text}"));
             }
             Log.Error("Placeholder section not in expected format:\n{0}", text);
         }
