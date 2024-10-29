@@ -168,7 +168,7 @@ internal class Telemetry
         _telemetryClient.Context.Cloud.RoleInstance = "Not Available";
     }
 
-    private void LogTelemetry(AzTrace trace)
+    private void LogTelemetry(AzTrace trace, Exception e = null)
     {
         Dictionary<string, string> telemetryEvent = new()
         {
@@ -182,6 +182,7 @@ internal class Telemetry
         };
 
         _telemetryClient.TrackTrace("AIShell-Test1022", telemetryEvent);
+        if (e != null) { _telemetryClient.TrackException(e); }
         _telemetryClient.Flush();
     }
 
@@ -215,4 +216,10 @@ internal class Telemetry
     /// The method does nothing when it's disabled.
     /// </summary>
     internal static void Trace(AzTrace trace) => s_singleton?.LogTelemetry(trace);
+
+    /// <summary>
+    /// Trace a telemetry metric and an Exception with it.
+    /// The method does nothing when it's disabled.
+    /// </summary>
+    internal static void Trace(AzTrace trace, Exception e) => s_singleton?.LogTelemetry(trace, e);
 }

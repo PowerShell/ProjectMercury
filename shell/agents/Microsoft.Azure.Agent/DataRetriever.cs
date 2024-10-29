@@ -598,9 +598,9 @@ internal class DataRetriever : IDisposable
                 Dictionary<string, string> details = new()
                 {
                     ["Command"] = azCommand,
-                    ["Message"] = "AzCLI metadata query and process raised an exception."
+                    ["Message"] = $"AzCLI metadata query and process raised an exception"
                 };
-                Telemetry.Trace(AzTrace.Exception(response: null, details));
+                Telemetry.Trace(AzTrace.Exception(response: null, details), e);
             }
         }
 
