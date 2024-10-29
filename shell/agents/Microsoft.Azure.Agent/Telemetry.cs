@@ -136,7 +136,9 @@ public class AzTrace
 
 internal class Telemetry
 {
+    private static bool s_enabled;
     private static Telemetry s_singleton;
+
     private readonly TelemetryClient _telemetryClient;
 
     private Telemetry()
@@ -197,15 +199,19 @@ internal class Telemetry
     /// <summary>
     /// Gets whether or not telemetry is enabled.
     /// </summary>
-    internal static bool Enabled => s_singleton is not null;
+    internal static bool Enabled => s_enabled;
 
     /// <summary>
     /// Initialize telemetry client.
     /// </summary>
     internal static void Initialize()
     {
-        s_singleton ??= new Telemetry();
-        AzTrace.Initialize();
+        if (s_singleton is null)
+        {
+            s_singleton = new Telemetry();
+            s_enabled = true;
+            AzTrace.Initialize();
+        }
     }
 
     /// <summary>
