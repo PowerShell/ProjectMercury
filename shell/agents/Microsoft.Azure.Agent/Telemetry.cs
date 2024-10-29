@@ -28,7 +28,7 @@ public class AzTrace
         {
             try
             {
-                Path.Combine(string.IsNullOrEmpty(azureConfigDir) ? userProfile : azureConfigDir, "azureProfile.json");
+                Path.Combine(string.IsNullOrEmpty(azureConfigDir) ? userProfile : azureConfigDir, "AzureRmContextSettings.json");
                 using var jsonStream = new FileStream(userProfilePath, FileMode.Open, FileAccess.Read);
                 array = JsonSerializer.Deserialize<JsonElement>(jsonStream);
                 s_installationId = array.GetProperty("Settings").GetProperty("InstallationId").GetString();
