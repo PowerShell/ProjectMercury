@@ -17,7 +17,7 @@ public sealed class AzureAgent : ILLMAgent
     public string SettingFile { private set; get; }
 
     internal ArgumentPlaceholder ArgPlaceholder { set; get; }
-    internal CopilotResponse CopilotResponse { set; get; }
+    internal CopilotResponse CopilotResponse => _copilotResponse;
 
     private const string SettingFileName = "az.config.json";
     private const string LoggingFileName = "log..txt";
