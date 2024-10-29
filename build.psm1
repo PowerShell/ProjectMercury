@@ -75,7 +75,6 @@ function Start-Build
     $out_dir = Join-Path $PSScriptRoot "out"
     $app_out_dir = Join-Path $out_dir $config "app"
     $module_out_dir = Join-Path $out_dir $config "module" "AIShell"
-    $module_help_dir= Join-Path $PSScriptRoot "docs" "cmdlets"
 
     $openai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
     $az_out_dir = Join-Path $app_out_dir "agents" "AIShell.Azure.Agent"
@@ -144,24 +143,6 @@ function Start-Build
         $moduleManifest = $moduleManifest -replace "ModuleVersion = '.*'", "ModuleVersion = '$version'"
         $moduleManifest = $moduleManifest -replace "}", "    ${privateData}`n}`n"
         Set-Content -Path $module_out_dir/AIShell.psd1 -Value $moduleManifest -NoNewline
-
-        $installHelp = $false
-        if (Get-Module -Name PlatyPS -ListAvailable) {
-            $installHelp = $true
-        } else {
-            Write-Host "`n  The 'PlatyPS' module is not installed. Installing for creating in-shell help ..." -ForegroundColor Green
-            Install-Module -Name platyPS -RequiredVersion 0.14.2 -Repository PSGallery -Force -Verbose:$false
-            if ($?) {
-                $installHelp = $true
-            } else {
-                Write-Host "`n  Failed to install the 'PlatyPS' module. In-shell help for the 'AIShell' module will not be created." -ForegroundColor Red
-            }
-        }
-
-        if ($installHelp) {
-            $null = New-ExternalHelp -Path $module_help_dir -OutputPath $module_out_dir -Force
-            Write-Host "  In-shell help for the 'AIShell' module has been created." -ForegroundColor Green
-        }
     }
 
     if ($LASTEXITCODE -eq 0) {
