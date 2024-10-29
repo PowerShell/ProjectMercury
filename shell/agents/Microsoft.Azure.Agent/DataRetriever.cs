@@ -562,32 +562,16 @@ internal class DataRetriever : IDisposable
         {
             using var cts = new CancellationTokenSource(1200);
             var response = _httpClient.Send(request, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            response.EnsureSuccessStatusCode();
 
-            if (response.IsSuccessStatusCode)
-            {
-                using Stream stream = response.Content.ReadAsStream(cts.Token);
-                using JsonDocument document = JsonDocument.Parse(stream);
+            using Stream stream = response.Content.ReadAsStream(cts.Token);
+            using JsonDocument document = JsonDocument.Parse(stream);
 
-                JsonElement root = document.RootElement;
-                if (root.TryGetProperty("data", out JsonElement data) &&
-                    data.TryGetProperty("metadata", out JsonElement metadata))
-                {
-                    command = metadata.Deserialize<AzCLICommand>(Utils.JsonOptions);
-                }
-            }
-            else
+            JsonElement root = document.RootElement;
+            if (root.TryGetProperty("data", out JsonElement data) &&
+                data.TryGetProperty("metadata", out JsonElement metadata))
             {
-                Log.Error("[QueryForMetadata] Received status code '{0}' for command '{1}'", response.StatusCode, azCommand);
-                if (Telemetry.Enabled)
-                {
-                    Dictionary<string, string> details = new()
-                    {
-                        ["StatusCode"] = response.StatusCode.ToString(),
-                        ["Command"] = azCommand,
-                        ["Message"] = "AzCLI metadata service returns unsuccessful status code for query."
-                    };
-                    Telemetry.Trace(AzTrace.Exception(details));
-                }
+                command = metadata.Deserialize<AzCLICommand>(Utils.JsonOptions);
             }
         }
         catch (Exception e)
