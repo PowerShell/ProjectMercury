@@ -83,6 +83,7 @@ public sealed class AzureAgent : ILLMAgent
         _httpClient.Dispose();
 
         Log.CloseAndFlush();
+        Telemetry.CloseAndFlush();
     }
 
     public void Initialize(AgentConfig config)

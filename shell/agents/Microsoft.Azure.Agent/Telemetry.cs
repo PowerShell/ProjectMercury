@@ -163,9 +163,9 @@ internal class Telemetry
         _telemetryClient.Context.Cloud.RoleInstance = "Not Available";
     }
 
-    private void LogTelemetry(AzTrace trace, Exception e = null)
+    private void LogTelemetry(AzTrace trace, Exception exception)
     {
-        Dictionary<string, string> telemetryEvent = new()
+        Dictionary<string, string> properties = new()
         {
             ["QueryId"] = trace.QueryId,
             ["ConversationId"] = trace.ConversationId,
@@ -176,8 +176,18 @@ internal class Telemetry
             ["Details"] = GetDetailedMessage(trace.Details),
         };
 
-        _telemetryClient.TrackTrace("AIShell", telemetryEvent);
-        if (e != null) { _telemetryClient.TrackException(e); }
+        if (exception is null)
+        {
+            _telemetryClient.TrackTrace("AIShell", properties);
+        }
+        else
+        {
+            _telemetryClient.TrackException(exception, properties);
+        }
+    }
+
+    private void Flush()
+    {
         _telemetryClient.Flush();
     }
 
@@ -216,13 +226,19 @@ internal class Telemetry
 
     /// <summary>
     /// Trace a telemetry metric.
-    /// The method does nothing when it's disabled.
+    /// The method does nothing when telemetry is disabled.
     /// </summary>
-    internal static void Trace(AzTrace trace) => s_singleton?.LogTelemetry(trace);
+    internal static void Trace(AzTrace trace) => s_singleton?.LogTelemetry(trace, exception: null);
 
     /// <summary>
     /// Trace a telemetry metric and an Exception with it.
-    /// The method does nothing when it's disabled.
+    /// The method does nothing when telemetry is disabled.
     /// </summary>
-    internal static void Trace(AzTrace trace, Exception e) => s_singleton?.LogTelemetry(trace, e);
+    internal static void Trace(AzTrace trace, Exception exception) => s_singleton?.LogTelemetry(trace, exception);
+
+    /// <summary>
+    /// Flush and close the telemetry.
+    /// The method does nothing when telemetry is disabled.
+    /// </summary>
+    internal static void CloseAndFlush() => s_singleton?.Flush();
 }
