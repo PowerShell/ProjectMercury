@@ -17,6 +17,7 @@ public sealed class AzureAgent : ILLMAgent
     public string SettingFile { private set; get; }
 
     internal ArgumentPlaceholder ArgPlaceholder { set; get; }
+    internal CopilotResponse CopilotResponse => _copilotResponse;
 
     private const string SettingFileName = "az.config.json";
     private const string LoggingFileName = "log..txt";
@@ -82,6 +83,7 @@ public sealed class AzureAgent : ILLMAgent
         _httpClient.Dispose();
 
         Log.CloseAndFlush();
+        Telemetry.CloseAndFlush();
     }
 
     public void Initialize(AgentConfig config)
@@ -110,11 +112,34 @@ public sealed class AzureAgent : ILLMAgent
                 .CreateLogger();
             Log.Information("Azure agent initialized.");
         }
+
+        if (_setting.Telemetry)
+        {
+            Telemetry.Initialize();
+        }
     }
 
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
-    public bool CanAcceptFeedback(UserAction action) => false;
-    public void OnUserAction(UserActionPayload actionPayload) {}
+    public bool CanAcceptFeedback(UserAction action) => Telemetry.Enabled;
+    public void OnUserAction(UserActionPayload actionPayload) {
+        // Send telemetry about the user action.
+        bool isUserFeedback = false;
+        string details = null;
+        UserAction action = actionPayload.Action;
+
+        if (action is UserAction.Dislike)
+        {
+            var dislike = (DislikePayload) actionPayload;
+            isUserFeedback = true;
+            details = string.Format("{0} | {1}", dislike.ShortFeedback, dislike.LongFeedback);
+        }
+        else if (action is UserAction.Like)
+        {
+            isUserFeedback = true;
+        }
+
+        Telemetry.Trace(AzTrace.UserAction(action.ToString(), _copilotResponse, details, isUserFeedback));
+    }
 
     public async Task RefreshChatAsync(IShell shell, bool force)
     {
@@ -254,6 +279,8 @@ public sealed class AzureAgent : ILLMAgent
                     host.WriteLine("\nYou've reached the maximum length of a conversation. To continue, please run '/refresh' to start a new conversation.\n");
                 }
             }
+
+            Telemetry.Trace(AzTrace.Chat(_copilotResponse));
         }
         catch (Exception ex) when (ex is TokenRequestException or ConnectionDroppedException)
         {
@@ -362,8 +389,8 @@ public sealed class AzureAgent : ILLMAgent
         else
         {
             // The placeholder section is not in the format as we've instructed ...
-            // TODO: send telemetry about this case.
             Log.Error("Placeholder section not in expected format:\n{0}", text);
+            Telemetry.Trace(AzTrace.Exception(_copilotResponse, "Placeholder section not in expected format."));
         }
 
         ReplaceKnownPlaceholders(data);

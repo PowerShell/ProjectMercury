@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Text;
+
 using AIShell.Abstraction;
 
 namespace Microsoft.Azure.Agent;
@@ -157,6 +158,18 @@ internal sealed class ReplaceCommand : CommandBase
 
             host.RenderDivider("Regenerate", DividerAlignment.Left);
             host.MarkupLine($"\nQuery: [teal]{ap.Query}[/]");
+
+            if (Telemetry.Enabled)
+            {
+                Dictionary<string, bool> details = new(items.Count);
+                foreach (var item in items)
+                {
+                    string name = item.Name;
+                    details.Add(name, _values.ContainsKey(name));
+                }
+
+                Telemetry.Trace(AzTrace.UserAction("Replace", _agent.CopilotResponse, details));
+            }
 
             try
             {
