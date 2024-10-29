@@ -46,7 +46,6 @@ public sealed class AzureAgent : ILLMAgent
     private readonly HttpClient _httpClient;
     private readonly ChatSession _chatSession;
     private readonly Dictionary<string, string> _valueStore;
-    // private MetricHelper _metricHelper;
 
     public AzureAgent()
     {
@@ -120,7 +119,7 @@ public sealed class AzureAgent : ILLMAgent
     }
 
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
-    public bool CanAcceptFeedback(UserAction action) => _setting.Telemetry;
+    public bool CanAcceptFeedback(UserAction action) => Telemetry.Enabled;
     public void OnUserAction(UserActionPayload actionPayload) {
         // Send telemetry about the user action.
         bool isUserFeedback = false;
@@ -138,7 +137,7 @@ public sealed class AzureAgent : ILLMAgent
             isUserFeedback = true;
         }
 
-        Telemetry.Log(AzTrace.UserAction(action.ToString(), _copilotResponse, details, isUserFeedback));
+        Telemetry.Trace(AzTrace.UserAction(action.ToString(), _copilotResponse, details, isUserFeedback));
     }
 
     public async Task RefreshChatAsync(IShell shell, bool force)
@@ -280,10 +279,7 @@ public sealed class AzureAgent : ILLMAgent
                 }
             }
 
-            if (Telemetry.Enabled)
-            {
-                Telemetry.Log(AzTrace.Chat(_copilotResponse));
-            }
+            Telemetry.Trace(AzTrace.Chat(_copilotResponse));
         }
         catch (Exception ex) when (ex is TokenRequestException or ConnectionDroppedException)
         {
@@ -392,11 +388,8 @@ public sealed class AzureAgent : ILLMAgent
         else
         {
             // The placeholder section is not in the format as we've instructed ...
-            if (Telemetry.Enabled)
-            {
-                Telemetry.Log(AzTrace.Exception(_copilotResponse, $"Placeholder section not in expected format: {text}"));
-            }
             Log.Error("Placeholder section not in expected format:\n{0}", text);
+            Telemetry.Trace(AzTrace.Exception(_copilotResponse, "Placeholder section not in expected format."));
         }
 
         ReplaceKnownPlaceholders(data);

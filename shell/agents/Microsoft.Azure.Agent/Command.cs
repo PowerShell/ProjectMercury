@@ -168,7 +168,7 @@ internal sealed class ReplaceCommand : CommandBase
                     details.Add(name, _values.ContainsKey(name));
                 }
 
-                Telemetry.Log(AzTrace.UserAction("Replace", _agent.CopilotResponse, details));
+                Telemetry.Trace(AzTrace.UserAction("Replace", _agent.CopilotResponse, details));
             }
 
             try

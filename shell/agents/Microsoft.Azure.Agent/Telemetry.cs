@@ -86,32 +86,59 @@ public class AzTrace
         string shellCommand,
         CopilotResponse response,
         object details,
-        bool isFeedback = false) => new()
+        bool isFeedback = false)
     {
-        QueryId = response.ReplyToId,
-        TopicName = response.TopicName,
-        ConversationId = response.ConversationId,
-        ShellCommand = shellCommand,
-        EventType = isFeedback ? "Feedback" : "UserAction",
-        Details = details
-    };
+        if (Telemetry.Enabled)
+        {
+            return new()
+            {
+                QueryId = response.ReplyToId,
+                TopicName = response.TopicName,
+                ConversationId = response.ConversationId,
+                ShellCommand = shellCommand,
+                EventType = isFeedback ? "Feedback" : "UserAction",
+                Details = details
+            };
+        }
 
-    internal static AzTrace Chat(CopilotResponse response) => new()
-    {
-        EventType = "Chat",
-        QueryId = response.ReplyToId,
-        TopicName = response.TopicName,
-        ConversationId = response.ConversationId
-    };
+        // Don't create an object when telemetry is disabled.
+        return null;
+    }
 
-    internal static AzTrace Exception(CopilotResponse response, object details) => new()
+    internal static AzTrace Chat(CopilotResponse response)
     {
-        EventType = "Exception",
-        QueryId = response?.ReplyToId,
-        TopicName = response?.TopicName,
-        ConversationId = response?.ConversationId,
-        Details = details
-    };
+        if (Telemetry.Enabled)
+        {
+            return new()
+            {
+                EventType = "Chat",
+                QueryId = response.ReplyToId,
+                TopicName = response.TopicName,
+                ConversationId = response.ConversationId
+            };
+        }
+
+        // Don't create an object when telemetry is disabled.
+        return null;
+    }
+
+    internal static AzTrace Exception(CopilotResponse response, object details)
+    {
+        if (Telemetry.Enabled)
+        {
+            return new()
+            {
+                EventType = "Exception",
+                QueryId = response?.ReplyToId,
+                TopicName = response?.TopicName,
+                ConversationId = response?.ConversationId,
+                Details = details
+            };
+        }
+
+        // Don't create an object when telemetry is disabled.
+        return null;
+    }
 }
 
 internal class Telemetry
@@ -184,7 +211,8 @@ internal class Telemetry
     internal static void Initialize() => s_singleton ??= new Telemetry();
 
     /// <summary>
-    /// Log a telemetry metric.
+    /// Trace a telemetry metric.
+    /// The method does nothing when it's disabled.
     /// </summary>
-    internal static void Log(AzTrace trace) => s_singleton.LogTelemetry(trace);
+    internal static void Trace(AzTrace trace) => s_singleton?.LogTelemetry(trace);
 }
