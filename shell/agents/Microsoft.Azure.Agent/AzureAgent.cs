@@ -124,16 +124,13 @@ public sealed class AzureAgent : ILLMAgent
     public void OnUserAction(UserActionPayload actionPayload) {
         // Send telemetry about the user action.
         bool isUserFeedback = false;
-        bool allowIdsForCorrelation = false;
         string details = null;
         UserAction action = actionPayload.Action;
 
         if (action is UserAction.Dislike)
         {
-            isUserFeedback = true;
-            DislikePayload dislikePayload = (DislikePayload)actionPayload;
-            allowIdsForCorrelation = dislikePayload.ShareConversation;
             var dislike = (DislikePayload) actionPayload;
+            isUserFeedback = true;
             details = string.Format("{0} | {1}", dislike.ShortFeedback, dislike.LongFeedback);
         }
         else if (action is UserAction.Like)
@@ -141,14 +138,7 @@ public sealed class AzureAgent : ILLMAgent
             isUserFeedback = true;
         }
 
-        if (isUserFeedback)
-        {
-            Telemetry.Trace(AzTrace.Feedback(action.ToString(), _copilotResponse, details, allowIdsForCorrelation));
-        }
-        else
-        {
-            Telemetry.Trace(AzTrace.UserAction(action.ToString(), _copilotResponse, details));
-        }
+        Telemetry.Trace(AzTrace.UserAction(action.ToString(), _copilotResponse, details, isUserFeedback));
     }
 
     public async Task RefreshChatAsync(IShell shell, bool force)
