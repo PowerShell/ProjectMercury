@@ -165,10 +165,26 @@ public sealed class AzureAgent : ILLMAgent
         {
             host.WriteErrorLine("Operation cancelled. Please run '/refresh' to start a new conversation.");
         }
-        catch (CredentialUnavailableException)
+        catch (TokenRequestException e)
         {
-            host.WriteErrorLine($"Failed to start a chat session: Access token not available.");
-            host.WriteErrorLine($"The '{Name}' agent depends on the Azure CLI credential to acquire access token. Please run 'az login' from a command-line shell to setup account.");
+            if (e.UserUnauthorized)
+            {
+                host.WriteLine("Sorry, you are not authorized to access Azure Copilot services.");
+                host.WriteLine($"Details: {e.Message}");
+                return;
+            }
+
+            Exception inner = e.InnerException;
+            if (inner is CredentialUnavailableException)
+            {
+                host.WriteErrorLine($"Failed to start a chat session: Access token not available.");
+                host.WriteErrorLine($"The '{Name}' agent depends on the Azure CLI credential to acquire access token. Please run 'az login' from a command-line shell to setup account.");
+                host.WriteErrorLine("Once you've successfully logged in, please run '/refresh' to start a new conversation");
+                return;
+            }
+
+            host.WriteErrorLine(e.Message);
+            host.WriteErrorLine("Please try '/refresh' to start a new conversation.");
         }
         catch (Exception e)
         {
@@ -186,6 +202,12 @@ public sealed class AzureAgent : ILLMAgent
         if (_turnsLeft is 0)
         {
             host.WriteLine("\nSorry, you've reached the maximum length of a conversation. Please run '/refresh' to start a new conversation.\n");
+            return true;
+        }
+
+        if (!_chatSession.UserAuthorized)
+        {
+            host.WriteLine("\nSorry, you are not authorized to access Azure Copilot services.\n");
             return true;
         }
 

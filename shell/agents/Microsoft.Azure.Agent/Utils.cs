@@ -34,10 +34,26 @@ internal static class Utils
     internal static JsonSerializerOptions JsonOptions => s_jsonOptions;
     internal static JsonSerializerOptions JsonHumanReadableOptions => s_humanReadableOptions;
     internal static JsonSerializerOptions RelaxedJsonEscapingOptions => s_relaxedJsonEscapingOptions;
+
+    internal async static Task EnsureSuccessStatusCodeForTokenRequest(this HttpResponseMessage response, string errorMessage)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            string responseText = await response.Content.ReadAsStringAsync(CancellationToken.None);
+            string message = $"{errorMessage} HTTP status: {response.StatusCode}, Response: {responseText}";
+            Telemetry.Trace(AzTrace.Exception(message));
+            throw new TokenRequestException(message);
+        }
+    }
 }
 
 internal class TokenRequestException : Exception
 {
+    /// <summary>
+    /// Access to Copilot was denied.
+    /// </summary>
+    internal bool UserUnauthorized { get; set; }
+
     internal TokenRequestException(string message)
         : base(message)
     {

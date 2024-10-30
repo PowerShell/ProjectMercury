@@ -1,8 +1,12 @@
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+
 using AIShell.Abstraction;
+using Azure.Core;
+using Azure.Identity;
 
 namespace Microsoft.Azure.Agent;
 
@@ -56,6 +60,12 @@ internal enum TokenHealth
     Good,
     TimeToRefresh,
     Expired
+}
+
+internal class CopilotPermission
+{
+    public bool Authorized { get; set; }
+    public string Message { get; set; }
 }
 
 internal class RefreshDLToken
@@ -336,6 +346,144 @@ internal class AzCLICommand
         }
 
         return null;
+    }
+}
+
+#endregion
+
+#region token wrappers
+
+internal class UserAccessToken
+{
+    private readonly TokenRequestContext _tokenContext;
+    private AccessToken? _accessToken;
+
+    /// <summary>
+    /// The access token.
+    /// </summary>
+    internal string Token => _accessToken?.Token;
+
+    /// <summary>
+    /// Initialize an instance with the proper token request context.
+    /// </summary>
+    internal UserAccessToken()
+    {
+        _tokenContext = new TokenRequestContext(["7000789f-b583-4714-ab18-aef39213018a/.default"]);
+    }
+
+    /// <summary>
+    /// Create an access token, or renew an existing token.
+    /// </summary>
+    internal async Task CreateOrRenewTokenAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            bool needRefresh = !_accessToken.HasValue;
+            if (!needRefresh)
+            {
+                needRefresh = DateTimeOffset.UtcNow.AddMinutes(5) > _accessToken.Value.ExpiresOn;
+            }
+
+            if (needRefresh)
+            {
+                _accessToken = await new AzureCliCredential()
+                    .GetTokenAsync(_tokenContext, cancellationToken);
+            }
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            string message = $"Failed to generate the user access token: {e.Message}.";
+            Telemetry.Trace(AzTrace.Exception(message), e);
+            throw new TokenRequestException(message, e);
+        }
+    }
+
+    /// <summary>
+    /// Reset the access token.
+    /// </summary>
+    internal void Reset()
+    {
+        _accessToken = null;
+    }
+}
+
+internal class UserDirectLineToken
+{
+    private const string REFRESH_TOKEN_URL = "https://directline.botframework.com/v3/directline/tokens/refresh";
+
+    private string _token;
+    private DateTimeOffset _expireOn;
+
+    /// <summary>
+    /// The DirectLine token.
+    /// </summary>
+    internal string Token => _token;
+
+    /// <summary>
+    /// Initialize an instance.
+    /// </summary>
+    internal UserDirectLineToken(string token, int expiresInSec)
+    {
+        _token = token;
+        _expireOn = DateTimeOffset.UtcNow.AddSeconds(expiresInSec);
+    }
+
+    /// <summary>
+    /// Check the token health.
+    /// </summary>
+    /// <returns></returns>
+    internal TokenHealth CheckTokenHealth()
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (now > _expireOn || now.AddMinutes(2) >= _expireOn)
+        {
+            return TokenHealth.Expired;
+        }
+
+        if (now.AddMinutes(10) < _expireOn)
+        {
+            return TokenHealth.Good;
+        }
+
+        return TokenHealth.TimeToRefresh;
+    }
+
+    /// <summary>
+    /// Renew the DirectLine token.
+    /// </summary>
+    internal async Task RenewTokenAsync(HttpClient httpClient, CancellationToken cancellationToken)
+    {
+        TokenHealth health = CheckTokenHealth();
+        if (health is TokenHealth.Expired)
+        {
+            throw new TokenRequestException("The chat session has expired. Please start a new chat session.");
+        }
+
+        if (health is TokenHealth.Good)
+        {
+            return;
+        }
+
+        try
+        {
+            HttpRequestMessage request = new(HttpMethod.Post, REFRESH_TOKEN_URL);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
+
+            var response = await httpClient.SendAsync(request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            using Stream content = await response.Content.ReadAsStreamAsync(cancellationToken);
+            RefreshDLToken dlToken = JsonSerializer.Deserialize<RefreshDLToken>(content, Utils.JsonOptions);
+
+            _token = dlToken.Token;
+            _expireOn = DateTimeOffset.UtcNow.AddSeconds(dlToken.ExpiresIn);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            string message = $"Failed to renew the 'DirectLine' token: {e.Message}.";
+            Telemetry.Trace(AzTrace.Exception(message), e);
+            throw new TokenRequestException(message, e);
+        }
     }
 }
 
