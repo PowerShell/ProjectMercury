@@ -131,15 +131,14 @@ public sealed class AzureAgent : ILLMAgent
         if (action is UserAction.Dislike)
         {
             isUserFeedback = true;
-            DislikePayload dislike = (DislikePayload)actionPayload;
-            allowIdsForCorrelation = dislike.ShareConversation;
+            DislikePayload dislikePayload = (DislikePayload)actionPayload;
+            allowIdsForCorrelation = dislikePayload.ShareConversation;
+            var dislike = (DislikePayload) actionPayload;
             details = string.Format("{0} | {1}", dislike.ShortFeedback, dislike.LongFeedback);
         }
         else if (action is UserAction.Like)
         {
             isUserFeedback = true;
-            LikePayload like = (LikePayload)actionPayload;
-            allowIdsForCorrelation = like.ShareConversation;
         }
 
         if (isUserFeedback)
