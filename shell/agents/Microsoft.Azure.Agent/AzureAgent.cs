@@ -124,6 +124,7 @@ public sealed class AzureAgent : ILLMAgent
     public void OnUserAction(UserActionPayload actionPayload) {
         // Send telemetry about the user action.
         bool isUserFeedback = false;
+        bool allowIdsForCorrelation = false;
         string details = null;
         UserAction action = actionPayload.Action;
 
@@ -141,7 +142,14 @@ public sealed class AzureAgent : ILLMAgent
             allowIdsForCorrelation = like.ShareConversation;
         }
 
-        Telemetry.Trace(AzTrace.UserAction(action.ToString(), _copilotResponse, details, isUserFeedback));
+        if (isUserFeedback)
+        {
+            Telemetry.Trace(AzTrace.Feedback(action.ToString(), _copilotResponse, details, allowIdsForCorrelation));
+        }
+        else
+        {
+            Telemetry.Trace(AzTrace.UserAction(action.ToString(), _copilotResponse, details));
+        }
     }
 
     public async Task RefreshChatAsync(IShell shell, bool force)
