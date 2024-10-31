@@ -17,10 +17,20 @@ public class AzTrace
     {
         InstallationId = null;
 
-        string azureConfigDir = Environment.GetEnvironmentVariable("AZURE_CONFIG_DIR")
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".azure");
-        string azCLIProfilePath = Path.Combine(azureConfigDir, "azureProfile.json");
-        string azPSHProfilePath = Path.Combine(azureConfigDir, "AzureRmContextSettings.json");
+        string azCLIProfilePath, azPSHProfilePath;
+        string azureConfigDir = Environment.GetEnvironmentVariable("AZURE_CONFIG_DIR");
+        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        if (string.IsNullOrEmpty(azureConfigDir))
+        {
+            azCLIProfilePath = Path.Combine(userProfile, ".azure", "azureProfile.json");
+            azPSHProfilePath = Path.Combine(userProfile, ".Azure", "AzureRmContextSettings.json");
+        }
+        else
+        {
+            azCLIProfilePath = Path.Combine(azureConfigDir, "azureProfile.json");
+            azPSHProfilePath = Path.Combine(azureConfigDir, "AzureRmContextSettings.json");
+        }
 
         try
         {
