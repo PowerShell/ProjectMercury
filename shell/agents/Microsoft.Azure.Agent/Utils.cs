@@ -40,7 +40,12 @@ internal static class Utils
         if (!response.IsSuccessStatusCode)
         {
             string responseText = await response.Content.ReadAsStringAsync(CancellationToken.None);
-            string message = $"{errorMessage} HTTP status: {response.StatusCode}, Response: {responseText}";
+            if (string.IsNullOrEmpty(responseText))
+            {
+                responseText = "<empty>";
+            }
+
+            string message = $"{errorMessage} HTTP status: {response.StatusCode}, Response: {responseText}.";
             Telemetry.Trace(AzTrace.Exception(message));
             throw new TokenRequestException(message);
         }
