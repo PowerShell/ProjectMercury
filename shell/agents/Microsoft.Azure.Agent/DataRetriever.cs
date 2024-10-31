@@ -15,6 +15,7 @@ internal class DataRetriever : IDisposable
     private const string MetadataQueryTemplate = "{{\"command\":\"{0}\"}}";
     private const string MetadataEndpoint = "https://cli-validation-tool-meta-qry.azurewebsites.net/api/command_metadata";
 
+    private static string s_azPythonPath;
     private static readonly Dictionary<string, NamingRule> s_azNamingRules;
     private static readonly ConcurrentDictionary<string, AzCLICommand> s_azStaticDataCache;
 
@@ -305,7 +306,26 @@ internal class DataRetriever : IDisposable
             s_azNamingRules.Add(rule.AzPSCommand, rule);
         }
 
+        s_azPythonPath = GetAzCLIPythonPath();
         s_azStaticDataCache = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// TODO: Need to support Linux and macOS.
+    /// </summary>
+    private static string GetAzCLIPythonPath()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            const string AzWindowsPath = @"Microsoft SDKs\Azure\CLI2\python.exe";
+            string x64Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), AzWindowsPath);
+            string x86Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), AzWindowsPath);
+
+            if (File.Exists(x64Path)) { return x64Path; }
+            if (File.Exists(x86Path)) { return x86Path; }
+        }
+
+        return null;
     }
 
     internal DataRetriever(ResponseData data, HttpClient httpClient)
@@ -476,7 +496,7 @@ internal class DataRetriever : IDisposable
             hasCompleter = param.HasCompleter;
         }
 
-        if (_stop || !hasCompleter) { return null; }
+        if (_stop || !hasCompleter || s_azPythonPath is null) { return null; }
 
         // Then, try to get dynamic argument values using AzCLI tab completion.
         string commandLine = $"{pair.Command} {pair.Parameter} ";
@@ -490,7 +510,7 @@ internal class DataRetriever : IDisposable
             {
                 StartInfo = new ProcessStartInfo()
                 {
-                    FileName = @"C:\Program Files\Microsoft SDKs\Azure\CLI2\python.exe",
+                    FileName = s_azPythonPath,
                     Arguments = "-Im azure.cli",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
