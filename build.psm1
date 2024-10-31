@@ -346,7 +346,9 @@ function Copy-1PFilesToSign
             Copy-Item -Path $file.FullName -Destination $TargetRoot
         } else {
             $targetParent = $parent.Replace($SourceRoot, $TargetRoot)
-            $null = mkdir -Path $targetParent
+            if (-not (Test-Path $targetParent)) {
+                $null = mkdir -Path $targetParent
+            }
             Copy-Item -Path $file.FullName -Destination $targetParent
         }
     }
@@ -389,7 +391,9 @@ function Copy-3PFilesToSign
             Copy-Item -Path $file.FullName -Destination $TargetRoot
         } else {
             $targetParent = $parent.Replace($SourceRoot, $TargetRoot)
-            $null = mkdir -Path $targetParent
+            if (-not (Test-Path $targetParent)) {
+                $null = mkdir -Path $targetParent
+            }
             Copy-Item -Path $file.FullName -Destination $targetParent
         }
     }
