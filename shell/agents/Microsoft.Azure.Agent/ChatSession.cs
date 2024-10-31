@@ -11,7 +11,10 @@ namespace Microsoft.Azure.Agent;
 
 internal class ChatSession : IDisposable
 {
-    private const string ACCESS_URL = "https://copilotweb.production.portalrp.azure.com/api/access?api-version=2024-09-01";
+    // TODO: production URL not yet working for some regions.
+    // private const string ACCESS_URL = "https://copilotweb.production.portalrp.azure.com/api/access?api-version=2024-09-01";
+    private const string ACCESS_URL = "https://copilotweb.canary.production.portalrp.azure.com/api/access?api-version=2024-09-01";
+
     private const string DL_TOKEN_URL = "https://copilotweb.production.portalrp.azure.com/api/conversations/start?api-version=2024-11-15";
     private const string CONVERSATION_URL = "https://directline.botframework.com/v3/directline/conversations";
 
