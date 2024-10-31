@@ -94,9 +94,9 @@ public class AzTrace
         {
             return new()
             {
-                TopicName = response.TopicName,
-                ShellCommand = shellCommand,
                 EventType = "UserAction",
+                ShellCommand = shellCommand,
+                TopicName = response.TopicName,
                 Details = details
             };
         }
@@ -107,19 +107,19 @@ public class AzTrace
 
     internal static AzTrace Feedback(
         string shellCommand,
+        bool shareConversation,
         CopilotResponse response,
-        object details,
-        bool allowIdsForCorrelation)
+        object details)
     {
         if (Telemetry.Enabled)
         {
             return new()
             {
-                QueryId = allowIdsForCorrelation ? response.ReplyToId : null,
-                TopicName = response.TopicName,
-                ConversationId = allowIdsForCorrelation ? response.ConversationId : null,
-                ShellCommand = shellCommand,
                 EventType = "Feedback",
+                ShellCommand = shellCommand,
+                TopicName = response.TopicName,
+                QueryId = shareConversation ? response.ReplyToId : null,
+                ConversationId = shareConversation ? response.ConversationId : null,
                 Details = details
             };
         }

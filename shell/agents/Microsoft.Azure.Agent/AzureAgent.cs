@@ -121,34 +121,39 @@ public sealed class AzureAgent : ILLMAgent
 
     public IEnumerable<CommandBase> GetCommands() => [new ReplaceCommand(this)];
     public bool CanAcceptFeedback(UserAction action) => Telemetry.Enabled;
-    public void OnUserAction(UserActionPayload actionPayload) {
+
+    public void OnUserAction(UserActionPayload actionPayload)
+    {
         // Send telemetry about the user action.
         bool isUserFeedback = false;
-        bool allowIdsForCorrelation = false;
+        bool shareConversation = false;
         string details = null;
-        UserAction action = actionPayload.Action;
+        string action = actionPayload.Action.ToString();
 
-        if (action is UserAction.Dislike)
+        switch (actionPayload)
         {
-            isUserFeedback = true;
-            DislikePayload dislike = (DislikePayload)actionPayload;
-            allowIdsForCorrelation = dislike.ShareConversation;
-            details = string.Format("{0} | {1}", dislike.ShortFeedback, dislike.LongFeedback);
-        }
-        else if (action is UserAction.Like)
-        {
-            isUserFeedback = true;
-            LikePayload like = (LikePayload)actionPayload;
-            allowIdsForCorrelation = like.ShareConversation;
+            case DislikePayload dislike:
+                isUserFeedback = true;
+                shareConversation = dislike.ShareConversation;
+                details = string.Format("{0} | {1}", dislike.ShortFeedback, dislike.LongFeedback);
+                break;
+
+            case LikePayload like:
+                isUserFeedback = true;
+                shareConversation = like.ShareConversation;
+                break;
+
+            default:
+                break;
         }
 
         if (isUserFeedback)
         {
-            Telemetry.Trace(AzTrace.Feedback(action.ToString(), _copilotResponse, details, allowIdsForCorrelation));
+            Telemetry.Trace(AzTrace.Feedback(action, shareConversation, _copilotResponse, details));
         }
         else
         {
-            Telemetry.Trace(AzTrace.UserAction(action.ToString(), _copilotResponse, details));
+            Telemetry.Trace(AzTrace.UserAction(action, _copilotResponse, details));
         }
     }
 
@@ -423,7 +428,7 @@ public sealed class AzureAgent : ILLMAgent
         {
             // The placeholder section is not in the format as we've instructed ...
             Log.Error("Placeholder section not in expected format:\n{0}", text);
-            Telemetry.Trace(AzTrace.Exception(_copilotResponse, "Placeholder section not in expected format."));
+            Telemetry.Trace(AzTrace.Exception("Placeholder section not in expected format."));
         }
 
         ReplaceKnownPlaceholders(data);
