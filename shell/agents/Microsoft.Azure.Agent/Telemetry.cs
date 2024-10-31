@@ -88,18 +88,38 @@ public class AzTrace
     internal static AzTrace UserAction(
         string shellCommand,
         CopilotResponse response,
-        object details,
-        bool isFeedback = false)
+        object details)
     {
         if (Telemetry.Enabled)
         {
             return new()
             {
-                QueryId = response.ReplyToId,
-                TopicName = response.TopicName,
-                ConversationId = response.ConversationId,
+                EventType = "UserAction",
                 ShellCommand = shellCommand,
-                EventType = isFeedback ? "Feedback" : "UserAction",
+                TopicName = response.TopicName,
+                Details = details
+            };
+        }
+
+        // Don't create an object when telemetry is disabled.
+        return null;
+    }
+
+    internal static AzTrace Feedback(
+        string shellCommand,
+        bool shareConversation,
+        CopilotResponse response,
+        object details)
+    {
+        if (Telemetry.Enabled)
+        {
+            return new()
+            {
+                EventType = "Feedback",
+                ShellCommand = shellCommand,
+                TopicName = response.TopicName,
+                QueryId = shareConversation ? response.ReplyToId : null,
+                ConversationId = shareConversation ? response.ConversationId : null,
                 Details = details
             };
         }
@@ -115,9 +135,7 @@ public class AzTrace
             return new()
             {
                 EventType = "Chat",
-                QueryId = response.ReplyToId,
-                TopicName = response.TopicName,
-                ConversationId = response.ConversationId
+                TopicName = response.TopicName
             };
         }
 
