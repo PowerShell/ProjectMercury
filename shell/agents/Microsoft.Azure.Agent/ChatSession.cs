@@ -132,8 +132,9 @@ internal class ChatSession : IDisposable
         }
         catch (Exception e)
         {
-            if (e is not OperationCanceledException and TokenRequestException)
+            if (e is not OperationCanceledException and not TokenRequestException)
             {
+                // Trace a telemetry for any unexpected error.
                 Telemetry.Trace(AzTrace.Exception("Failed to setup a new chat session."), e);
             }
 
