@@ -87,12 +87,7 @@ extends:
         tsaOptionsFile: .config\tsaoptions.json
 
     stages:
-    - stage: prep
-      jobs:
-      - template: /.pipelines/templates/check-Azure-container.yml@self
-
     - stage: mac
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/mac-package.yml@self
         parameters:
@@ -102,7 +97,6 @@ extends:
           architecture: arm64
 
     - stage: windows
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/windows-package.yml@self
         parameters:
@@ -115,7 +109,6 @@ extends:
           architecture: arm64
 
     - stage: linux
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/linux-package.yml@self
         parameters:
@@ -125,12 +118,10 @@ extends:
           architecture: arm64
 
     - stage: module
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/module-package.yml@self
 
     - stage: nupkg
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/nupkg-package.yml@self
 
