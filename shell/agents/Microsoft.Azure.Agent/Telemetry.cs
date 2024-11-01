@@ -143,16 +143,13 @@ public class AzTrace
         return null;
     }
 
-    internal static AzTrace Exception(CopilotResponse response, object details)
+    internal static AzTrace Exception(object details)
     {
         if (Telemetry.Enabled)
         {
             return new()
             {
-                EventType = "Exception",
-                QueryId = response?.ReplyToId,
-                TopicName = response?.TopicName,
-                ConversationId = response?.ConversationId,
+                EventType = "AIShell Exception",
                 Details = details
             };
         }
@@ -160,8 +157,6 @@ public class AzTrace
         // Don't create an object when telemetry is disabled.
         return null;
     }
-
-    internal static AzTrace Exception(object details) => Exception(response: null, details);
 }
 
 internal class Telemetry
