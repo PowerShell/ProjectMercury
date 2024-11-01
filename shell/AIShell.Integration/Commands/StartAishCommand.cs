@@ -16,8 +16,8 @@ public class StartAIShellCommand : PSCmdlet
     {
         if (Path is null)
         {
-            Path = "aish";
-            if (SessionState.InvokeCommand.GetCommand(Path, CommandTypes.Application) is null)
+            var app = SessionState.InvokeCommand.GetCommand("aish", CommandTypes.Application);
+            if (app is null)
             {
                 ThrowTerminatingError(new(
                     new NotSupportedException("The executable 'aish' cannot be found."),
@@ -25,6 +25,8 @@ public class StartAIShellCommand : PSCmdlet
                     ErrorCategory.NotInstalled,
                     targetObject: null));
             }
+
+            Path = app.Source;
         }
         else
         {
