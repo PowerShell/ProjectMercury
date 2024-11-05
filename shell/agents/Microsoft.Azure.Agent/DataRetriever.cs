@@ -15,7 +15,7 @@ internal class DataRetriever : IDisposable
     private const string MetadataQueryTemplate = "{{\"command\":\"{0}\"}}";
     private const string MetadataEndpoint = "https://cli-validation-tool-meta-qry.azurewebsites.net/api/command_metadata";
 
-    private static string s_azPythonPath;
+    private static readonly string s_azCompleteCmd, s_azCompleteArg;
     private static readonly Dictionary<string, NamingRule> s_azNamingRules;
     private static readonly ConcurrentDictionary<string, AzCLICommand> s_azStaticDataCache;
 
@@ -306,26 +306,45 @@ internal class DataRetriever : IDisposable
             s_azNamingRules.Add(rule.AzPSCommand, rule);
         }
 
-        s_azPythonPath = GetAzCLIPythonPath();
+        (s_azCompleteCmd, s_azCompleteArg) = GetAzCLIPythonPath();
         s_azStaticDataCache = new(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
     /// TODO: Need to support Linux and macOS.
     /// </summary>
-    private static string GetAzCLIPythonPath()
+    private static (string compCmd, string compArg) GetAzCLIPythonPath()
     {
         if (OperatingSystem.IsWindows())
         {
-            const string AzWindowsPath = @"Microsoft SDKs\Azure\CLI2\python.exe";
-            string x64Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), AzWindowsPath);
-            string x86Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), AzWindowsPath);
+            const string AzWinCmd = @"Microsoft SDKs\Azure\CLI2\python.exe";
+            const string AzWinArg = "-Im azure.cli";
 
-            if (File.Exists(x64Path)) { return x64Path; }
-            if (File.Exists(x86Path)) { return x86Path; }
+            string x64Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), AzWinCmd);
+            string x86Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), AzWinCmd);
+
+            if (File.Exists(x64Path)) { return (x64Path, AzWinArg); }
+            if (File.Exists(x86Path)) { return (x86Path, AzWinArg); }
+        }
+        else
+        {
+            // On Linux and macOS, simply run 'az' as starting a new process is cheap.
+            string pathEnv = Environment.GetEnvironmentVariable("PATH");
+            if (!string.IsNullOrEmpty(pathEnv))
+            {
+                string[] paths = pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string path in paths)
+                {
+                    string fullPath = Path.Combine(path, "az");
+                    if (File.Exists(fullPath))
+                    {
+                        return (fullPath, string.Empty);
+                    }
+                }
+            }
         }
 
-        return null;
+        return (null, null);
     }
 
     internal DataRetriever(ResponseData data, HttpClient httpClient)
@@ -496,7 +515,7 @@ internal class DataRetriever : IDisposable
             hasCompleter = param.HasCompleter;
         }
 
-        if (_stop || !hasCompleter || s_azPythonPath is null) { return null; }
+        if (_stop || !hasCompleter || s_azCompleteCmd is null) { return null; }
 
         // Then, try to get dynamic argument values using AzCLI tab completion.
         string commandLine = $"{pair.Command} {pair.Parameter} ";
@@ -510,11 +529,14 @@ internal class DataRetriever : IDisposable
             {
                 StartInfo = new ProcessStartInfo()
                 {
-                    FileName = s_azPythonPath,
-                    Arguments = "-Im azure.cli",
+                    FileName = s_azCompleteCmd,
+                    Arguments = s_azCompleteArg,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
+                    // Redirect stdin to force installing a missing extension, otherwise 'az'
+                    // may prompt interactively for user's approval to install.
+                    RedirectStandardInput = true,
                 }
             };
 

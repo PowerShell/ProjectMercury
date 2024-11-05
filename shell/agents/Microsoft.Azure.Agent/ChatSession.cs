@@ -124,10 +124,8 @@ internal class ChatSession : IDisposable
             context.Status("Check Copilot authorization ...");
             await CheckAuthorizationAsync(cancellationToken);
 
-            context.Status("Request for DirectLine token ...");
-            await GetInitialDLTokenAsync(cancellationToken);
-
             context.Status("Start a new chat session ...");
+            await GetInitialDLTokenAsync(cancellationToken);
             return await OpenConversationAsync(cancellationToken);
         }
         catch (Exception e)
