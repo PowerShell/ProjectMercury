@@ -89,6 +89,7 @@ internal class ReadLineHelper : IReadLineHelper
     private List<CompletionResult> CompleteFileSystemPath(string wordToComplete)
     {
         bool startsWithTilde = false;
+        bool alreadyQuoted = wordToComplete.Contains(' ');
         string homeDirectory = null;
         List<CompletionResult> result = null;
 
@@ -105,7 +106,7 @@ internal class ReadLineHelper : IReadLineHelper
         string QuoteIfNeeded(string path)
         {
             // Do not add quoting if the original string is already quoted.
-            return !wordToComplete.Contains(' ') && path.Contains(' ') ? $"\"{path}\"" : path;
+            return !alreadyQuoted && path.Contains(' ') ? $"\"{path}\"" : path;
         }
 
         // Add one result to the result list.

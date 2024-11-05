@@ -10,17 +10,33 @@ internal sealed class RenderCommand : CommandBase
     public RenderCommand()
         : base("render", "Render a markdown file, for diagnosis purpose.")
     {
-        var file = new Argument<FileInfo>("file", "The file path to save the code to.");
+        var file = new Argument<string>("file", "The file path to save the code to.");
         var append = new Option<bool>("--streaming", "Render in the streaming manner.");
 
         AddArgument(file);
         AddOption(append);
-        this.SetHandler(SaveAction, file, append);
+        this.SetHandler(RenderAction, file, append);
     }
 
-    private void SaveAction(FileInfo file, bool streaming)
+    private void RenderAction(string path, bool streaming)
     {
         var host = Shell.Host;
+
+        if (string.IsNullOrEmpty(path))
+        {
+            host.WriteErrorLine($"Please specify a file path for rendering its content.");
+            return;
+        }
+
+        path = Utils.ResolveTilde(path);
+        FileInfo file = new(path);
+
+        string fullName = file.FullName;
+        if (Directory.Exists(fullName))
+        {
+            host.WriteErrorLine($"The specified path '{fullName}' points to an existing directory. Please specify a file path instead.");
+            return;
+        }
 
         try
         {
