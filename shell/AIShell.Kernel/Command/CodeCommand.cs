@@ -25,7 +25,7 @@ internal sealed class CodeCommand : CommandBase
         post.AddArgument(nth);
 
         var append = new Option<bool>("--append", "Append to the end of the file.");
-        var file = new Argument<FileInfo>("file", "The file path to save the code to.");
+        var file = new Argument<string>("file", "The file path to save the code to.");
         save.AddArgument(file);
         save.AddOption(append);
 
@@ -88,7 +88,7 @@ internal sealed class CodeCommand : CommandBase
         shell.OnUserAction(new CodePayload(UserAction.CodeCopy, code));
     }
 
-    private void SaveAction(FileInfo file, bool append)
+    private void SaveAction(string path, bool append)
     {
         var shell = (Shell)Shell;
         var host = shell.Host;
@@ -97,6 +97,22 @@ internal sealed class CodeCommand : CommandBase
         if (code is null)
         {
             host.MarkupLine("[olive]No code snippet available for save.[/]");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(path))
+        {
+            host.WriteErrorLine($"Please specify a file path for saving the code.");
+            return;
+        }
+
+        path = Utils.ResolveTilde(path);
+        FileInfo file = new(path);
+
+        string fullName = file.FullName;
+        if (Directory.Exists(fullName))
+        {
+            host.WriteErrorLine($"The specified path '{fullName}' points to an existing directory. Please specify a file path instead.");
             return;
         }
 

@@ -88,7 +88,41 @@ internal class ReadLineHelper : IReadLineHelper
 
     private List<CompletionResult> CompleteFileSystemPath(string wordToComplete)
     {
-        if (!Path.IsPathFullyQualified(wordToComplete))
+        bool startsWithTilde = false;
+        string homeDirectory = null;
+        List<CompletionResult> result = null;
+
+        // Check if the path starts with tilde.
+        static bool StartsWithTilde(string path)
+        {
+            return !string.IsNullOrEmpty(path)
+                && path.Length >= 2
+                && path[0] is '~'
+                && path[1] == Path.DirectorySeparatorChar;
+        }
+
+        // Check if the path should be quoted.
+        string QuoteIfNeeded(string path)
+        {
+            // Do not add quoting if the original string is already quoted.
+            return !wordToComplete.Contains(' ') && path.Contains(' ') ? $"\"{path}\"" : path;
+        }
+
+        // Add one result to the result list.
+        void AddOneResult(string path, bool isContainer)
+        {
+            result ??= [];
+            string filePath = startsWithTilde ? path.Replace(homeDirectory, "~") : path;
+            string text = QuoteIfNeeded(filePath);
+
+            CompletionResultType resultType = isContainer
+                ? CompletionResultType.ProviderContainer
+                : CompletionResultType.ProviderItem;
+            result.Add(new CompletionResult(text, text, resultType, toolTip: null));
+        }
+
+        if (!Path.IsPathFullyQualified(wordToComplete) &&
+            (startsWithTilde = StartsWithTilde(wordToComplete)) is false)
         {
             return null;
         }
@@ -105,32 +139,28 @@ internal class ReadLineHelper : IReadLineHelper
             fileName = Path.GetFileName(wordToComplete) + "*";
         }
 
+        if (startsWithTilde)
+        {
+            rootPath = Utils.ResolveTilde(rootPath);
+            homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        }
+
         if (!Directory.Exists(rootPath))
         {
             return null;
         }
 
-        List<CompletionResult> result = null;
         foreach (string dir in Directory.EnumerateDirectories(rootPath, fileName, _enumerationOptions))
         {
-            result ??= new();
-            string text = QuoteIfNeeded(dir);
-            result.Add(new CompletionResult(text, text, CompletionResultType.ProviderContainer, toolTip: null));
+            AddOneResult(dir, isContainer: true);
         }
 
         foreach (string file in Directory.EnumerateFiles(rootPath, fileName, _enumerationOptions))
         {
-            result ??= new();
-            string text = QuoteIfNeeded(file);
-            result.Add(new CompletionResult(text, text, CompletionResultType.ProviderItem, toolTip: null));
+            AddOneResult(file, isContainer: false);
         }
 
         return result;
-
-        static string QuoteIfNeeded(string path)
-        {
-            return path.Contains(' ') ? $"\"{path}\"" : path;
-        }
     }
 
     /// <summary>

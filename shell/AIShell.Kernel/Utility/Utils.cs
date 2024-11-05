@@ -85,6 +85,30 @@ internal static class Utils
     }
 
     /// <summary>
+    /// Try resolving the leading tilde in a path.
+    /// </summary>
+    internal static string ResolveTilde(string path)
+    {
+        if (path.StartsWith('~'))
+        {
+            string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            if (path.Length is 1)
+            {
+                // The path is just '~'.
+                return home;
+            }
+
+            if (path[1] == Path.DirectorySeparatorChar)
+            {
+                return Path.Join(home, path.AsSpan(2));
+            }
+        }
+
+        return path;
+    }
+
+    /// <summary>
     /// Check if the <paramref name="left"/> contains <paramref name="right"/> regardless of
     /// the leading and trailing space characters on each line if both are multi-line strings.
     /// </summary>
