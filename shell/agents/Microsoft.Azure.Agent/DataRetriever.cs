@@ -534,6 +534,8 @@ internal class DataRetriever : IDisposable
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
+                    // Redirect stdin to force installing a missing extension, otherwise 'az'
+                    // may prompt interactively for user's approval to install.
                     RedirectStandardInput = true,
                 }
             };
