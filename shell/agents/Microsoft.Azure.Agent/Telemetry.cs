@@ -231,6 +231,7 @@ internal class Telemetry
             ["EventType"] = trace.EventType,
             ["ShellCommand"] = trace.ShellCommand,
             ["Details"] = GetDetailedMessage(trace.Details),
+            ["OSPlatform"] = AzTrace.Platform
         };
 
         if (exception is null)
