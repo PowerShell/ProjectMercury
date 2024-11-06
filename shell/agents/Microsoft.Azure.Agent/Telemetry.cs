@@ -13,10 +13,19 @@ public class AzTrace
     /// </summary>
     internal static string InstallationId { get; private set; }
 
+    /// <summary>
+    /// OS platform the application is running on.
+    /// </summary>
+    internal static string OSPlatform { get; private set; }
+
     internal static void Initialize()
     {
-        InstallationId = null;
+        InstallationId = GetInstallationId();
+        OSPlatform = GetOSPlatform();
+    }
 
+    private static string GetInstallationId()
+    {
         string azCLIProfilePath, azPSHProfilePath;
         string azureConfigDir = Environment.GetEnvironmentVariable("AZURE_CONFIG_DIR");
         string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -38,20 +47,41 @@ public class AzTrace
             {
                 using var stream = File.OpenRead(azCLIProfilePath);
                 var jsonElement = JsonSerializer.Deserialize<JsonElement>(stream);
-                InstallationId = jsonElement.GetProperty("installationId").GetString();
+                return jsonElement.GetProperty("installationId").GetString();
             }
             else if (File.Exists(azPSHProfilePath))
             {
                 using var stream = File.OpenRead(azPSHProfilePath);
                 var jsonElement = JsonSerializer.Deserialize<JsonElement>(stream);
-                InstallationId = jsonElement.GetProperty("Settings").GetProperty(nameof(InstallationId)).GetString();
+                return jsonElement.GetProperty("Settings").GetProperty(nameof(InstallationId)).GetString();
             }
         }
         catch
         {
             // Something wrong when reading the config file.
-            InstallationId = null;
         }
+
+        return null;
+    }
+
+    private static string GetOSPlatform()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return "Windows";
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            return "Linux";
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return "macOS";
+        }
+
+        return "Unknown";
     }
 
     /// <summary>
@@ -199,6 +229,7 @@ internal class Telemetry
             ["EventType"] = trace.EventType,
             ["ShellCommand"] = trace.ShellCommand,
             ["Details"] = GetDetailedMessage(trace.Details),
+            ["OSPlatform"] = AzTrace.OSPlatform
         };
 
         if (exception is null)
