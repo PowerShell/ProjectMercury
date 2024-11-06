@@ -11,6 +11,11 @@ public interface IShell
     IHost Host { get; }
 
     /// <summary>
+    /// Indicates whether the bi-directional channel with an application (e.g. a PowerShell session) has been established.
+    /// </summary>
+    bool ChannelEstablished { get; }
+
+    /// <summary>
     /// The token to indicate cancellation when `Ctrl+c` is pressed by user.
     /// </summary>
     CancellationToken CancellationToken { get; }

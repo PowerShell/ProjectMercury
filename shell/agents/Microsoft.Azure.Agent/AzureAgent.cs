@@ -265,7 +265,7 @@ public sealed class AzureAgent : ILLMAgent
                         ArgPlaceholder = new ArgumentPlaceholder(input, data, _httpClient);
                     }
 
-                    string answer = data is null ? _copilotResponse.Text : GenerateAnswer(data);
+                    string answer = data is null ? _copilotResponse.Text : GenerateAnswer(data, shell);
                     host.RenderFullResponse(answer);
                 }
             }
@@ -503,8 +503,13 @@ public sealed class AzureAgent : ILLMAgent
         }
     }
 
-    internal string GenerateAnswer(ResponseData data)
+    internal string GenerateAnswer(ResponseData data, IShell shell)
     {
+        // Use green (0,195,0) on grey (48,48,48) for rendering commands in the markdown.
+        // TODO: the color formatting should be exposed by the shell as utility method.
+        const string CommandVTColor = "\x1b[38;2;0;195;0;48;2;48;48;48m";
+        const string ResetVT = "\x1b[0m";
+
         _buffer.Clear();
         string text = data.Text;
 
@@ -528,7 +533,13 @@ public sealed class AzureAgent : ILLMAgent
             _buffer.Append(text.AsSpan(index, text.Length - index));
         }
 
-        if (data.PlaceholderSet is not null)
+        if (data.PlaceholderSet is null)
+        {
+            _buffer.Append(shell.ChannelEstablished
+                ? $"\nRun {CommandVTColor} /code post {ResetVT} or press {CommandVTColor} Ctrl+d,Ctrl+d {ResetVT} to post the code to the connected shell.\n"
+                : $"\nRun {CommandVTColor} /code copy {ResetVT} or press {CommandVTColor} Ctrl+d,Ctrl+c {ResetVT} to copy the code to clipboard.\n");
+        }
+        else
         {
             // Construct text about the placeholders if we successfully stripped the placeholder
             // section off from the original response.
@@ -547,7 +558,7 @@ public sealed class AzureAgent : ILLMAgent
 
                 // Use green (0,195,0) on grey (48,48,48) for rendering the command '/replace'.
                 // TODO: the color formatting should be exposed by the shell as utility method.
-                _buffer.Append("\nRun \x1b[38;2;0;195;0;48;2;48;48;48m /replace \x1b[0m to get assistance in placeholder replacement.\n");
+                _buffer.Append($"\nRun {CommandVTColor} /replace {ResetVT} to get assistance in placeholder replacement.\n");
             }
         }
 

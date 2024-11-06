@@ -254,6 +254,6 @@ internal sealed class ReplaceCommand : CommandBase
             _agent.ResetArgumentPlaceholder();
         }
 
-        return _agent.GenerateAnswer(data);
+        return _agent.GenerateAnswer(data, Shell);
     }
 }
