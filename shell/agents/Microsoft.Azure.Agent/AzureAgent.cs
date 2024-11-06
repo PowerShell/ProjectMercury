@@ -194,8 +194,7 @@ public sealed class AzureAgent : ILLMAgent
             if (inner is CredentialUnavailableException)
             {
                 host.WriteErrorLine($"Failed to start a chat session: Access token not available.");
-                host.WriteErrorLine($"The '{Name}' agent depends on the Azure CLI credential to acquire access token. Please run 'az login' from a command-line shell to setup account.");
-                host.WriteErrorLine("Once you've successfully logged in, please run '/refresh' to start a new conversation");
+                host.WriteErrorLine($"The '{Name}' agent depends on the Azure CLI credential to acquire access token. Please run 'az login' from a command-line shell to setup account. Once you've successfully logged in, run '/refresh' to start a new conversation.");
                 return;
             }
 
