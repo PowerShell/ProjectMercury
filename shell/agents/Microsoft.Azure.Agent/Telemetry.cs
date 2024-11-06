@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text.Json;
 
 using Microsoft.ApplicationInsights;
@@ -17,12 +16,72 @@ public class AzTrace
     /// <summary>
     /// OS platform the application is running on.
     /// </summary>
-    internal static string Platform { get; private set; }
+    internal static string OSPlatform { get; private set; }
 
     internal static void Initialize()
     {
         InstallationId = GetInstallationId();
-        Platform = GetOSPlatform();
+        OSPlatform = GetOSPlatform();
+    }
+
+    private static string GetInstallationId()
+    {
+        string azCLIProfilePath, azPSHProfilePath;
+        string azureConfigDir = Environment.GetEnvironmentVariable("AZURE_CONFIG_DIR");
+        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        if (string.IsNullOrEmpty(azureConfigDir))
+        {
+            azCLIProfilePath = Path.Combine(userProfile, ".azure", "azureProfile.json");
+            azPSHProfilePath = Path.Combine(userProfile, ".Azure", "AzureRmContextSettings.json");
+        }
+        else
+        {
+            azCLIProfilePath = Path.Combine(azureConfigDir, "azureProfile.json");
+            azPSHProfilePath = Path.Combine(azureConfigDir, "AzureRmContextSettings.json");
+        }
+
+        try
+        {
+            if (File.Exists(azCLIProfilePath))
+            {
+                using var stream = File.OpenRead(azCLIProfilePath);
+                var jsonElement = JsonSerializer.Deserialize<JsonElement>(stream);
+                return jsonElement.GetProperty("installationId").GetString();
+            }
+            else if (File.Exists(azPSHProfilePath))
+            {
+                using var stream = File.OpenRead(azPSHProfilePath);
+                var jsonElement = JsonSerializer.Deserialize<JsonElement>(stream);
+                return jsonElement.GetProperty("Settings").GetProperty(nameof(InstallationId)).GetString();
+            }
+        }
+        catch
+        {
+            // Something wrong when reading the config file.
+        }
+
+        return null;
+    }
+
+    private static string GetOSPlatform()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return "Windows";
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            return "Linux";
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            return "macOS";
+        }
+
+        return "Unknown";
     }
 
     /// <summary>
@@ -128,67 +187,6 @@ public class AzTrace
         // Don't create an object when telemetry is disabled.
         return null;
     }
-
-    private static string GetInstallationId()
-    {
-        string azCLIProfilePath, azPSHProfilePath;
-        string azureConfigDir = Environment.GetEnvironmentVariable("AZURE_CONFIG_DIR");
-        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-        if (string.IsNullOrEmpty(azureConfigDir))
-        {
-            azCLIProfilePath = Path.Combine(userProfile, ".azure", "azureProfile.json");
-            azPSHProfilePath = Path.Combine(userProfile, ".Azure", "AzureRmContextSettings.json");
-        }
-        else
-        {
-            azCLIProfilePath = Path.Combine(azureConfigDir, "azureProfile.json");
-            azPSHProfilePath = Path.Combine(azureConfigDir, "AzureRmContextSettings.json");
-        }
-
-        try
-        {
-            if (File.Exists(azCLIProfilePath))
-            {
-                using var stream = File.OpenRead(azCLIProfilePath);
-                var jsonElement = JsonSerializer.Deserialize<JsonElement>(stream);
-                return jsonElement.GetProperty("installationId").GetString();
-            }
-            else if (File.Exists(azPSHProfilePath))
-            {
-                using var stream = File.OpenRead(azPSHProfilePath);
-                var jsonElement = JsonSerializer.Deserialize<JsonElement>(stream);
-                return jsonElement.GetProperty("Settings").GetProperty(nameof(InstallationId)).GetString();
-            }
-        }
-        catch
-        {
-            // Something wrong when reading the config file.
-            return null;
-        }
-
-        return null;
-    }
-
-    private static string GetOSPlatform()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            return "Windows";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            return "Linux";
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            return "macOS";
-        }
-        else
-        {
-            return "Unknown";
-        }
-    }
 }
 
 internal class Telemetry
@@ -231,7 +229,7 @@ internal class Telemetry
             ["EventType"] = trace.EventType,
             ["ShellCommand"] = trace.ShellCommand,
             ["Details"] = GetDetailedMessage(trace.Details),
-            ["OSPlatform"] = AzTrace.Platform
+            ["OSPlatform"] = AzTrace.OSPlatform
         };
 
         if (exception is null)
