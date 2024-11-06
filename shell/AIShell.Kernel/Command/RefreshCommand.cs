@@ -6,7 +6,7 @@ namespace AIShell.Kernel.Commands;
 internal sealed class RefreshCommand : CommandBase
 {
     public RefreshCommand()
-        : base("refresh", "Refresh the chat session.")
+        : base("refresh", "Start a new chat session.")
     {
         this.SetHandler(RefreshAction);
     }
