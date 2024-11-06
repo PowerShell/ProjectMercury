@@ -78,10 +78,8 @@ internal class ChatSession : IDisposable
             {
                 try
                 {
-                    context.Status("Refreshing access token ...");
+                    context.Status("Refreshing tokens ...");
                     await _accessToken.CreateOrRenewTokenAsync(cancellationToken);
-
-                    context.Status("Refreshing DirectLine token ...");
                     await _directLineToken.RenewTokenAsync(_httpClient, cancellationToken);
 
                     // Tokens successfully refreshed.
@@ -292,10 +290,8 @@ internal class ChatSession : IDisposable
 
         try
         {
-            context.Status("Refreshing access token ...");
+            context.Status("Refreshing tokens ...");
             await _accessToken.CreateOrRenewTokenAsync(cancellationToken);
-
-            context.Status("Refreshing DirectLine token ...");
             await _directLineToken.RenewTokenAsync(_httpClient, cancellationToken);
 
             context?.Status("Sending query ...");
