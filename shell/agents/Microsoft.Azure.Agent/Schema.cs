@@ -357,7 +357,7 @@ internal class UserAccessToken
 {
     private readonly TokenRequestContext _tokenContext;
     private AccessToken? _accessToken;
-    private const string AiShellAppId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"; // Use Azure Cli's Application Id for now
+    private const string ApplicationId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"; // AppId that need to be configurated in orchestrator side. Use Azure Cli's Application Id for now
 
     /// <summary>
     /// The access token.
@@ -388,7 +388,7 @@ internal class UserAccessToken
             if (needRefresh)
             {
                 _accessToken = await new ChainedTokenCredential(new AzureCliCredential(),
-                    new InteractiveBrowserCredential(AiShellAppId))
+                    new InteractiveBrowserCredential(ApplicationId))
                     .GetTokenAsync(_tokenContext, cancellationToken);
             }
         }
