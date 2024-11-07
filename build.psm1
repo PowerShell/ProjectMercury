@@ -20,7 +20,7 @@ function Start-Build
         [string] $Runtime = [NullString]::Value,
 
         [Parameter()]
-        [ValidateSet('openai-gpt', 'az-agent', 'msaz', 'interpreter', 'ollama')]
+        [ValidateSet('openai-gpt', 'msaz', 'interpreter', 'ollama')]
         [string[]] $AgentToInclude,
 
         [Parameter()]
@@ -66,7 +66,6 @@ function Start-Build
     $module_dir = Join-Path $shell_dir "AIShell.Integration"
 
     $openai_agent_dir = Join-Path $agent_dir "AIShell.OpenAI.Agent"
-    $az_agent_dir = Join-Path $agent_dir "AIShell.Azure.Agent"
     $msaz_dir = Join-Path $agent_dir "Microsoft.Azure.Agent"
     $interpreter_agent_dir = Join-Path $agent_dir "AIShell.Interpreter.Agent"
     $ollama_agent_dir = Join-Path $agent_dir "AIShell.Ollama.Agent"
@@ -77,7 +76,6 @@ function Start-Build
     $module_out_dir = Join-Path $out_dir $config "module" "AIShell"
 
     $openai_out_dir = Join-Path $app_out_dir "agents" "AIShell.OpenAI.Agent"
-    $az_out_dir = Join-Path $app_out_dir "agents" "AIShell.Azure.Agent"
     $msaz_out_dir = Join-Path $app_out_dir "agents" "Microsoft.Azure.Agent"
     $interpreter_out_dir = Join-Path $app_out_dir "agents" "AIShell.Interpreter.Agent"
     $ollama_out_dir =  Join-Path $app_out_dir "agents" "AIShell.Ollama.Agent"
@@ -97,12 +95,6 @@ function Start-Build
         Write-Host "`n[Build the OpenAI agent ...]`n" -ForegroundColor Green
         $openai_csproj = GetProjectFile $openai_agent_dir
         dotnet publish $openai_csproj -c $Configuration -o $openai_out_dir
-    }
-
-    if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'az-agent') {
-        Write-Host "`n[Build the az-ps/cli agents ...]`n" -ForegroundColor Green
-        $az_csproj = GetProjectFile $az_agent_dir
-        dotnet publish $az_csproj -c $Configuration -o $az_out_dir
     }
 
     if ($LASTEXITCODE -eq 0 -and $AgentToInclude -contains 'msaz') {
