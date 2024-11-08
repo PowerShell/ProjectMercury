@@ -203,8 +203,8 @@ internal class Telemetry
         IServiceCollection services = new ServiceCollection()
             .AddApplicationInsightsTelemetryWorkerService((ApplicationInsightsServiceOptions options) =>
                 {
-                    // Application insights in the test environment.
-                    options.ConnectionString = "InstrumentationKey=eea660a1-d969-44f8-abe4-96666e7fb159";
+                    // Application insights in the AME environment.
+                    options.ConnectionString = "InstrumentationKey=6378fd21-6e8d-4192-9714-0b776babff23";
                     options.EnableHeartbeat = false;
                     options.EnableDiagnosticsTelemetryModule = false;
                 });
