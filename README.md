@@ -1,25 +1,44 @@
-# Welcome to Project Mercury
+# ![logo][]AI Shell (a.k.a Project Mercury)
 
-**Project Mercury** contains our latest CLI tool that provides an interactive shell session to chat
-with language models, creating an *AI Shell*. Users can use _agents_ to interact with different AI models, or other
-assistance providers, in a conversational manner. **Project Mercury** also provides a framework for
-creating AI agents.
+Welcome to the **AI Shell** repository! AI Shell is a CLI tool that brings the power of artificial
+intelligence directly to your command line! Designed to help you get command assistance from various
+AI assistants, AIShell is a versatile tool to help you become more productive in the command line.
+We call these various AI asssitant providers _agents_. You can use agents to interact with different
+generative AI models or other AI/ML/assistant providers in a conversational manner. This repo
+contains the code of the AI Shell engine, agents and details on how to create your own agent.
 
-Why the name **Project Mercury**? The name is inspired both by the Roman god of messages and the
-first human spaceflight by the US. This project is our first step into the new world of AI powered
-assistance and focuses on being the connection (or messenger) between the user and the AI model.
+Why the name **Project Mercury**? This was the original code name of the project and was inspired
+both by the Roman god of messages and the first human spaceflight by the US. This project is our
+first step into the new world of AI powered assistance and focuses on being the connection (or
+messenger) between the user and the AI model.
 
-This project is currently in the **alpha** phase. Expect many significant changes to the code as we
-experiment and refine the user experiences of this tool. We appreciate your feedback and patience as
-we continue our development.
+This project is currently in a very early **public preview** state. Expect many significant changes
+to the code as we experiment and refine the user experiences of this tool. We appreciate your
+feedback and patience as we continue our development.
 
 ![GIF showing demo of the AI Shell][04]
 
-## Installation
+## New to AI Shell?
+
+To learn more about AI Shell, we recommend you check out the overview page of the AI Shell
+documentation.
+
+There are two modes to use AI Shell, standalone and a side-by-side, integrated experience with
+PowerShell 7. For more information see,
+- [Get Started with AI Shell in PowerShell][15]
+- [Get Started with AI Shell (standalone)][16]
+
+## Getting AI Shell
+
+AI Shell is supported on Windows, MacOS and Linux, however the best experience you can have is with
+Windows, [PowerShell 7][11] and [Windows Terminal][14]. For more information see,
+[Installing AI Shell][13].
+
+## Locally Building AI Shell
 
 Some prerequisites for building an AI Shell:
 
-- Build script requires PowerShell v7.2 or newer versions
+- Build script requires PowerShell v7.4 or newer versions
 - [PowerShell v7.4][11] is recommended
 - [.NET SDK 8][09] is required to build the project
 
@@ -27,7 +46,8 @@ Here are the steps to install and use.
 
 1. Clone this repository, `git clone https://github.com/PowerShell/ProjectMercury`
 2. Import the `build.psm1` module by running `import-module ./build.psm1` 
-3. Run the `Start-Build` command 
+3. Run the `Start-Build` command (You can specify which agents build with the `-AgentsToInclude`
+   parameter)
 4. After the build is complete, you can find the produced executable `aish` in the `out\debug\app`
    folder within the repository's root directory. You can add the location to the `PATH` environment
    variable for easy access. The full path is copied to your clipboard after successful build.
@@ -35,14 +55,16 @@ Here are the steps to install and use.
 ## AI Agents
 
 Project Mercury provides a framework for creating and registering multiple AI Agents. The agents are
-libraries that you use to interact with different AI models or assistance providers. Currently,
-these are the supported agents:
+libraries that you use to interact with different AI models or assistance providers. AI Shell
+releases with two agents, the `openai-gpt` and `azure` agent. However there are additional ones
+supported if you locally build the project: 
 
 Agent README files:
 
-- [`openai-gpt`][08]
+- [`openai-gpt`][08] (shipped with AI Shell)
 - [`ollama`][06]
 - [`interpreter`][07]
+- [`azure`][17] (shipped with AI Shell)
 
 When you run `aish`, you are prompted to choose an agent. For more details about each agent, see the
 README in the each agent folder.
@@ -165,8 +187,14 @@ bugs, suggestions, or feedback.
 [05]: ./docs/SUPPORT.md
 [06]: ./shell/agents/AIShell.Ollama.Agent/README.md
 [07]: ./shell/agents/AIShell.Interpreter.Agent/README.md
-[08]: ./shell/agents/AIShell.OpenAI.Agent/README.md
+[08]: https://learn.microsoft.com/command-line/aishell/agent-openai
 [09]: https://dotnet.microsoft.com/en-us/download
 [10]: https://github.com/PowerShell/ProjectMercury/issues
 [11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
 [12]: ./docs/SECURITY.md
+[13]: https://learn.microsoft.com/command-line/aishell/install
+[14]: https://learn.microsoft.com/windows/terminal/
+[15]: https://learn.microsoft.com/command-line/aishell/get-started-powershell
+[16]: https://learn.microsoft.com/command-line/aishell/get-started-standalone
+[17]: https://learn.microsoft.com/command-line/aishell/agent-azure
+[logo]: <TODO>
