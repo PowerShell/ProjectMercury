@@ -26,15 +26,16 @@ public sealed class AzureAgent : ILLMAgent
         1. User's OS is `{0}`. Make sure the generated commands are suitable for the specified OS.
         2. DO NOT include the command for creating a new resource group unless the query explicitly asks for it. Otherwise, assume a resource group already exists.
         3. DO NOT include an additional example with made-up values unless it provides additional context or value beyond the initial command.
-        4. Always represent a placeholder in the form of `<placeholder-name>`.
-        5. Always use the consistent placeholder names across all your responses. For example, `<resourceGroupName>` should be used for all the places where a resource group name value is needed.
-        6. When the commands contain placeholders, the placeholders should be summarized in markdown bullet points at the end of the response in the same order as they appear in the commands, following this format:
+        4. DO NOT use the line continuation operator (backslash `\` in Bash) in the generated commands.
+        5. Always represent a placeholder in the form of `<placeholder-name>`.
+        6. Always use the consistent placeholder names across all your responses. For example, `<resourceGroupName>` should be used for all the places where a resource group name value is needed.
+        7. When the commands contain placeholders, the placeholders should be summarized in markdown bullet points at the end of the response in the same order as they appear in the commands, following this format:
            ```
            Placeholders:
            - `<first-placeholder>`: <concise-description>
            - `<second-placeholder>`: <concise-description>
            ```
-        7. DO NOT include the placeholder summary when the commands contains no placeholder.
+        8. DO NOT include the placeholder summary when the commands contains no placeholder.
         """;
 
     private int _turnsLeft;
