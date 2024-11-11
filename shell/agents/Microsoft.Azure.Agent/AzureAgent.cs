@@ -69,10 +69,10 @@ public sealed class AzureAgent : ILLMAgent
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Terms"] = "https://aka.ms/TermsofUseCopilot",
+            ["Terms"] = "https://aka.ms/AzureAgentTermsofUse",
             ["Privacy"] = "https://aka.ms/privacy",
-            ["FAQ"] = "https://aka.ms/CopilotforAzureClientToolsFAQ",
-            ["Transparency"] = "https://aka.ms/CopilotAzCLIPSTransparency",
+            ["FAQ"] = "https://aka.ms/AzureAgentFAQ",
+            ["Transparency"] = "https://aka.ms/AzureAgentTransparency",
         };
     }
 
