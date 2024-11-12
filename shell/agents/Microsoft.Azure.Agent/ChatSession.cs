@@ -145,6 +145,7 @@ internal class ChatSession : IDisposable
         {
             // We fall back to the test endpoint when the prod endpoint is unavailable.
             response = await SendRequestAsync(TEST_ACCESS_URL);
+            Telemetry.Trace(AzTrace.Exception("Prod access endpoint not working. Fall back to canary endpoint."));
         }
         await response.EnsureSuccessStatusCodeForTokenRequest("Failed to check Copilot authorization.");
 
