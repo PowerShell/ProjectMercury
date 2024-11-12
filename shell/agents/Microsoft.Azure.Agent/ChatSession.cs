@@ -11,9 +11,8 @@ namespace Microsoft.Azure.Agent;
 
 internal class ChatSession : IDisposable
 {
-    // TODO: production URL not yet working for some regions.
-    // private const string ACCESS_URL = "https://copilotweb.production.portalrp.azure.com/api/access?api-version=2024-09-01";
-    private const string ACCESS_URL = "https://copilotweb.canary.production.portalrp.azure.com/api/access?api-version=2024-09-01";
+    private const string PROD_ACCESS_URL = "https://copilotweb.production.portalrp.azure.com/api/access?api-version=2024-09-01";
+    private const string TEST_ACCESS_URL = "https://copilotweb.canary.production.portalrp.azure.com/api/access?api-version=2024-09-01";
     private const string DL_TOKEN_URL = "https://copilotweb.production.portalrp.azure.com/api/conversations/start?api-version=2024-11-15";
     private const string CONVERSATION_URL = "https://directline.botframework.com/v3/directline/conversations";
 
@@ -141,11 +140,17 @@ internal class ChatSession : IDisposable
 
     private async Task CheckAuthorizationAsync(CancellationToken cancellationToken)
     {
-        HttpRequestMessage request = new(HttpMethod.Get, ACCESS_URL);
+        HttpRequestMessage request = new(HttpMethod.Get, PROD_ACCESS_URL);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Token);
 
         HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
+        if (response.StatusCode is System.Net.HttpStatusCode.Forbidden)
+        {
+            // We fall back to the test endpoint when the prod endpoint is unavailable.
+            request.RequestUri = new Uri(TEST_ACCESS_URL, UriKind.RelativeOrAbsolute);
+            response = await _httpClient.SendAsync(request, cancellationToken);
+        }
         await response.EnsureSuccessStatusCodeForTokenRequest("Failed to check Copilot authorization.");
 
         using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
