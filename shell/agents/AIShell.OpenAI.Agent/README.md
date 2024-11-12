@@ -4,7 +4,7 @@ This agent is designed to provide a flexible and user-friendly platform for inte
 services, either the public OpenAI service or a private deployment of the Azure OpenAI service,
 through one or more customly defined GPT instances.
 
-For more infromation about this agent, see the [OpenAI Agent][01] documentation.
+For more information about this agent, see the [OpenAI Agent][01] documentation.
 
 <!-- link references -->
 [01]: https://learn.microsoft.com/command-line/aishell/agent-openai
