@@ -140,16 +140,11 @@ internal class ChatSession : IDisposable
 
     private async Task CheckAuthorizationAsync(CancellationToken cancellationToken)
     {
-        HttpRequestMessage request = new(HttpMethod.Get, PROD_ACCESS_URL);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Token);
-
-        HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
+        HttpResponseMessage response = await SendRequestAsync(PROD_ACCESS_URL);
         if (response.StatusCode is System.Net.HttpStatusCode.Forbidden)
         {
             // We fall back to the test endpoint when the prod endpoint is unavailable.
-            request.RequestUri = new Uri(TEST_ACCESS_URL, UriKind.RelativeOrAbsolute);
-            response = await _httpClient.SendAsync(request, cancellationToken);
+            response = await SendRequestAsync(TEST_ACCESS_URL);
         }
         await response.EnsureSuccessStatusCodeForTokenRequest("Failed to check Copilot authorization.");
 
@@ -162,6 +157,14 @@ internal class ChatSession : IDisposable
             string message = $"Access token not authorized to access Azure Copilot. {permission.Message}";
             Telemetry.Trace(AzTrace.Exception(message));
             throw new TokenRequestException(message) { UserUnauthorized = true };
+        }
+
+        async Task<HttpResponseMessage> SendRequestAsync(string url)
+        {
+            HttpRequestMessage request = new(HttpMethod.Get, url);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken.Token);
+            return await _httpClient.SendAsync(request, cancellationToken);
         }
     }
 
