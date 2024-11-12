@@ -141,11 +141,11 @@ internal class ChatSession : IDisposable
     private async Task CheckAuthorizationAsync(CancellationToken cancellationToken)
     {
         HttpResponseMessage response = await SendRequestAsync(PROD_ACCESS_URL);
-        if (response.StatusCode is System.Net.HttpStatusCode.Forbidden)
+        if (response.StatusCode is not System.Net.HttpStatusCode.OK)
         {
             // We fall back to the test endpoint when the prod endpoint is unavailable.
             response = await SendRequestAsync(TEST_ACCESS_URL);
-            Telemetry.Trace(AzTrace.Exception("Prod access endpoint not working. Fall back to canary endpoint."));
+            Telemetry.Trace(AzTrace.Exception($"Prod access endpoint unavailable. HTTP status: {response.StatusCode}. Fall back to canary endpoint."));
         }
         await response.EnsureSuccessStatusCodeForTokenRequest("Failed to check Copilot authorization.");
 
