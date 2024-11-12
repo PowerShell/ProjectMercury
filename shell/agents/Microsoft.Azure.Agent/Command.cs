@@ -53,7 +53,21 @@ internal sealed class ReplaceCommand : CommandBase
 
         if (ap is null)
         {
-            host.WriteErrorLine("No argument placeholder to replace.");
+            CopilotResponse cr = _agent.CopilotResponse;
+            if (cr is null || cr.IsError)
+            {
+                host.WriteErrorLine("No AI response available.");
+            }
+            else if (!cr.Text.Contains("```") && !cr.Text.Contains("~~~"))
+            {
+                host.WriteErrorLine("The last AI response contains no code in it.");
+            }
+            else
+            {
+                Telemetry.Trace(AzTrace.Exception($"'/replace' command unavailable. TopicName: {cr.TopicName}"));
+                host.WriteErrorLine("The '/replace' command is experimental and could not successfully parse the response. This issue may occur intermittently due to specific response conditions.");
+            }
+
             return;
         }
 
