@@ -144,8 +144,8 @@ internal class ChatSession : IDisposable
         if (response.StatusCode is not System.Net.HttpStatusCode.OK)
         {
             // We fall back to the test endpoint when the prod endpoint is unavailable.
-            response = await SendRequestAsync(TEST_ACCESS_URL);
             Telemetry.Trace(AzTrace.Exception($"Prod access endpoint unavailable. HTTP status: {response.StatusCode}. Fall back to canary endpoint."));
+            response = await SendRequestAsync(TEST_ACCESS_URL);
         }
         await response.EnsureSuccessStatusCodeForTokenRequest("Failed to check Copilot authorization.");
 
