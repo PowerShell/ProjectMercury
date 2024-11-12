@@ -58,7 +58,7 @@ internal sealed class ReplaceCommand : CommandBase
             {
                 host.WriteErrorLine("No AI response available.");
             }
-            else if (!cr.Text.Contains("```"))
+            else if (!cr.Text.Contains("```") && !cr.Text.Contains("~~~"))
             {
                 host.WriteErrorLine("The last AI response contains no code in it.");
             }
