@@ -3,7 +3,7 @@
 Welcome to the **AI Shell** repository! AI Shell is a CLI tool that brings the power of artificial
 intelligence directly to your command line! Designed to help you get command assistance from various
 AI assistants, AI Shell is a versatile tool to help you become more productive in the command line.
-We call these various AI asssitant providers _agents_. You can use agents to interact with different
+We call these various AI assistant providers _agents_. You can use agents to interact with different
 generative AI models or other AI/ML/assistant providers in a conversational manner. This repo
 contains the code of the AI Shell engine, agents and details on how to create your own agent.
 
