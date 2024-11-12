@@ -8,7 +8,7 @@ jobs:
     - group: msixTools
     - group: 'Azure Blob variable group'
     - name: ob_outputDirectory
-      value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
+      value: '$(Build.ArtifactStagingDirectory)\ONEBRANCH_ARTIFACT'
 
   steps:
     - download: AIShellPackagePipeline
@@ -76,39 +76,16 @@ jobs:
       retryCountOnTaskFailure: 1
 
     - pwsh: |
-        $azureRmModule = Get-InstalledModule AzureRM -ErrorAction SilentlyContinue -Verbose
-        if ($azureRmModule) {
-          Write-Host 'AzureRM module exists. Removing it'
-          Uninstall-AzureRm
-          Write-Host 'AzureRM module removed'
+        if (-not (Test-Path '$(ob_outputDirectory)')) {
+          New-Item -ItemType Directory -Path '$(ob_outputDirectory)' -Force
         }
 
-        Install-Module -Name Az.Storage -Force -AllowClobber -Scope CurrentUser -Verbose
-      displayName: Remove AzRM modules and install Az.Storage
-
-    - task: AzurePowerShell@5
-      displayName: Upload msix to blob
-      inputs:
-        azureSubscription: az-blob-cicd-infra
-        scriptType: inlineScript
-        azurePowerShellVersion: LatestVersion
-        pwsh: true
-        inline: |
-          $containerName = 'aish'
-          $storageAccount = '$(PSInfraStorageAccount)'
-
-          $storageContext = New-AzStorageContext -StorageAccountName $storageAccount -UseConnectedAccount
-
-          if ($env:BundleDir) {
-            $bundleFile = (Get-Item "$env:BundleDir\*.msixbundle").FullName
-            $fileName = $bundleFile | Split-Path -Leaf
-
-            $version = [System.IO.Path]::GetFileNameWithoutExtension($fileName).Replace('AIShell-', '')
-            $blobName = "$version/$fileName"
-
-            Write-Verbose -Verbose "Uploading $bundleFile to $containerName/$blobName"
-            $null = Set-AzStorageBlobContent -File $bundleFile -Container $containerName -Blob $blobName -Context $storageContext
-          }
-          else{
-            throw "BundleDir not found"
-          }
+        Write-Verbose -Verbose "Copying msixbundle to output directory"
+        if ($env:BundleDir) {
+          $bundleFile = (Get-Item "$env:BundleDir\*.msixbundle").FullName
+          Copy-Item -Path $bundleFile -Destination '$(ob_outputDirectory)' -Force -Verbose
+        }
+        else{
+          throw "BundleDir not found"
+        }
+      displayName: Copy msixbundle to output directory
