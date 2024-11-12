@@ -53,7 +53,7 @@ internal sealed class ReplaceCommand : CommandBase
 
         if (ap is null)
         {
-            host.WriteErrorLine("The `/replace` command is experimental could not successfully parse the response. This issue may occur intermittently due to specific response conditions.");
+            host.WriteErrorLine("The `/replace` command is experimental and could not successfully parse the response. This issue may occur intermittently due to specific response conditions.");
             return;
         }
 
