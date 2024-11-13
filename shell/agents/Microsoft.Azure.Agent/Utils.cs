@@ -87,7 +87,9 @@ internal class CorruptDataException : Exception
 
     internal static CorruptDataException Create(string message, CopilotActivity activity)
     {
-        return new CorruptDataException($"Unexpected copilot activity received. {message}\n\n{activity.Serialize()}\n");
+        string errorMessage = $"Unexpected copilot activity received. {message}\n\n{activity.Serialize()}\n";
+        Telemetry.Trace(AzTrace.Exception(errorMessage));
+        return new CorruptDataException(errorMessage);
     }
 }
 
