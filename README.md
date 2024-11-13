@@ -20,7 +20,7 @@ feedback and patience as we continue our development.
 
 ## New to AI Shell?
 
-To learn more about AI Shell, we recommend you check out the overview page of the AI Shell
+To learn more about AI Shell, we recommend you check out the [overview][19] page of the AI Shell
 documentation.
 
 There are two modes to use AI Shell, standalone and a side-by-side, integrated experience with
@@ -186,15 +186,16 @@ bugs, suggestions, or feedback.
 [05]: ./docs/SUPPORT.md
 [06]: ./shell/agents/AIShell.Ollama.Agent/README.md
 [07]: ./shell/agents/AIShell.Interpreter.Agent/README.md
-[08]: https://learn.microsoft.com/command-line/aishell/agent-openai
+[08]: https://learn.microsoft.com/powershell/utility-modules/aishell/how-to/agent-openai
 [09]: https://dotnet.microsoft.com/en-us/download
 [10]: https://github.com/PowerShell/ProjectMercury/issues
 [11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
 [12]: ./docs/SECURITY.md
-[13]: https://learn.microsoft.com/command-line/aishell/install
+[13]: https://learn.microsoft.com/powershell/utility-modules/aishell/install-aishell
 [14]: https://learn.microsoft.com/windows/terminal/
-[15]: https://learn.microsoft.com/command-line/aishell/get-started-powershell
-[16]: https://learn.microsoft.com/command-line/aishell/get-started-standalone
-[17]: https://learn.microsoft.com/command-line/aishell/agent-azure
+[15]: https://learn.microsoft.com/powershell/utility-modules/aishell/get-started/aishell-powershell
+[16]:https://learn.microsoft.com/powershell/utility-modules/aishell/get-started/aishell-standalone
+[17]: https://learn.microsoft.com/powershell/utility-modules/aishell/how-to/agent-azure
 [18]: https://github.com/PowerShell/PowerShell/releases/tag/v7.4.6
+[19]: https://learn.microsoft.com/powershell/utility-modules/aishell/overview
 [logo]: ./docs/media/AIShellIconSVG.svg

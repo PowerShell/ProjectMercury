@@ -7,4 +7,4 @@ through one or more customly defined GPT instances.
 For more information about this agent, see the [OpenAI Agent][01] documentation.
 
 <!-- link references -->
-[01]: https://learn.microsoft.com/command-line/aishell/agent-openai
+[01]: https://learn.microsoft.com/powershell/utility-modules/aishell/how-to/agent-openai
