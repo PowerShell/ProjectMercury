@@ -248,8 +248,10 @@ public sealed class AzureAgent : ILLMAgent
 
                 if (_copilotResponse.IsError)
                 {
+                    string errorMessage = _copilotResponse.Text;
+                    Telemetry.Trace(AzTrace.Exception(errorMessage));
                     host.WriteErrorLine()
-                        .WriteErrorLine(_copilotResponse.Text)
+                        .WriteErrorLine(errorMessage)
                         .WriteErrorLine();
                 }
                 else
@@ -300,21 +302,25 @@ public sealed class AzureAgent : ILLMAgent
                 }
             }
 
+            // The 'ConversationState' could be null when Azure Copilot returns an error response.
             var conversationState = _copilotResponse.ConversationState;
-            _turnsLeft = conversationState.TurnLimit - conversationState.TurnNumber;
-            if (_turnsLeft <= 5)
+            if (conversationState is not null)
             {
-                string message = _turnsLeft switch
+                _turnsLeft = conversationState.TurnLimit - conversationState.TurnNumber;
+                if (_turnsLeft <= 5)
                 {
-                    1 => $"[yellow]{_turnsLeft} request left[/]",
-                    0 => $"[red]{_turnsLeft} request left[/]",
-                    _ => $"[yellow]{_turnsLeft} requests left[/]",
-                };
+                    string message = _turnsLeft switch
+                    {
+                        1 => $"[yellow]{_turnsLeft} request left[/]",
+                        0 => $"[red]{_turnsLeft} request left[/]",
+                        _ => $"[yellow]{_turnsLeft} requests left[/]",
+                    };
 
-                host.RenderDivider(message, DividerAlignment.Right);
-                if (_turnsLeft is 0)
-                {
-                    host.WriteLine("\nYou've reached the maximum length of a conversation. To continue, please run '/refresh' to start a new conversation.\n");
+                    host.RenderDivider(message, DividerAlignment.Right);
+                    if (_turnsLeft is 0)
+                    {
+                        host.WriteLine("\nYou've reached the maximum length of a conversation. To continue, please run '/refresh' to start a new conversation.\n");
+                    }
                 }
             }
 
