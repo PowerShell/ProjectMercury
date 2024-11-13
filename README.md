@@ -56,7 +56,7 @@ Here are the steps to install and use.
 Project Mercury provides a framework for creating and registering multiple AI Agents. The agents are
 libraries that you use to interact with different AI models or assistance providers. AI Shell
 releases with two agents, the `openai-gpt` and `azure` agent. However there are additional ones
-supported if you locally build the project: 
+supported if you locally build the project:
 
 Agent README files:
 
@@ -95,7 +95,8 @@ $PSReadLineSplat = @{
 Set-PSReadLineKeyHandler @PSReadLineSplat
 ```
 
-Similarly, you can use iTerm2 to get a similiar split pane experience on MacOS. You can split the pane vertically by pressing `Cmd + D` and then run `aish` in one of the panes.
+Similarly, you can use iTerm2 to get a similiar split pane experience on MacOS. You can split the
+pane vertically by pressing `Cmd + D` and then run `aish` in one of the panes.
 
 ### Chat commands
 
@@ -117,14 +118,15 @@ the AI model. To get a list of commands, use the `/help` command in the chat ses
   /retry     Regenerate a new response for the last query.    Core
 ```
 
-Also, agents can implement their own commands. For example, the `openai-gpt` agent register the command `/gpt`
-for managing the GPTs defined for the agent. Some commands, such as `/like` and `/dislike`, are commands that
-sends feedback to the agents. It is up to the agents to consume the feedback.
+Also, agents can implement their own commands. For example, the `openai-gpt` agent register the
+command `/gpt` for managing the GPTs defined for the agent. Some commands, such as `/like` and
+`/dislike`, are commands that sends feedback to the agents. It is up to the agents to consume the
+feedback.
 
 ### Key bindings for commands
 
-AI Shell supports key bindings for the `/code` command.
-They are currently hard-coded, but custom key bindings will be supported in future releases.
+AI Shell supports key bindings for the `/code` command. They are currently hard-coded, but custom
+key bindings will be supported in future releases.
 
 | Key bindings              | Command          | Functionality |
 | ------------------------- | ---------------- | ------------- |
@@ -135,10 +137,12 @@ They are currently hard-coded, but custom key bindings will be supported in futu
 
 ### Configuration
 
-Currently, AI Shell supports very basic configuration. One can creates a file named `config.json` under `~/.aish` to configure AI Shell,
-but it only supports declaring the default agent to use at startup. This way you do not need to select agents everytime you run `aish.exe`
+Currently, AI Shell supports very basic configuration. One can creates a file named `config.json`
+under `~/.aish` to configure AI Shell, but it only supports declaring the default agent to use at
+startup. This way you do not need to select agents everytime you run `aish.exe`
 
-Configuration of AI Shell will be improved in future releases to support custom key bindings, color themes and more.
+Configuration of AI Shell will be improved in future releases to support custom key bindings, color
+themes and more.
 
 ```json
 {
@@ -152,14 +156,17 @@ Please see [CONTRIBUTING.md][02] for more details.
 
 ## Privacy
 
-AI Shell does not capture, collect, store, or process any personal data or personally identifiable information (PII). All data interactions 
-are limited to the scope of the functionality provided by the tool and do not involve any form of personal data collection.
+AI Shell does not capture, collect, store, or process any personal data or personally identifiable
+information (PII). All data interactions are limited to the scope of the functionality provided by
+the tool and do not involve any form of personal data collection.
 
-Some agents integrated with AI Shell may collect telemetry data to improve performance, enhance user experience, or troubleshoot issues. 
-We recommend that you refer to the individual agent’s README or documentation for more information on the telemetry practices and data collection 
-policies for each agent.
+Some agents integrated with AI Shell may collect telemetry data to improve performance, enhance user
+experience, or troubleshoot issues. We recommend that you refer to the individual agent’s README or
+documentation for more information on the telemetry practices and data collection policies for each
+agent.
 
-If you are interested in learning more, see [Microsoft's Privacy Statement](https://www.microsoft.com/en-us/privacy/privacystatement?msockid=1fe60b30e66967f13fb91f29e73f661a).
+If you are interested in learning more, see
+[Microsoft's Privacy Statement](https://www.microsoft.com/en-us/privacy/privacystatement?msockid=1fe60b30e66967f13fb91f29e73f661a).
 
 ## Support
 
