@@ -1,4 +1,4 @@
-# ![logo][] AI Shell (a.k.a Project Mercury)
+# AI Shell (a.k.a Project Mercury)
 
 Welcome to the **AI Shell** repository! AI Shell is a CLI tool that brings the power of artificial
 intelligence directly to your command line! Designed to help you get command assistance from various
