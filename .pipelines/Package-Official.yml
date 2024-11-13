@@ -1,13 +1,6 @@
 trigger: none
 
 parameters: # parameters are shown up in ADO UI in a build queue time
-  - name: ForceAzureBlobDelete
-    displayName: Delete Azure Blob
-    type: string
-    values:
-    - true
-    - false
-    default: false
   - name: 'debug'
     displayName: 'Enable debug output'
     type: boolean
@@ -20,8 +13,6 @@ variables:
     value: ${{ parameters.debug }}
   - name: ENABLE_PRS_DELAYSIGN
     value: 1
-  - name: ForceAzureBlobDelete
-    value: ${{ parameters.ForceAzureBlobDelete }}
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
   - name: WindowsContainerImage
