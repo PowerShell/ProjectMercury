@@ -197,4 +197,4 @@ bugs, suggestions, or feedback.
 [16]: https://learn.microsoft.com/command-line/aishell/get-started-standalone
 [17]: https://learn.microsoft.com/command-line/aishell/agent-azure
 [18]: https://github.com/PowerShell/PowerShell/releases/tag/v7.4.6
-[logo]: <TODO>
+[logo]: ./docs/media/AIShellIconSVG.svg
