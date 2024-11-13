@@ -59,7 +59,7 @@ public sealed class AzureAgent : ILLMAgent
 
         Name = "azure";
         Company = "Microsoft";
-        Description = "This AI assistant can generate Azure CLI and Azure PowerShell commands for managing Azure resources, answer questions, and provides information tailored to your specific Azure environment.";
+        Description = "This AI assistant connects you to the Copilot in Azure and can generate Azure CLI and Azure PowerShell commands for managing Azure resources and answer questions about Azure.";
 
         SampleQueries = [
             "How do I create a VM with a public IP address",
