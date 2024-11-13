@@ -16,8 +16,6 @@ This project is currently in a very early **public preview** state. Expect many 
 to the code as we experiment and refine the user experiences of this tool. We appreciate your
 feedback and patience as we continue our development.
 
-![GIF showing demo of the AI Shell][04]
-
 ## New to AI Shell?
 
 To learn more about AI Shell, we recommend you check out the [overview][19] page of the AI Shell
@@ -27,6 +25,14 @@ There are two modes to use AI Shell, standalone and a side-by-side, integrated e
 PowerShell 7. For more information see,
 - [Get Started with AI Shell in PowerShell][15]
 - [Get Started with AI Shell (standalone)][16]
+
+### AI Shell in PowerShell
+
+![GIF showing demo of the AI Shell in PowerShell][21]
+
+### Standalone experience
+
+![GIF showing demo of the AI Shell standalone][20]
 
 ## Getting AI Shell
 
@@ -70,34 +76,6 @@ README in the each agent folder.
 
 To learn more about how to create an agent for yourself please see, [Creating an Agent][03].
 
-## Usage
-
-To start a chat session with the LLM, run `aish`, which starts a new session in your current window.
-Choose the agent you would like to use. Once you select an agent you can begin your conversation.
-
-We suggest using a split pane approach with the terminal of choice. In Windows Terminal, use the
-following command to start `aish` in a new split pane:
-
-```shell
-wt -w 0 sp aish
-```
-
-You can bind this command to a key like `F3` in your PowerShell session. Add the following code to
-your `$PROFILE` script:
-
-```powershell
-$PSReadLineSplat = @{
-    Chord = 'F3'
-    ScriptBlock = {
-        wt -w 0 sp --tabColor '#345beb'--size 0.4 -p $env:WT_PROFILE_ID --title 'AIShell' <full-path-to-aish.exe>
-    }
-}
-Set-PSReadLineKeyHandler @PSReadLineSplat
-```
-
-Similarly, you can use iTerm2 to get a similiar split pane experience on MacOS. You can split the
-pane vertically by pressing `Cmd + D` and then run `aish` in one of the panes.
-
 ### Chat commands
 
 By default, `aish` provides a base set of chat `/` commands used to interact with the responses from
@@ -139,7 +117,7 @@ key bindings will be supported in future releases.
 
 Currently, AI Shell supports very basic configuration. One can creates a file named `config.json`
 under `~/.aish` to configure AI Shell, but it only supports declaring the default agent to use at
-startup. This way you do not need to select agents everytime you run `aish.exe`
+startup. This way you do not need to select agents every time you run `aish.exe`
 
 Configuration of AI Shell will be improved in future releases to support custom key bindings, color
 themes and more.
@@ -205,4 +183,6 @@ bugs, suggestions, or feedback.
 [17]: https://learn.microsoft.com/powershell/utility-modules/aishell/how-to/agent-azure
 [18]: https://github.com/PowerShell/PowerShell/releases/tag/v7.4.6
 [19]: https://learn.microsoft.com/powershell/utility-modules/aishell/overview
+[20]: ./docs/media/standalone-startup.gif
+[21]: ./docs/media/aishellwithPowerShell.gif
 [logo]: ./docs/media/AIShellIconSVG.svg
