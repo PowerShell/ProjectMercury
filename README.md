@@ -38,8 +38,7 @@ Windows, [PowerShell 7][11] and [Windows Terminal][14]. For more information see
 
 Some prerequisites for building an AI Shell:
 
-- Build script requires PowerShell v7.4 or newer versions
-- [PowerShell v7.4][11] is recommended
+- Build script requires [PowerShell v7.4][18] or newer versions
 - [.NET SDK 8][09] is required to build the project
 
 Here are the steps to install and use.
@@ -197,4 +196,5 @@ bugs, suggestions, or feedback.
 [15]: https://learn.microsoft.com/command-line/aishell/get-started-powershell
 [16]: https://learn.microsoft.com/command-line/aishell/get-started-standalone
 [17]: https://learn.microsoft.com/command-line/aishell/agent-azure
+[18]: https://github.com/PowerShell/PowerShell/releases/tag/v7.4.6
 [logo]: <TODO>
