@@ -62,9 +62,8 @@ public sealed class AzureAgent : ILLMAgent
         Description = "This AI assistant can generate Azure CLI and Azure PowerShell commands for managing Azure resources, answer questions, and provides information tailored to your specific Azure environment.";
 
         SampleQueries = [
-            "Create a VM with a public IP address",
-            "How to create a web app?",
-            "Backup an Azure SQL database to a storage container"
+            "How do I create a VM with a public IP address",
+            "Help me create a storage account"
         ];
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
