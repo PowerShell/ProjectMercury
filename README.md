@@ -1,4 +1,4 @@
-# ![logo][]AI Shell (a.k.a Project Mercury)
+# ![logo][] AI Shell (a.k.a Project Mercury)
 
 Welcome to the **AI Shell** repository! AI Shell is a CLI tool that brings the power of artificial
 intelligence directly to your command line! Designed to help you get command assistance from various
@@ -20,6 +20,8 @@ feedback and patience as we continue our development.
 
 To learn more about AI Shell, we recommend you check out the [overview][19] page of the AI Shell
 documentation.
+
+### Usage
 
 There are two modes to use AI Shell, standalone and a side-by-side, integrated experience with
 PowerShell 7. For more information see,
@@ -161,7 +163,7 @@ For any security issues, please see our [Security Policy][12].
 ## Feedback
 
 We're still in development and value your feedback! Please file [issues][10] in this repository for
-bugs, suggestions, or feedback.
+bugs, suggestions, or feedback. If you would like to give more candid feedback and sign up for testing future versions and features before they are released, please fill out this [form][22].
 
 <!-- link references -->
 [01]: ./docs/CODE_OF_CONDUCT.md
@@ -185,4 +187,5 @@ bugs, suggestions, or feedback.
 [19]: https://learn.microsoft.com/powershell/utility-modules/aishell/overview
 [20]: ./docs/media/standalone-startup.gif
 [21]: ./docs/media/aishellwithPowerShell.gif
+[22]: https://aka.ms/AIShell-Feedback
 [logo]: ./docs/media/AIShellIconSVG.svg
