@@ -1,3 +1,3 @@
 {
-    "AgentsToInclude": "*"
+    "AgentsToInclude": ["msaz", "openai-gpt"]
 }
