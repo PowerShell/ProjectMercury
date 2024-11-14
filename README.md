@@ -169,7 +169,6 @@ bugs, suggestions, or feedback. If you would like to give more candid feedback a
 [01]: ./docs/CODE_OF_CONDUCT.md
 [02]: ./docs/CONTRIBUTING.md
 [03]: ./docs/development/CreatingAnAgent.md
-[04]: ./docs/media/AIShellDemo.gif
 [05]: ./docs/SUPPORT.md
 [06]: ./shell/agents/AIShell.Ollama.Agent/README.md
 [07]: ./shell/agents/AIShell.Interpreter.Agent/README.md
@@ -185,7 +184,7 @@ bugs, suggestions, or feedback. If you would like to give more candid feedback a
 [17]: https://learn.microsoft.com/powershell/utility-modules/aishell/how-to/agent-azure
 [18]: https://github.com/PowerShell/PowerShell/releases/tag/v7.4.6
 [19]: https://learn.microsoft.com/powershell/utility-modules/aishell/overview
-[20]: ./docs/media/standalone-startup.gif
+[20]: ./docs/media/DemoGIFs/standalone-startup.gif
 [21]: ./docs/media/aishellwithPowerShell.gif
 [22]: https://aka.ms/AIShell-Feedback
 [logo]: ./docs/media/AIShellIconSVG.svg
