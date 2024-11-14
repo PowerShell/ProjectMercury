@@ -209,8 +209,7 @@ internal class ChatSession : IDisposable
             {
                 activity.ExtractMetadata(out _, out ConversationState conversationState);
                 int chatNumber = conversationState.DailyConversationNumber;
-                int requestNumber = conversationState.TurnNumber;
-                return $"{activity.Text}\nThis is chat #{chatNumber}, request #{requestNumber}.\n";
+                return $"{activity.Text} This is chat #{chatNumber}.\n\n\x1b[96mAI Generated content may be incorrect.\x1b[0m\n";
             }
         }
     }
