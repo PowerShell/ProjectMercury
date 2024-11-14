@@ -286,7 +286,7 @@ internal sealed class Shell : IShell
             chosenAgent ??= _agents.Count is 1
                 ? _agents[0]
                 : Host.PromptForSelectionAsync(
-                    title: "Welcome to AIShell! We’re excited to have you explore our [bold]Public Preview[/]. Documentation is available at [link=https://aka.ms/AIShell-Docs]aka.ms/AIShell-Docs[/], and we’d love to hear your thoughts - share your feedback with us at [link=https://aka.ms/AIShell-Feedback]aka.ms/AIShell-Feedback[/].\n\n[orange1]Please select an AI [Blue]agent[/] to use[/]:\n[grey](You can switch to another agent later by typing [Blue]@<agent name>[/])[/]",
+                    title: "Welcome to AI Shell! We’re excited to have you explore our [bold]Public Preview[/]. Documentation is available at [link=https://aka.ms/AIShell-Docs]aka.ms/AIShell-Docs[/], and we’d love to hear your thoughts - share your feedback with us at [link=https://aka.ms/AIShell-Feedback]aka.ms/AIShell-Feedback[/].\n\n[orange1]Please select an AI [Blue]agent[/] to use[/]:\n[grey](You can switch to another agent later by typing [Blue]@<agent name>[/])[/]",
                     choices: _agents,
                     converter: static a => a.Impl.Name)
                 .GetAwaiter().GetResult();
