@@ -185,6 +185,6 @@ bugs, suggestions, or feedback. If you would like to give more candid feedback a
 [18]: https://github.com/PowerShell/PowerShell/releases/tag/v7.4.6
 [19]: https://learn.microsoft.com/powershell/utility-modules/aishell/overview
 [20]: ./docs/media/DemoGIFs/standalone-startup.gif
-[21]: ./docs/media/aishellwithPowerShell.gif
+[21]: ./docs/media/DemoGIFs/azure-agent.gif
 [22]: https://aka.ms/AIShell-Feedback
 [logo]: ./docs/media/AIShellIconSVG.svg
