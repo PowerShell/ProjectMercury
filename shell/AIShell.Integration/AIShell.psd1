@@ -7,7 +7,7 @@
     CompanyName = 'Microsoft Corporation'
     Copyright = '(c) Microsoft Corporation. All rights reserved.'
     Description = 'Integration with the AIShell to provide intelligent shell experience'
-    PowerShellVersion = '7.4.6'
+    PowerShellVersion = '7.4.5'
     FunctionsToExport = @()
     CmdletsToExport = @('Start-AIShell','Invoke-AIShell','Resolve-Error')
     VariablesToExport = '*'

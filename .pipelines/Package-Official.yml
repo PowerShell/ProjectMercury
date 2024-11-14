@@ -1,13 +1,6 @@
 trigger: none
 
 parameters: # parameters are shown up in ADO UI in a build queue time
-  - name: ForceAzureBlobDelete
-    displayName: Delete Azure Blob
-    type: string
-    values:
-    - true
-    - false
-    default: false
   - name: 'debug'
     displayName: 'Enable debug output'
     type: boolean
@@ -20,8 +13,6 @@ variables:
     value: ${{ parameters.debug }}
   - name: ENABLE_PRS_DELAYSIGN
     value: 1
-  - name: ForceAzureBlobDelete
-    value: ${{ parameters.ForceAzureBlobDelete }}
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
   - name: WindowsContainerImage
@@ -87,12 +78,7 @@ extends:
         tsaOptionsFile: .config\tsaoptions.json
 
     stages:
-    - stage: prep
-      jobs:
-      - template: /.pipelines/templates/check-Azure-container.yml@self
-
     - stage: mac
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/mac-package.yml@self
         parameters:
@@ -102,7 +88,6 @@ extends:
           architecture: arm64
 
     - stage: windows
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/windows-package.yml@self
         parameters:
@@ -115,7 +100,6 @@ extends:
           architecture: arm64
 
     - stage: linux
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/linux-package.yml@self
         parameters:
@@ -125,16 +109,9 @@ extends:
           architecture: arm64
 
     - stage: module
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/module-package.yml@self
 
     - stage: nupkg
-      dependsOn: [prep]
       jobs:
       - template: /.pipelines/templates/nupkg-package.yml@self
-
-    - stage: upload
-      dependsOn: [mac, windows, linux, module, nupkg]
-      jobs:
-      - template: /.pipelines/templates/upload-to-Azure.yml@self
