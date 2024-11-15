@@ -25,8 +25,8 @@ param(
 
 function Get-PowerShellVersion {
     if ([version]$PSVersionTable.PSVersion -lt [version]"7.4.6") {
-        Write-Warning "[PowerShell version 7.4.6 is the minimum requirement for AIShell module]`n"
-        return ""
+        Write-Warning "[PowerShell version 7.4.6 is the minimum requirement for AIShell module, exiting...]"
+        return $False
     }
     return $True
 }
@@ -196,11 +196,11 @@ function Remove-AIShellFromPath {
 #
 ###################################>
 
-if (!Get-PowerShellVersion) {
+if (!$(Get-PowerShellVersion)) {
     return
 }
 
-if (!Get-InstallDirectoryForCurrentOS) {
+if (!$(Get-InstallDirectoryForCurrentOS)) {
     return 
 }
 
