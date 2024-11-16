@@ -88,7 +88,7 @@ function Install-AIShellApp {
             Write-Host "[AIShell added to Path]" -ForegroundColor Green
         }
     } else {
-        sudo tar -xzf yourfile.tar.gz -C $destination
+        sudo tar -xzf $tempPath -C $destination
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to extract '$tempPath' to the folder '$destination'."
         }
