@@ -23,170 +23,153 @@ param(
 #
 #################################################>
 
-function Get-PowerShellVersion {
-    if ([version]$PSVersionTable.PSVersion -lt [version]"7.4.6") {
-        Write-Warning "[PowerShell version 7.4.6 is the minimum requirement for AIShell module, exiting...]"
-        return $False
+$Script:MacSymbolicLink = '/usr/local/bin/aish'
+$Script:MacInstallationLocation = "/usr/local/AIShell"
+$Script:WinInstallationLocation = "$env:LOCALAPPDATA\Programs\AIShell"
+$Script:InstallLocation = $null
+$Script:PackageURL = $null
+
+function Resolve-Environment {
+    if ($PSVersionTable.PSVersion -lt [version]"7.4.6") {
+        throw "PowerShell v7.4.6 is required for using the AIShell module."
     }
-    return $True
+    if ($IsLinux) {
+        throw "Sorry, this install script is only compatible with Windows and macOS. If you want to install on Linux, please download the package directly from the GitHub repo at aka.ms/AIShell-Repo."
+    }
+
+    ($platShortName, $platFullName, $pkgExt, $location) = if ($IsWindows) {
+        'win', 'Windows', 'zip', $Script:WinInstallationLocation
+    } else {
+        'osx', 'macOS', 'tar.gz', $Script:MacInstallationLocation
+    }
+
+    $architecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+    if ($architecture -notin @('X86', 'X64', 'Arm64')) {
+        throw "AI Shell doesn't support the $architecture architecture on $platFullName."
+    }
+
+    $Script:InstallLocation = $location
+    $Script:PackageURL = "https://github.com/PowerShell/ProjectMercury/releases/download/v1.0.0-preview.1/AIShell-1.0.0-preview.1-${platShortName}-$($architecture.ToLower()).${pkgExt}"
 }
 
-function Get-InstallDirectoryForCurrentOS {
-    $destinationDirectoryForMac = Join-Path "usr" "local" "AIShell"
-    $destinationDirectoryForWindows = Join-Path $env:LOCALAPPDATA "Programs" "AIShell"
-    # check os
+function Install-AIShellApp {
+    $destination = $Script:InstallLocation
+    $packageUrl = $Script:PackageURL
+
+    if (Test-Path -path $destination) {
+        # TODO: need to check if the folder is empty, and if not, prompt to ask if we should delete all from within the folder.
+        # skip installing AIShell app if user respond 'No' for deleting.
+    } else {
+        # Create the directory if not existing.
+        if ($IsWindows) {
+            $null = New-Item -Path $destination -ItemType Directory -Force
+        } else {
+            # '/usr/local' requires sudo.
+            sudo mkdir $destination
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to create the installation folder '$destination'."
+            }
+        }
+    }
+
+    $fileName = [System.IO.Path]::GetFileName($packageUrl)
+    $tempPath = Join-Path $env:TEMP $fileName
+    if (Test-Path $tempPath) {
+        Remove-Item $tempPath -Force -ErrorAction Stop
+    }
+
+    # Download AIShell package.
+    Write-Host "[Downloading AIShell package '$fileName' ...]`n" -ForegroundColor Green
+    Invoke-WebRequest -Uri $packageUrl -OutFile $tempPath -ProgressAction Ignore -ErrorAction Stop
+
+    # Extract AIShell package.
+    Write-Host "[Extracting AIShell to '$destination' ...]" -ForegroundColor Green
+    Unblock-File -Path $tempPath
     if ($IsWindows) {
-        return $destinationDirectoryForWindows
-    } 
-    elseif ($IsMacOS) {
-        return $destinationDirectoryForMac
-    }
-    else {
-        Write-Warning "This install script is only compatible with Windows and Mac systems, if you want to install on Linux please download the package directly from the GitHub repo at aka.ms/AIShell-Repo"
-        return ""
-    }
-}
+        Expand-Archive -Path $tempPath -DestinationPath $destination -Force -ErrorAction Stop
 
-function Save-AIShellFromUrl {
-    # using placeholder urls until the GitHub release files are ready
-    $osxArm64Url = "osxArm64Url"
-    $osxX64Url = "osxX64Url"
-    $winArm64Url = "winArm64Url"
-    $winX64Url = "winX64Url"
-    $winX86Url = "winX86Url"
-    $moduleUrl = "moduleUrl"
+        # Set the process-scope and user-scope Path env variables to include AIShell.
+        $envPath = $env:Path
+        if (-not $envPath.Contains($destination)) {
+            Write-Host "[Adding AIShell to Path]" -ForegroundColor Green
+            $env:Path = "${destination};${envPath}"
+            $userPath = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::User)
+            $newUserPath = $userPath.EndsWith(';') ? "${userPath}${destination}" : "${userPath};${destination}"
+            [Environment]::SetEnvironmentVariable('Path', $newUserPath, [EnvironmentVariableTarget]::User)
+            Write-Host "[AIShell added to Path]" -ForegroundColor Green
+        }
+    } else {
+        sudo tar -xzf yourfile.tar.gz -C $destination
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to extract '$tempPath' to the folder '$destination'."
+        }
 
-    if (!$moduleUrl) {
-        return
-    }
+        $aishPath = Join-Path $destination 'aish'
+        sudo chmod +x $aishPath
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to set the execution permission to the executable '$aishPath'."
+        }
 
-    # Determine download url based on OS and architecture
-    $destinationDirectory = Get-InstallDirectoryForCurrentOS
-    $osArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-
-    $buildUrl = ""
-    if ($IsWindows) {
-        if ($osArchitecture -eq "X64") {
-            $buildUrl = $winX64Url
-        } 
-        elseif ($osArchitecture -eq "X86") {
-            $buildUrl = $winX86Url
-        } 
-        elseif ($osArchitecture -eq "Arm64") {
-            $buildUrl = $winArm64Url
-        } 
-    } 
-    elseif ($IsMacOS) {
-        if ($osArchitecture -eq "X64") {
-            $buildUrl = $osxX64Url
-        } 
-        elseif ($osArchitecture -eq "Arm64") {
-            $buildUrl = $osxArm64Url
-        } 
-    }
-
-    # Create the directory if not existed
-    if(!(Test-Path -path $destinationDirectory)) {
-        New-Item -Path $destinationDirectory -ItemType Directory -Force | Out-Null
-    }
-
-    # Download AIShell Module
-    $tempFilesDirectory = Join-Path $destinationDirectory "temp"
-    if(!(Test-Path -path $tempFilesDirectory)) {
-        New-Item -Path $tempFilesDirectory -ItemType Directory -Force | Out-Null
-    }
-    Write-Host "[Downloading the latest AIShell PowerShell Module to $tempFilesDirectory ...]`n" -ForegroundColor Green
-    Invoke-WebRequest -Uri $moduleUrl -OutFile $tempFilesDirectory
-
-    # Download OS specific AIShell build
-    $osPlatform = ""
-    $destinationArchiveFile = ""
-    if ($IsWindows) {
-        $osPlatform = "Windows"
-        $destinationArchiveFile = Join-Path $tempFilesDirectory "AIShell.zip"
-    } 
-    elseif ($IsMacOS) {
-        $osPlatform = "MacOS"
-        $destinationArchiveFile = Join-Path $tempFilesDirectory "AIShell.tar.gz"
-    }
-    Write-Host "[Downloading the latest AIShell for $osPlatform $osArchitecture to $destinationArchiveFile ...]`n" -ForegroundColor Green
-    Invoke-WebRequest -Uri $buildUrl -OutFile $destinationArchiveFile
-    
-    # Unzip AIShell
-    Write-Host "[Unzipping AIShell to $destinationDirectory ...]" -ForegroundColor Green
-    Unblock-File -Path $destinationArchiveFile
-    Expand-Archive -Path $destinationArchiveFile -DestinationPath $destinationDirectory -Force
-    if ($IsMacOS) {
-        $aishPath = Join-Path $destinationArchiveFile "aish"
-        chmod +x $aishPath
+        # No need to setup the Path env variable as the symbolic link is already within Path.
+        $symlink = $Script:MacSymbolicLink
+        sudo ln -s $aishPath $symlink
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to create the symbolic link '$symlink' to '$aishPath'."
+        }
     }
 }
 
-function Remove-AIShellFromLocalDir {
-    $DestinationPath = Get-InstallDirectoryForCurrentOS
-    if (Test-Path $DestinationPath) {
-            Write-Host "[Removing AIShell from $DestinationPath]" -ForegroundColor Green
-            Remove-Item -Path $DestinationPath -Recurse -Force
-            Write-Host "[AIShell removed from $DestinationPath]" -ForegroundColor Green
-    } 
-    else {
-        Write-Host "[AIShell cannot be found at $DestinationPath, skip removing]" -ForegroundColor Yellow
+function Uninstall-AIShellApp {
+    $destination = $Script:InstallLocation
+    if (Test-Path $destination) {
+        if ($IsWindows) {
+            Remove-Item -Path $destination -Recurse -Force -ErrorAction Stop
+
+            # Update the user-scope Path env variables to remove AIShell.
+            $userPath = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::User)
+            if ($userPath.Contains($destination)) {
+                Write-Host "[Removing AIShell from user-scope Path]" -ForegroundColor Green
+                $newUserPath = $userPath.Split(';', [StringSplitOptions]::RemoveEmptyEntries -bor [StringSplitOptions]::TrimEntries) |
+                    Where-Object { $_ -ne $destination } |
+                    Join-String -Separator ';'
+                [Environment]::SetEnvironmentVariable("Path", $newUserPath, [EnvironmentVariableTarget]::User)
+                Write-Host "[AIShell removed from user-scope PATH]" -ForegroundColor Green
+            }
+        } else {
+            sudo rm -rf $destination
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to remove the AIShell app from '$destination'."
+            }
+
+            $symlink = $Script:MacSymbolicLink
+            sudo rm $symlink
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to remove the symbolic link '$symlink'."
+            }
+        }
+        Write-Host "[AIShell removed from '$destination']" -ForegroundColor Green
+    } else {
+        Write-Host "[AIShell cannot be found at '$destination', skip removing]" -ForegroundColor Yellow
     }
 }
 
-function Register-AIShellModule {
-    Write-Host "[Installing AIShell Module]" -ForegroundColor Green
-    $aishModulePath = Join-Path $(Get-InstallDirectoryForCurrentOS) "temp"
-    $repoName = "tempRepositoryForAIShell"
-    Register-PSRepository -Name $repoName -SourceLocation $aishModulePath -InstallationPolicy Trusted
-    Install-Module -Name "AIShell" -Repository $repoName -AllowClobber
-    Unregister-PSRepository -Name $repoName
-    Remove-Item -Path $aishModulePath -Recurse -Force
+function Install-AIShellModule {
+    Write-Host "[Installing the PowerShell module 'AIShell' ...]`n" -ForegroundColor Green
+    Install-PSResource -Name AIShell -Repository PSGallery -Prerelease -ErrorAction Stop
     Write-Host "[AIShell Module installed]" -ForegroundColor Green
 }
 
-function Unregister-AIShellModule {
-    if (Get-InstalledModule -Name "AIShell") {
-        Write-Host "[Uninstalling AIShell Module]" -ForegroundColor Green
-        Uninstall-Module -Name "AIShell" -Force
-        Write-Host "[AIShell Module uninstalled]" -ForegroundColor Green
-    } 
-    else {
-        Write-Host "[AIShell Module cannot be found, skip uninstalling]" -ForegroundColor Yellow
-    }
-}
-
-function Test-AIShellExistInPath {
-    $aishPath =  Get-InstallDirectoryForCurrentOS
-    return ($env:PATH -like "*$aishPath*")
-}
-
-function Add-AIShellToPath {
-    if (Test-AIShellExistInPath) {
-        Write-Host "[AIShell was already added in PATH]" -ForegroundColor Green
-    } else {
-        Write-Host "[Adding AIShell to PATH]" -ForegroundColor Green
-        $processPath = $env:PATH
-        if (!$processPath.EndsWith("$")) {
-            $processPath += ";"
+function Uninstall-AIShellModule {
+    if (Get-InstalledPSResource -Name "AIShell") {
+        try {
+            Write-Host "[Uninstalling AIShell Module ...]" -ForegroundColor Green
+            Uninstall-PSResource -Name AIShell -ErrorAction Stop
+            Write-Host "[AIShell Module uninstalled]" -ForegroundColor Green
+        } catch {
+            throw "Failed to uninstall the 'AIShell' module. Please check if the module got imported in any active PowerShell session. If so, please exit the session and try this script again."
         }
-        $aishPath =  Get-InstallDirectoryForCurrentOS
-        [Environment]::SetEnvironmentVariable("PATH", $processPath + $aishPath, "Process")
-        Write-Host "[AIShell added to PATH]" -ForegroundColor Green
-    }
-}
-
-function Remove-AIShellFromPath {
-    if (Test-AIShellExistInPath) {
-        Write-Host "[Removing AIShell from PATH]" -ForegroundColor Green
-        $aishPath =  Get-InstallDirectoryForCurrentOS
-        $processPath = $env:PATH
-        $processPath = ($processPath.Split(';') | Where-Object { $_ -ne $AishPath }) -join ';'
-        [Environment]::SetEnvironmentVariable("PATH", $processPath, "Process")
-        Write-Host "[AIShell removed from PATH]" -ForegroundColor Green
-    } 
-    else {
-        Write-Host "[AIShell cannot be found in PATH, skip removing]" -ForegroundColor Yellow
+    } else {
+        Write-Host "[AIShell Module cannot be found, skip uninstalling]" -ForegroundColor Yellow
     }
 }
 
@@ -196,47 +179,26 @@ function Remove-AIShellFromPath {
 #
 ###################################>
 
-if (!$(Get-PowerShellVersion)) {
-    return
-}
-
-if (!$(Get-InstallDirectoryForCurrentOS)) {
-    return 
-}
-
-Write-Host "----------------------------------------`n" -ForegroundColor Green
+Resolve-Environment
 
 if ($Uninstall) {
-    Unregister-AIShellModule
-} 
-else {
-    Save-AIShellFromUrl
+    Uninstall-AIShellApp
+} else {
+    Install-AIShellApp
 }
 
 Write-Host "`n----------------------------------------`n" -ForegroundColor Green
 
 if ($Uninstall) {
-    Remove-AIShellFromLocalDir  
-} 
-else {
-    Register-AIShellModule
+    Uninstall-AIShellModule
+} else {
+    Install-AIShellModule
 }
 
 Write-Host "`n----------------------------------------`n" -ForegroundColor Green
-
-if ($Uninstall) {
-    Remove-AIShellFromPath
-} 
-else {
-    Add-AIShellToPath
-}
-
-Write-Host "`n----------------------------------------`n" -ForegroundColor Green
-
 
 if ($Uninstall) {
     Write-Host "AIShell has been fully uninstalled." -ForegroundColor Green
-} 
-else {
-    Write-Host "Please run ``Start-AIShell`` now." -ForegroundColor Green
+} else {
+    Write-Host "Installation succeeded. Please run ``Start-AIShell``." -ForegroundColor Green
 }
