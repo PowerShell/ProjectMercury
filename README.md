@@ -173,7 +173,7 @@ bugs, suggestions, or feedback. If you would like to give more candid feedback a
 [07]: ./shell/agents/AIShell.Interpreter.Agent/README.md
 [08]: https://learn.microsoft.com/powershell/utility-modules/aishell/how-to/agent-openai
 [09]: https://dotnet.microsoft.com/en-us/download
-[10]: https://github.com/PowerShell/ProjectMercury/issues
+[10]: https://github.com/PowerShell/AIShell/issues
 [11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
 [12]: ./docs/SECURITY.md
 [13]: https://learn.microsoft.com/powershell/utility-modules/aishell/install-aishell
