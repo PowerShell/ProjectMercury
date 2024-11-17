@@ -6,7 +6,7 @@
         <id>AIShell.Abstraction</id>
         <version>{0}</version>
         <authors>Microsoft</authors>
-        <projectUrl>https://github.com/PowerShell/ProjectMercury</projectUrl>
+        <projectUrl>https://github.com/PowerShell/AIShell</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <license type="expression">MIT</license>
         <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>

@@ -512,4 +512,4 @@ loaded by `aish`.
 [03]: ../../shell/README.md
 [04]: https://github.com/ollama/ollama
 [05]: https://github.com/ollama/ollama/blob/main/docs/api.md#request-no-streaming
-[06]: https://github.com/PowerShell/ProjectMercury/discussions/categories/agent-sharing
+[06]: https://github.com/PowerShell/AIShell/discussions/categories/agent-sharing

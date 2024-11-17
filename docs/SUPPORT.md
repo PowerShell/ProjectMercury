@@ -21,7 +21,7 @@ For other help and questions please see:
 [01]: ../README.md
 [02]: ../shell/README.md
 [03]: ./FAQ.md
-[04]: https://github.com/PowerShell/ProjectMercury/issues
-[05]: https://github.com/PowerShell/ProjectMercury/issues/new/choose
+[04]: https://github.com/PowerShell/AIShell/issues
+[05]: https://github.com/PowerShell/AIShell/issues/new/choose
 [07]: ../shell/agents/AIShell.Interpreter.Agent/README.md
 [08]: ../shell/agents/AIShell.OpenAI.Agent/README.md

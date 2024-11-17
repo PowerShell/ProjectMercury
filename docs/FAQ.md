@@ -1,10 +1,10 @@
 # Frequently Asked Questions
 
-This page provides help with common questions about Project Mercury.
+This page provides help with common questions about AIS hell.
 
-## What is Project Mercury?
+## What is AI Shell?
 
-**Project Mercury** is a platform that provides a framework for developers to build their own AI
+**AI Shell** is a platform that provides a framework for developers to build their own AI
 Agents and assistance providers for an AI Shell. Agents provide the user experience for the LLM and are
 deeply connected to PowerShell 7. For more about the architecture, see the
 [shell/README][01].
@@ -27,7 +27,7 @@ model or AI engine.
 
 ## What operating systems are supported?
 
-We have tested on macOS and Windows operating systems. **Project Mercury** may work on linux but we
+We have tested on macOS and Windows operating systems. **AI Shell** may work on linux but we
 haven't tested it can't guarantee that all features will work as expected.
 
 ## How do I get a split pane experience in my Terminal?
