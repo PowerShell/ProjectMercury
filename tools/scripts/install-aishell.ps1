@@ -6,12 +6,6 @@ param(
     [switch] $Uninstall
 )
 
-<#################################################
-#
-#               Helper functions
-#
-#################################################>
-
 $Script:MacSymbolicLink = '/usr/local/bin/aish'
 $Script:MacInstallationLocation = "/usr/local/AIShell"
 $Script:WinInstallationLocation = "$env:LOCALAPPDATA\Programs\AIShell"
@@ -38,17 +32,38 @@ function Resolve-Environment {
     }
 
     $Script:InstallLocation = $location
-    $Script:PackageURL = "https://github.com/PowerShell/ProjectMercury/releases/download/v1.0.0-preview.1/AIShell-1.0.0-preview.1-${platShortName}-$($architecture.ToLower()).${pkgExt}"
+    $Script:PackageURL = "https://github.com/PowerShell/AIShell/releases/download/v1.0.0-preview.1/AIShell-1.0.0-preview.1-${platShortName}-$($architecture.ToLower()).${pkgExt}"
 }
 
 function Install-AIShellApp {
+    [CmdletBinding()]
+    param()
+
     $destination = $Script:InstallLocation
     $packageUrl = $Script:PackageURL
 
-    if (Test-Path -path $destination) {
-        # TODO: need to check if the folder is empty, and if not, prompt to ask if we should delete all from within the folder.
-        # skip installing AIShell app if user respond 'No' for deleting.
-    } else {
+    $destinationExists = Test-Path -Path $destination
+    if ($destinationExists) {
+        $anyFile = Get-ChildItem -Path $destination | Select-Object -First 1
+        if ($anyFile) {
+            $remove = $PSCmdlet.ShouldContinue("AI Shell was already installed (or partially installed) at '$destination'.", "Do you want to remove it for a new installation?")
+            if ($remove) {
+                $destinationExists = $false
+                if ($IsWindows) {
+                    Remove-Item -Path $destination -Recurse -Force -ErrorAction Stop
+                } else {
+                    sudo rm -rf $destination
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Failed to remove '$destination'."
+                    }
+                }
+            } else {
+                throw "Operation cancelled. You can remove the current installation by './install-aishell.ps1 -Uninstall' and try again."
+            }
+        }
+    }
+
+    if (-not $destinationExists) {
         # Create the directory if not existing.
         if ($IsWindows) {
             $null = New-Item -Path $destination -ItemType Directory -Force
@@ -71,39 +86,46 @@ function Install-AIShellApp {
     Write-Host "[Downloading AIShell package '$fileName' ...]`n" -ForegroundColor Green
     Invoke-WebRequest -Uri $packageUrl -OutFile $tempPath -ProgressAction Ignore -ErrorAction Stop
 
-    # Extract AIShell package.
-    Write-Host "[Extracting AIShell to '$destination' ...]" -ForegroundColor Green
-    Unblock-File -Path $tempPath
-    if ($IsWindows) {
-        Expand-Archive -Path $tempPath -DestinationPath $destination -Force -ErrorAction Stop
+    try {
+        # Extract AIShell package.
+        Write-Host "[Extracting AIShell to '$destination' ...]" -ForegroundColor Green
+        Unblock-File -Path $tempPath
+        if ($IsWindows) {
+            Expand-Archive -Path $tempPath -DestinationPath $destination -Force -ErrorAction Stop
 
-        # Set the process-scope and user-scope Path env variables to include AIShell.
-        $envPath = $env:Path
-        if (-not $envPath.Contains($destination)) {
-            Write-Host "[Adding AIShell to Path]" -ForegroundColor Green
-            $env:Path = "${destination};${envPath}"
-            $userPath = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::User)
-            $newUserPath = $userPath.EndsWith(';') ? "${userPath}${destination}" : "${userPath};${destination}"
-            [Environment]::SetEnvironmentVariable('Path', $newUserPath, [EnvironmentVariableTarget]::User)
-            Write-Host "[AIShell added to Path]" -ForegroundColor Green
-        }
-    } else {
-        sudo tar -xzf $tempPath -C $destination
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to extract '$tempPath' to the folder '$destination'."
-        }
+            # Set the process-scope and user-scope Path env variables to include AIShell.
+            $envPath = $env:Path
+            if (-not $envPath.Contains($destination)) {
+                Write-Host "[Adding AIShell to Path ...]" -ForegroundColor Green
+                $env:Path = "${destination};${envPath}"
+                $userPath = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::User)
+                $newUserPath = $userPath.EndsWith(';') ? "${userPath}${destination}" : "${userPath};${destination}"
+                [Environment]::SetEnvironmentVariable('Path', $newUserPath, [EnvironmentVariableTarget]::User)
+            }
+        } else {
+            sudo tar -xzf $tempPath -C $destination
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to extract '$tempPath' to the folder '$destination'."
+            }
 
-        $aishPath = Join-Path $destination 'aish'
-        sudo chmod +x $aishPath
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to set the execution permission to the executable '$aishPath'."
-        }
+            $aishPath = Join-Path $destination 'aish'
+            sudo chmod +x $aishPath
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to set the execution permission to the executable '$aishPath'."
+            }
 
-        # No need to setup the Path env variable as the symbolic link is already within Path.
-        $symlink = $Script:MacSymbolicLink
-        sudo ln -s $aishPath $symlink
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to create the symbolic link '$symlink' to '$aishPath'."
+            # No need to setup the Path env variable as the symbolic link is already within Path.
+            $symlink = $Script:MacSymbolicLink
+            if (-not (Test-Path -Path $symlink)) {
+                sudo ln -s $aishPath $symlink
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to create the symbolic link '$symlink' to '$aishPath'."
+                }
+            }
+        }
+    } finally {
+        if (Test-Path -Path $tempPath) {
+            Remove-Item -Path $tempPath -Force -ErrorAction SilentlyContinue
         }
     }
 }
@@ -143,9 +165,13 @@ function Uninstall-AIShellApp {
 }
 
 function Install-AIShellModule {
-    Write-Host "[Installing the PowerShell module 'AIShell' ...]`n" -ForegroundColor Green
-    Install-PSResource -Name AIShell -Repository PSGallery -Prerelease -ErrorAction Stop
-    Write-Host "[AIShell Module installed]" -ForegroundColor Green
+    if ($IsWindows) {
+        Write-Host "[Installing the PowerShell module 'AIShell' ...]`n" -ForegroundColor Green
+        Install-PSResource -Name AIShell -Repository PSGallery -Prerelease -TrustRepository -ErrorAction Stop
+    } else {
+        Write-Host -ForegroundColor Yellow "Currently the AIShell PowerShell module will only work in iTerm2 terminal and still has limited support but if you would like to test it, you can install it with 'Install-PSResource -Name AIShell -Repository PSGallery -Prerelease'."
+        Write-Host -ForegroundColor Yellow "The aish executable has been added to your path, please run 'aish' to use the standalone experience."
+    }
 }
 
 function Uninstall-AIShellModule {
@@ -172,22 +198,15 @@ Resolve-Environment
 
 if ($Uninstall) {
     Uninstall-AIShellApp
-} else {
-    Install-AIShellApp
-}
-
-Write-Host "`n----------------------------------------`n" -ForegroundColor Green
-
-if ($Uninstall) {
     Uninstall-AIShellModule
-} else {
-    Install-AIShellModule
-}
-
-Write-Host "`n----------------------------------------`n" -ForegroundColor Green
-
-if ($Uninstall) {
     Write-Host "AIShell has been fully uninstalled." -ForegroundColor Green
 } else {
-    Write-Host "Installation succeeded. Please run ``Start-AIShell``." -ForegroundColor Green
+    Install-AIShellApp
+    Install-AIShellModule
+
+    if ($IsWindows) {
+        Write-Host "Installation succeeded. Please run 'Start-AIShell' to start AIShell." -ForegroundColor Green
+    } else {
+        Write-Host "Installation succeeded. Please run 'aish' to start AIShell." -ForegroundColor Green
+    }
 }
