@@ -167,7 +167,7 @@ internal sealed class ReplaceCommand : CommandBase
         if (_values.Count > 0)
         {
             host.RenderDivider("Summary", DividerAlignment.Left);
-            host.WriteLine("\nThe following placeholders will be replace:");
+            host.WriteLine("\nThe following placeholders will be replaced:");
             host.RenderList(_values);
 
             host.RenderDivider("Regenerate", DividerAlignment.Left);
