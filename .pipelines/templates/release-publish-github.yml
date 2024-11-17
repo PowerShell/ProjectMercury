@@ -11,7 +11,7 @@ jobs:
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
   - name: ob_sdl_tsa_configFile
-    value: $(Build.SourcesDirectory)\ProjectMercury\.config\tsaoptions.json
+    value: $(Build.SourcesDirectory)\AIShell\.config\tsaoptions.json
 
   steps:
   - checkout: self
@@ -82,7 +82,7 @@ jobs:
       Import-module '$(Pipeline.Workspace)\tools\Scripts\GitHubRelease.psm1'
       $releaseTag = 'v$(ReleaseVersion)'
       $description = '<!-- TODO: Generate release notes on GitHub! -->'
-      Publish-ReleaseDraft -Tag $releaseTag -Name "$releaseTag Release of AIShell" -Description $description -User PowerShell -Repository ProjectMercury -PackageFolder $(PackagesRoot) -Token $(GitHubReleasePat)
+      Publish-ReleaseDraft -Tag $releaseTag -Name "$releaseTag Release of AIShell" -Description $description -User PowerShell -Repository AIShell -PackageFolder $(PackagesRoot) -Token $(GitHubReleasePat)
     displayName: Publish Release Draft
 
 - template: /.pipelines/templates/wait-for-approval.yml@self
