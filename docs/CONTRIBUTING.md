@@ -1,13 +1,13 @@
-# Contributing to Project Mercury
+# Contributing to AI Shell
 
-Thank you for your interest in contributing to Project Mercury! We aren't currently accepting pull
+Thank you for your interest in contributing to AI Shell! We aren't currently accepting pull
 requests, but we highly value your contributions in other forms.
 
 ## Reporting Issues
 
 Issues are a great way to contribute to the project. By creating a detailed report, you help us
 understand and prioritize what needs attention. Whether it's a bug or a feature request, your
-reports play a crucial role in improving Project Mercury.
+reports play a crucial role in improving AI Shell.
 
 ### How to Report an Issue
 
