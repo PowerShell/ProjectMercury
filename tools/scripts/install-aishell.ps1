@@ -83,7 +83,7 @@ function Install-AIShellApp {
     }
 
     # Download AIShell package.
-    Write-Host "[Downloading AIShell package '$fileName' ...]`n" -ForegroundColor Green
+    Write-Host "[Downloading AI Shell package '$fileName' ...]`n" -ForegroundColor Green
     Invoke-WebRequest -Uri $packageUrl -OutFile $tempPath -ProgressAction Ignore -ErrorAction Stop
 
     try {
