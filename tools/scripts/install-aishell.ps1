@@ -170,7 +170,7 @@ function Install-AIShellModule {
         Install-PSResource -Name AIShell -Repository PSGallery -Prerelease -TrustRepository -ErrorAction Stop
     } else {
         Write-Host -ForegroundColor Yellow "Currently the AIShell PowerShell module will only work in iTerm2 terminal and still has limited support but if you would like to test it, you can install it with 'Install-PSResource -Name AIShell -Repository PSGallery -Prerelease'."
-        Write-Host -ForegroundColor Yellow "The aish executable has been added to your path, please run 'aish' to use the standalone experience."
+        Write-Host -ForegroundColor Yellow "The AI Shell app has been added to your path, please run 'aish' to use the standalone experience."
     }
 }
 
