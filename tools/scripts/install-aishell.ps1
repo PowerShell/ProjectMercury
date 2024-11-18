@@ -207,6 +207,6 @@ if ($Uninstall) {
     if ($IsWindows) {
         Write-Host "Installation succeeded. Please run 'Start-AIShell' to start AIShell." -ForegroundColor Green
     } else {
-        Write-Host "Installation succeeded. Please run 'aish' to start AIShell." -ForegroundColor Green
+        Write-Host "Installation succeeded. To learn more about AI Shell please visit https://aka.ms/AIShell-Docs. To get started please run 'aish' to start AI Shell." -ForegroundColor Green
     }
 }
