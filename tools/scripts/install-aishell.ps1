@@ -139,7 +139,7 @@ function Uninstall-AIShellApp {
             # Update the user-scope Path env variables to remove AIShell.
             $userPath = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::User)
             if ($userPath.Contains($destination)) {
-                Write-Host "[Removing AIShell from user-scope Path]" -ForegroundColor Green
+                Write-Host "[Removing AI Shell app from user-scope Path]" -ForegroundColor Green
                 $newUserPath = $userPath.Split(';', [StringSplitOptions]::RemoveEmptyEntries -bor [StringSplitOptions]::TrimEntries) |
                     Where-Object { $_ -ne $destination } |
                     Join-String -Separator ';'
