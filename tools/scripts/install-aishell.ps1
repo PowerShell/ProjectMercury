@@ -88,7 +88,7 @@ function Install-AIShellApp {
 
     try {
         # Extract AIShell package.
-        Write-Host "[Extracting AIShell to '$destination' ...]" -ForegroundColor Green
+        Write-Host "[Extracting AI Shell to '$destination' ...]" -ForegroundColor Green
         Unblock-File -Path $tempPath
         if ($IsWindows) {
             Expand-Archive -Path $tempPath -DestinationPath $destination -Force -ErrorAction Stop
