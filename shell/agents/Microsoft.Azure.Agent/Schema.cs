@@ -409,10 +409,9 @@ internal class UserAccessToken
 
 internal class UserDirectLineToken
 {
-    private const string REFRESH_TOKEN_URL = "https://directline.botframework.com/v3/directline/tokens/refresh";
-
     private string _token;
     private DateTimeOffset _expireOn;
+    private readonly string _tokenRenewUrl;
 
     /// <summary>
     /// The DirectLine token.
@@ -422,10 +421,11 @@ internal class UserDirectLineToken
     /// <summary>
     /// Initialize an instance.
     /// </summary>
-    internal UserDirectLineToken(string token, int expiresInSec)
+    internal UserDirectLineToken(string token, int expiresInSec, string dlBaseUrl)
     {
         _token = token;
         _expireOn = DateTimeOffset.UtcNow.AddSeconds(expiresInSec);
+        _tokenRenewUrl = $"{dlBaseUrl}/tokens/refresh";
     }
 
     /// <summary>
@@ -466,7 +466,7 @@ internal class UserDirectLineToken
 
         try
         {
-            HttpRequestMessage request = new(HttpMethod.Post, REFRESH_TOKEN_URL);
+            HttpRequestMessage request = new(HttpMethod.Post, _tokenRenewUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
 
             var response = await httpClient.SendAsync(request, cancellationToken);
