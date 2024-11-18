@@ -14,7 +14,7 @@ $Script:PackageURL = $null
 
 function Resolve-Environment {
     if ($PSVersionTable.PSVersion -lt [version]"7.4.6") {
-        throw "PowerShell v7.4.6 is required for using the AIShell module."
+        throw "PowerShell v7.4.6 or higher is required for using the AIShell module. You can download it at https://github.com/PowerShell/PowerShell/releases/tag/v7.4.6 "
     }
     if ($IsLinux) {
         throw "Sorry, this install script is only compatible with Windows and macOS. If you want to install on Linux, please download the package directly from the GitHub repo at aka.ms/AIShell-Repo."
