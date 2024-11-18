@@ -144,7 +144,7 @@ function Uninstall-AIShellApp {
                     Where-Object { $_ -ne $destination } |
                     Join-String -Separator ';'
                 [Environment]::SetEnvironmentVariable("Path", $newUserPath, [EnvironmentVariableTarget]::User)
-                Write-Host "[AIShell removed from user-scope PATH]" -ForegroundColor Green
+                Write-Host "[AI Shell app removed from user-scope PATH]" -ForegroundColor Green
             }
         } else {
             sudo rm -rf $destination
