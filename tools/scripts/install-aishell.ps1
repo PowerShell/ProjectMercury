@@ -96,7 +96,7 @@ function Install-AIShellApp {
             # Set the process-scope and user-scope Path env variables to include AIShell.
             $envPath = $env:Path
             if (-not $envPath.Contains($destination)) {
-                Write-Host "[Adding AIShell to Path ...]" -ForegroundColor Green
+                Write-Host "[Adding AI Shell app to Path ...]" -ForegroundColor Green
                 $env:Path = "${destination};${envPath}"
                 $userPath = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::User)
                 $newUserPath = $userPath.EndsWith(';') ? "${userPath}${destination}" : "${userPath};${destination}"
