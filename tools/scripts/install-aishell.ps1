@@ -158,7 +158,7 @@ function Uninstall-AIShellApp {
                 throw "Failed to remove the symbolic link '$symlink'."
             }
         }
-        Write-Host "[AIShell removed from '$destination']" -ForegroundColor Green
+        Write-Host "[AI Shell app removed from '$destination']" -ForegroundColor Green
     } else {
         Write-Host "[AIShell cannot be found at '$destination', skip removing]" -ForegroundColor Yellow
     }
