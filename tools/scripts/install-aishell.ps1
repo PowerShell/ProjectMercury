@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 param(
-    [Parameter(HelpMessage = "Specify this parameter to uninstall AIShell")]
+    [Parameter(HelpMessage = "Specify this parameter to uninstall AI Shell")]
     [switch] $Uninstall
 )
 
