@@ -160,7 +160,7 @@ function Uninstall-AIShellApp {
         }
         Write-Host "[AI Shell app removed from '$destination']" -ForegroundColor Green
     } else {
-        Write-Host "[AIShell cannot be found at '$destination', skip removing]" -ForegroundColor Yellow
+        Write-Host "[AI Shell app cannot be found at '$destination', skip removing]" -ForegroundColor Yellow
     }
 }
 
