@@ -46,7 +46,7 @@ function Install-AIShellApp {
     if ($destinationExists) {
         $anyFile = Get-ChildItem -Path $destination | Select-Object -First 1
         if ($anyFile) {
-            $remove = $PSCmdlet.ShouldContinue("AI Shell was already installed (or partially installed) at '$destination'.", "Do you want to remove it for a new installation?")
+            $remove = $PSCmdlet.ShouldContinue("Do you want to remove it for a new installation?", "AI Shell was already installed (or partially installed) at '$destination'.")
             if ($remove) {
                 $destinationExists = $false
                 if ($IsWindows) {
@@ -83,12 +83,12 @@ function Install-AIShellApp {
     }
 
     # Download AIShell package.
-    Write-Host "[Downloading AI Shell package '$fileName' ...]`n" -ForegroundColor Green
-    Invoke-WebRequest -Uri $packageUrl -OutFile $tempPath -ProgressAction Ignore -ErrorAction Stop
+    Write-Host "Downloading AI Shell package '$fileName' ..."
+    Invoke-WebRequest -Uri $packageUrl -OutFile $tempPath -ErrorAction Stop
 
     try {
         # Extract AIShell package.
-        Write-Host "[Extracting AI Shell to '$destination' ...]" -ForegroundColor Green
+        Write-Host "Extracting AI Shell to '$destination' ..."
         Unblock-File -Path $tempPath
         if ($IsWindows) {
             Expand-Archive -Path $tempPath -DestinationPath $destination -Force -ErrorAction Stop
@@ -96,7 +96,7 @@ function Install-AIShellApp {
             # Set the process-scope and user-scope Path env variables to include AIShell.
             $envPath = $env:Path
             if (-not $envPath.Contains($destination)) {
-                Write-Host "[Adding AI Shell app to Path ...]" -ForegroundColor Green
+                Write-Host "Adding AI Shell app to the Path environment variable ..."
                 $env:Path = "${destination};${envPath}"
                 $userPath = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::User)
                 $newUserPath = $userPath.EndsWith(';') ? "${userPath}${destination}" : "${userPath};${destination}"
@@ -133,18 +133,18 @@ function Install-AIShellApp {
 function Uninstall-AIShellApp {
     $destination = $Script:InstallLocation
     if (Test-Path $destination) {
+        Write-Host "Removing AI Shell app from '$destination' ..."
         if ($IsWindows) {
             Remove-Item -Path $destination -Recurse -Force -ErrorAction Stop
 
             # Update the user-scope Path env variables to remove AIShell.
             $userPath = [Environment]::GetEnvironmentVariable('Path', [EnvironmentVariableTarget]::User)
             if ($userPath.Contains($destination)) {
-                Write-Host "[Removing AI Shell app from user-scope Path]" -ForegroundColor Green
+                Write-Host "Removing AI Shell app from the user-scope Path environment variable ..."
                 $newUserPath = $userPath.Split(';', [StringSplitOptions]::RemoveEmptyEntries -bor [StringSplitOptions]::TrimEntries) |
                     Where-Object { $_ -ne $destination } |
                     Join-String -Separator ';'
                 [Environment]::SetEnvironmentVariable("Path", $newUserPath, [EnvironmentVariableTarget]::User)
-                Write-Host "[AI Shell app removed from user-scope PATH]" -ForegroundColor Green
             }
         } else {
             sudo rm -rf $destination
@@ -158,16 +158,15 @@ function Uninstall-AIShellApp {
                 throw "Failed to remove the symbolic link '$symlink'."
             }
         }
-        Write-Host "[AI Shell app removed from '$destination']" -ForegroundColor Green
     } else {
-        Write-Host "[AI Shell app cannot be found at '$destination', skip removing]" -ForegroundColor Yellow
+        Write-Host "AI Shell app was not found at '$destination'. Skip removing it."
     }
 }
 
 function Install-AIShellModule {
     if ($IsWindows) {
-        Write-Host "[Installing the PowerShell module 'AIShell' ...]`n" -ForegroundColor Green
-        Install-PSResource -Name AIShell -Repository PSGallery -Prerelease -TrustRepository -ErrorAction Stop
+        Write-Host "Installing the PowerShell module 'AIShell' ..."
+        Install-PSResource -Name AIShell -Repository PSGallery -Prerelease -TrustRepository -ErrorAction Stop -WarningAction SilentlyContinue
     } else {
         Write-Host -ForegroundColor Yellow "Currently the AIShell PowerShell module will only work in iTerm2 terminal and still has limited support but if you would like to test it, you can install it with 'Install-PSResource -Name AIShell -Repository PSGallery -Prerelease'."
         Write-Host -ForegroundColor Yellow "The AI Shell app has been added to your path, please run 'aish' to use the standalone experience."
@@ -175,16 +174,13 @@ function Install-AIShellModule {
 }
 
 function Uninstall-AIShellModule {
-    if (Get-InstalledPSResource -Name "AIShell") {
+    if (Get-InstalledPSResource -Name "AIShell" -ErrorAction SilentlyContinue) {
         try {
-            Write-Host "[Uninstalling AIShell Module ...]" -ForegroundColor Green
+            Write-Host "Uninstalling AIShell Module ..."
             Uninstall-PSResource -Name AIShell -ErrorAction Stop
-            Write-Host "[AIShell Module uninstalled]" -ForegroundColor Green
         } catch {
             throw "Failed to uninstall the 'AIShell' module. Please check if the module got imported in any active PowerShell session. If so, please exit the session and try this script again."
         }
-    } else {
-        Write-Host "[AIShell Module cannot be found, skip uninstalling]" -ForegroundColor Yellow
     }
 }
 
@@ -199,14 +195,13 @@ Resolve-Environment
 if ($Uninstall) {
     Uninstall-AIShellApp
     Uninstall-AIShellModule
-    Write-Host "AIShell has been fully uninstalled." -ForegroundColor Green
+
+    $message = $IsWindows ? "AI Shell App and PowerShell module have" : "AI Shell App has"
+    Write-Host "`n$message been successfully uninstalled." -ForegroundColor Green
 } else {
     Install-AIShellApp
     Install-AIShellModule
 
-    if ($IsWindows) {
-        Write-Host "Installation succeeded. To learn more about AI Shell please visit https://aka.ms/AIShell-Docs. To get started please 'Start-AIShell' to start AI Shell." -ForegroundColor Green
-    } else {
-        Write-Host "Installation succeeded. To learn more about AI Shell please visit https://aka.ms/AIShell-Docs. To get started please run 'aish' to start AI Shell." -ForegroundColor Green
-    }
+    $message = $IsWindows ? "'Start-AIShell'" : "'aish'"
+    Write-Host "`nInstallation succeeded. To learn more about AI Shell please visit https://aka.ms/AIShell-Docs. To get started please run $message to start AI Shell." -ForegroundColor Green
 }
