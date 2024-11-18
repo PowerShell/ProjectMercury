@@ -14,11 +14,11 @@ internal class ChatSession : IDisposable
     private const string PROD_ACCESS_URL = "https://copilotweb.production.portalrp.azure.com/api/access?api-version=2024-09-01";
     private const string TEST_ACCESS_URL = "https://copilotweb.canary.production.portalrp.azure.com/api/access?api-version=2024-09-01";
     private const string DL_TOKEN_URL = "https://copilotweb.production.portalrp.azure.com/api/conversations/start?api-version=2024-11-15";
-    private const string CONVERSATION_URL = "https://directline.botframework.com/v3/directline/conversations";
 
     internal bool UserAuthorized { get; private set; }
 
     private string _streamUrl;
+    private string _dlBaseUrl;
     private string _conversationId;
     private string _conversationUrl;
     private UserDirectLineToken _directLineToken;
@@ -101,6 +101,7 @@ internal class ChatSession : IDisposable
     private void Reset()
     {
         _streamUrl = null;
+        _dlBaseUrl = null;
         _conversationId = null;
         _conversationUrl = null;
         _directLineToken = null;
@@ -180,12 +181,14 @@ internal class ChatSession : IDisposable
 
         using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var dlToken = JsonSerializer.Deserialize<DirectLineToken>(stream, Utils.JsonOptions);
-        _directLineToken = new UserDirectLineToken(dlToken.DirectLine.Token, dlToken.DirectLine.TokenExpiryTimeInSeconds);
+
+        _dlBaseUrl = dlToken.DirectLine.Endpoint;
+        _directLineToken = new UserDirectLineToken(dlToken.DirectLine.Token, dlToken.DirectLine.TokenExpiryTimeInSeconds, _dlBaseUrl);
     }
 
     private async Task<string> OpenConversationAsync(CancellationToken cancellationToken)
     {
-        HttpRequestMessage request = new(HttpMethod.Post, CONVERSATION_URL);
+        HttpRequestMessage request = new(HttpMethod.Post, $"{_dlBaseUrl}/conversations");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _directLineToken.Token);
 
         HttpResponseMessage response = await _httpClient.SendAsync(request, cancellationToken);
@@ -195,8 +198,8 @@ internal class ChatSession : IDisposable
         SessionPayload spl = JsonSerializer.Deserialize<SessionPayload>(content, Utils.JsonOptions);
 
         _conversationId = spl.ConversationId;
-        _conversationUrl = $"{CONVERSATION_URL}/{_conversationId}/activities";
-        _directLineToken = new UserDirectLineToken(spl.Token, spl.ExpiresIn);
+        _conversationUrl = $"{_dlBaseUrl}/conversations/{_conversationId}/activities";
+        _directLineToken = new UserDirectLineToken(spl.Token, spl.ExpiresIn, _dlBaseUrl);
         _streamUrl = spl.StreamUrl;
         _copilotReceiver = await AzureCopilotReceiver.CreateAsync(_streamUrl);
 

@@ -58,6 +58,10 @@ internal sealed class ReplaceCommand : CommandBase
             {
                 host.WriteErrorLine("No AI response available.");
             }
+            else if (cr.TopicName is CopilotActivity.CLIHandlerTopic)
+            {
+                host.WriteErrorLine("There is no placeholder left to replace.");
+            }
             else if (!cr.Text.Contains("```") && !cr.Text.Contains("~~~"))
             {
                 host.WriteErrorLine("The last AI response contains no code in it.");
