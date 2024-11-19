@@ -181,7 +181,7 @@ public sealed class OllamaAgent : ILLMAgent
         }
         catch (HttpRequestException)
         {
-            host.MarkupWarningLine($"[[{Name}]]: Cannot serve the query due to the incorrect configuration. Please properly update the setting file.");
+            host.MarkupWarningLine($"[[{Name}]]: Cannot serve the query due to the endpoint or model misconfiguration. Please properly update the setting file.");
             return false;
         }
 
@@ -254,7 +254,7 @@ public sealed class OllamaAgent : ILLMAgent
             // Declare Ollama model
             "Model": "phi3",
             // Declare Ollama endpoint
-            "Endpoint": "http://localhost:11434/api/generate"
+            "Endpoint": "http://localhost:11434"
         }
         """;
         File.WriteAllText(SettingFile, SampleContent, Encoding.UTF8);

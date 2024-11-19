@@ -5,13 +5,16 @@ namespace AIShell.Ollama.Agent;
 
 internal class Settings
 {
-    public string Model { get; set; }
-    public string Endpoint { get; set; }
+    private string _model;
+    private string _endpoint;
+
+    public string Model => _model;
+    public string Endpoint => _endpoint;
 
     public Settings(ConfigData configData)
     {
-        Model = configData.Model;
-        Endpoint = configData.Endpoint;
+        _model = configData?.Model;
+        _endpoint = configData?.Endpoint.TrimEnd('/');
     }
 }
 

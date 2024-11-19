@@ -32,7 +32,7 @@ To configure the agent, run `/agent config ollama` to open up the setting file i
     // Declare Ollama model
     "Model": "phi3",
     // Declare Ollama endpoint
-    "Endpoint": "http://localhost:11434/api/generate"
+    "Endpoint": "http://localhost:11434"
 }
 ```
 

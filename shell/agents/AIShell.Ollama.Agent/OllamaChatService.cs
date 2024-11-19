@@ -57,7 +57,7 @@ internal class OllamaChatService : IDisposable
         var json = JsonSerializer.Serialize(requestData);
 
         var data = new StringContent(json, Encoding.UTF8, "application/json");
-        var request = new HttpRequestMessage(HttpMethod.Post, _settings.Endpoint) { Content = data };
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_settings.Endpoint}/api/generate") { Content = data };
 
         return request;
     }
