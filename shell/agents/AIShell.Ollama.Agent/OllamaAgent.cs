@@ -23,7 +23,7 @@ public sealed class OllamaAgent : ILLMAgent
     /// <summary>
     /// The description of the agent to be shown at start up
     /// </summary>
-    public string Description => "This is an AI assistant to interact with a language model running locally by utilizing the Ollama CLI tool. Be sure to follow all prerequisites in aka.ms/aish/ollama";
+    public string Description => "This is an AI assistant to interact with a language model running locally by utilizing the Ollama CLI tool. Be sure to follow all prerequisites in https://github.com/PowerShell/AIShell/tree/main/shell/agents/AIShell.Ollama.Agent";
 
     /// <summary>
     /// This is the company added to /like and /dislike verbiage for who the telemetry helps.
@@ -76,7 +76,7 @@ public sealed class OllamaAgent : ILLMAgent
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Ollama Docs"] = "https://github.com/ollama/ollama",
-            ["Prerequisites"] = "https://aka.ms/ollama/readme"
+            ["Prerequisites"] = "https://github.com/PowerShell/AIShell/tree/main/shell/agents/AIShell.Ollama.Agent"
         };
     }
 
@@ -125,21 +125,29 @@ public sealed class OllamaAgent : ILLMAgent
 
         if (Process.GetProcessesByName("ollama").Length is 0)
         {
-            host.RenderFullResponse("Please be sure the Ollama is installed and server is running. Check all the prerequisites in the README of this agent are met.");
+            host.MarkupWarningLine($"[[{Name}]]: Please be sure the Ollama is installed and server is running. Check all the prerequisites in the README of this agent are met.");
             return false;
         }
 
-        ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
-            status: "Thinking ...",
-            func: async context => await _chatService.GetChatResponseAsync(context, input, token)
-        ).ConfigureAwait(false);
-
-        if (ollamaResponse is not null)
+        try
         {
-            // render the content
-            host.RenderFullResponse(ollamaResponse.response);
+            ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
+                status: "Thinking ...",
+                func: async context => await _chatService.GetChatResponseAsync(context, input, token)
+            ).ConfigureAwait(false);
+
+            if (ollamaResponse is not null)
+            {
+                // render the content
+                host.RenderFullResponse(ollamaResponse.response);
+            }
         }
-        
+        catch (HttpRequestException)
+        {
+            host.MarkupWarningLine($"[[{Name}]]: Cannot serve the query due to the incorrect configuration. Please properly update the setting file.");
+            return false;
+        }
+
         return true;
     }
 
@@ -169,10 +177,23 @@ public sealed class OllamaAgent : ILLMAgent
     {
         string SampleContent = $$"""
         {
-          // Declare Ollama model name.
-          "Model": "phi3",
-          // Declare Ollama endpoint.
-          "Endpoint": "http://localhost:11434/api/generate"
+            /*
+            To use Ollama API service:
+
+            1. Install Ollama:
+                winget install Ollama.Ollama
+
+            2. Start Ollama API server:
+                ollama serve
+
+            3. Install Ollama model:
+                ollama pull phi3
+            */
+
+            // Declare Ollama model
+            "Model": "phi3",
+            // Declare Ollama endpoint
+            "Endpoint": "http://localhost:11434/api/generate"
         }
         """;
         File.WriteAllText(SettingFile, SampleContent, Encoding.UTF8);
