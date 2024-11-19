@@ -1,10 +1,20 @@
 using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
 using AIShell.Abstraction;
 
 namespace AIShell.Ollama.Agent;
 
 public sealed class OllamaAgent : ILLMAgent
 {
+    private const string SettingFileName = "ollama.config.json";
+    private Settings _settings;
+
+    /// <summary>
+    /// Gets the settings.
+    /// </summary>
+    internal Settings Settings => _settings;
+
     /// <summary>
     /// The name of the agent
     /// </summary>
@@ -51,7 +61,17 @@ public sealed class OllamaAgent : ILLMAgent
     /// <param name="config">Agent configuration for any configuration file and other settings</param>
     public void Initialize(AgentConfig config)
     {
-        _chatService = new OllamaChatService();
+        SettingFile = Path.Combine(config.ConfigurationRoot, SettingFileName);
+        _settings = ReadSettings();
+
+        if (_settings is null)
+        {
+            // Create the setting file with examples to serve as a template for user to update.
+            NewExampleSettingFile();
+            _settings = ReadSettings();
+        }
+
+        _chatService = new OllamaChatService(_settings);
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -68,7 +88,7 @@ public sealed class OllamaAgent : ILLMAgent
     /// <summary>
     /// Gets the path to the setting file of the agent.
     /// </summary>
-    public string SettingFile { private set; get; } = null;
+    public string SettingFile { private set; get; }
 
     /// <summary>
     /// Gets a value indicating whether the agent accepts a specific user action feedback.
@@ -121,5 +141,40 @@ public sealed class OllamaAgent : ILLMAgent
         }
         
         return true;
+    }
+
+    private Settings ReadSettings()
+    {
+        Settings settings = null;
+        FileInfo file = new(SettingFile);
+
+        if (file.Exists)
+        {
+            try
+            {
+                using var stream = file.OpenRead();
+                var data = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ConfigData);
+                settings = new Settings(data);
+            }
+            catch (Exception e)
+            {
+                throw new InvalidDataException($"Parsing settings from '{SettingFile}' failed with the following error: {e.Message}", e);
+            }
+        }
+
+        return settings;
+    }
+
+    private void NewExampleSettingFile()
+    {
+        string SampleContent = $$"""
+        {
+          // Declare Ollama model name.
+          "Model": "phi3",
+          // Declare Ollama endpoint.
+          "Endpoint": "http://localhost:11434/api/generate"
+        }
+        """;
+        File.WriteAllText(SettingFile, SampleContent, Encoding.UTF8);
     }
 }

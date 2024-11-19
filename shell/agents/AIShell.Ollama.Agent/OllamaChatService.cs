@@ -7,11 +7,7 @@ namespace AIShell.Ollama.Agent;
 
 internal class OllamaChatService : IDisposable
 {
-    /// <summary>
-    /// Ollama endpoint to call to generate a response
-    /// </summary>
-    internal const string Endpoint = "http://localhost:11434/api/generate";
-
+    private Settings _settings;
     /// <summary>
     /// Http client 
     /// </summary>
@@ -20,8 +16,9 @@ internal class OllamaChatService : IDisposable
     /// <summary>
     /// Initialization method to initialize the http client 
     /// </summary>
-    internal OllamaChatService()
+    internal OllamaChatService(Settings settings)
     {
+        _settings = settings;
         _client = new HttpClient();
     }
 
@@ -43,7 +40,7 @@ internal class OllamaChatService : IDisposable
         // Main data to send to the endpoint
         var requestData = new Query
         {
-            model = "phi3",
+            model = _settings.Model,
             prompt = input,
             stream = false
         };
@@ -51,7 +48,7 @@ internal class OllamaChatService : IDisposable
         var json = JsonSerializer.Serialize(requestData);
 
         var data = new StringContent(json, Encoding.UTF8, "application/json");
-        var request = new HttpRequestMessage(HttpMethod.Post, Endpoint) { Content = data };
+        var request = new HttpRequestMessage(HttpMethod.Post, _settings.Endpoint) { Content = data };
 
         return request;
     }
