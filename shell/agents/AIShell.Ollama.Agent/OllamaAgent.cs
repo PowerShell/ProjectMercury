@@ -7,8 +7,16 @@ namespace AIShell.Ollama.Agent;
 
 public sealed class OllamaAgent : ILLMAgent
 {
-    private const string SettingFileName = "ollama.config.json";
+    private bool _reloadSettings;
+    private bool _isDisposed;
+    private string _configRoot;
     private Settings _settings;
+    private FileSystemWatcher _watcher;
+
+    /// <summary>
+    /// The name of setting file
+    /// </summary>
+    private const string SettingFileName = "ollama.config.json";
 
     /// <summary>
     /// Gets the settings.
@@ -52,7 +60,15 @@ public sealed class OllamaAgent : ILLMAgent
     /// </summary>
     public void Dispose()
     {
+        if (_isDisposed)
+        {
+            return;
+        }
+
+        GC.SuppressFinalize(this);
         _chatService?.Dispose();
+        _watcher.Dispose();
+        _isDisposed = true;
     }
 
     /// <summary>
@@ -61,7 +77,9 @@ public sealed class OllamaAgent : ILLMAgent
     /// <param name="config">Agent configuration for any configuration file and other settings</param>
     public void Initialize(AgentConfig config)
     {
-        SettingFile = Path.Combine(config.ConfigurationRoot, SettingFileName);
+        _configRoot = config.ConfigurationRoot;
+
+        SettingFile = Path.Combine(_configRoot, SettingFileName);
         _settings = ReadSettings();
 
         if (_settings is null)
@@ -72,6 +90,13 @@ public sealed class OllamaAgent : ILLMAgent
         }
 
         _chatService = new OllamaChatService(_settings);
+
+        _watcher = new FileSystemWatcher(_configRoot, SettingFileName)
+        {
+            NotifyFilter = NotifyFilters.LastWrite,
+            EnableRaisingEvents = true,
+        };
+        _watcher.Changed += OnSettingFileChange;
 
         LegalLinks = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -107,7 +132,16 @@ public sealed class OllamaAgent : ILLMAgent
     /// Refresh the current chat by starting a new chat session.
     /// This method allows an agent to reset chat states, interact with user for authentication, print welcome message, and more.
     /// </summary>
-    public Task RefreshChatAsync(IShell shell, bool force) => Task.CompletedTask;
+    public Task RefreshChatAsync(IShell shell, bool force)
+    {
+        if (force)
+        {
+            // Reload the setting file if needed.
+            ReloadSettings();
+        }
+
+        return Task.CompletedTask;
+    }
 
     /// <summary>
     /// Main chat function that takes the users input and passes it to the LLM and renders it.
@@ -122,6 +156,9 @@ public sealed class OllamaAgent : ILLMAgent
 
         // get the cancellation token
         CancellationToken token = shell.CancellationToken;
+
+        // Reload the setting file if needed.
+        ReloadSettings();
 
         if (Process.GetProcessesByName("ollama").Length is 0)
         {
@@ -151,6 +188,22 @@ public sealed class OllamaAgent : ILLMAgent
         return true;
     }
 
+    internal void ReloadSettings()
+    {
+        if (_reloadSettings)
+        {
+            _reloadSettings = false;
+            var settings = ReadSettings();
+            if (settings is null)
+            {
+                return;
+            }
+
+            _settings = settings;
+            _chatService.RefreshSettings(_settings);
+        }
+    }
+
     private Settings ReadSettings()
     {
         Settings settings = null;
@@ -171,6 +224,14 @@ public sealed class OllamaAgent : ILLMAgent
         }
 
         return settings;
+    }
+
+    private void OnSettingFileChange(object sender, FileSystemEventArgs e)
+    {
+        if (e.ChangeType is WatcherChangeTypes.Changed)
+        {
+            _reloadSettings = true;
+        }
     }
 
     private void NewExampleSettingFile()

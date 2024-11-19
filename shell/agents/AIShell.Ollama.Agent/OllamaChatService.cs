@@ -23,6 +23,15 @@ internal class OllamaChatService : IDisposable
     }
 
     /// <summary>
+    /// Refresh settings
+    /// </summary>
+    /// <param name="settings"></param>
+    internal void RefreshSettings(Settings settings)
+    {
+        _settings = settings;
+    }
+
+    /// <summary>
     /// Dispose of the http client 
     /// </summary>
     public void Dispose()
