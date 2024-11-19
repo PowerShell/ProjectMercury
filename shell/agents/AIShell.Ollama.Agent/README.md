@@ -14,7 +14,7 @@ this agent you need to have Ollama installed and running.
 
 To configure the agent, run `/agent config ollama` to open up the setting file in your default editor, and then update the file based on the following example.
 
-```json
+```config
 {
     /*
     To use Ollama API service:
