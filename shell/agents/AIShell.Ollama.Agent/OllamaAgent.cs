@@ -238,18 +238,13 @@ public sealed class OllamaAgent : ILLMAgent
     {
         string SampleContent = $$"""
         {
-            /*
-            To use Ollama API service:
-
-            1. Install Ollama:
-                winget install Ollama.Ollama
-
-            2. Start Ollama API server:
-                ollama serve
-
-            3. Install Ollama model:
-                ollama pull phi3
-            */
+            // To use Ollama API service:
+            // 1. Install Ollama:
+            //      winget install Ollama.Ollama
+            // 2. Start Ollama API server:
+            //      ollama serve
+            // 3. Install Ollama model:
+            //      ollama pull phi3
 
             // Declare Ollama model
             "Model": "phi3",

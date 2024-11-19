@@ -5,34 +5,28 @@ this agent you need to have Ollama installed and running.
 
 ## Pre-requisites to using the agent
 
-- Install [Ollama](https://github.com/ollama/ollama) 
-- Install a [Ollama model](https://github.com/ollama/ollama?tab=readme-ov-file#model-library), we
-  suggest using the `phi3` model as it is set as the default model in the code
+- Install [Ollama](https://github.com/ollama/ollama)
+- Install a [Ollama model](https://github.com/ollama/ollama?tab=readme-ov-file#model-library), we suggest using the `phi3` model as it is set as the default model in the code
 - [Start the Ollama API server](https://github.com/ollama/ollama?tab=readme-ov-file#start-ollama)
 
 ## Configuration
 
 To configure the agent, run `/agent config ollama` to open up the setting file in your default editor, and then update the file based on the following example.
 
-```config
+```json
 {
-    /*
-    To use Ollama API service:
+	// To use Ollama API service:
+	// 1. Install Ollama:
+	//      winget install Ollama.Ollama
+	// 2. Start Ollama API server:
+	//      ollama serve
+	// 3. Install Ollama model:
+	//      ollama pull phi3
 
-    1. Install Ollama:
-        winget install Ollama.Ollama
-
-    2. Start Ollama API server:
-        ollama serve
-
-    3. Install Ollama model:
-        ollama pull phi3
-    */
-
-    // Declare Ollama model
-    "Model": "phi3",
-    // Declare Ollama endpoint
-    "Endpoint": "http://localhost:11434"
+	// Declare Ollama model
+	"Model": "phi3",
+	// Declare Ollama endpoint
+	"Endpoint": "http://localhost:11434"
 }
 ```
 
