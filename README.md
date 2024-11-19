@@ -1,4 +1,4 @@
-# AI Shell (a.k.a Project Mercury)
+# AI Shell
 
 Welcome to the **AI Shell** repository! AI Shell is a CLI tool that brings the power of artificial
 intelligence directly to your command line! Designed to help you get command assistance from various
@@ -7,10 +7,9 @@ We call these various AI assistant providers _agents_. You can use agents to int
 generative AI models or other AI/ML/assistant providers in a conversational manner. This repo
 contains the code of the AI Shell engine, agents and details on how to create your own agent.
 
-Why the name **Project Mercury**? This was the original code name of the project and was inspired
-both by the Roman god of messages and the first human spaceflight by the US. This project is our
-first step into the new world of AI powered assistance and focuses on being the connection (or
-messenger) between the user and the AI model.
+You may have seen this project previously as **Project Mercury**. This was the code name that was
+used before we created the AI Shell brand. We are now in the process of transitioning to the new
+brand. The code name may still be used in some places, but the product name is now AI Shell.
 
 This project is currently in a very early **public preview** state. Expect many significant changes
 to the code as we experiment and refine the user experiences of this tool. We appreciate your
@@ -51,7 +50,7 @@ Some prerequisites for building an AI Shell:
 
 Here are the steps to install and use.
 
-1. Clone this repository, `git clone https://github.com/PowerShell/ProjectMercury`
+1. Clone this repository, `git clone https://github.com/PowerShell/AIShell`
 2. Import the `build.psm1` module by running `import-module ./build.psm1` 
 3. Run the `Start-Build` command (You can specify which agents build with the `-AgentsToInclude`
    parameter)
@@ -61,7 +60,7 @@ Here are the steps to install and use.
 
 ## AI Agents
 
-Project Mercury provides a framework for creating and registering multiple AI Agents. The agents are
+AI Shell provides a framework for creating and registering multiple AI Agents. The agents are
 libraries that you use to interact with different AI models or assistance providers. AI Shell
 releases with two agents, the `openai-gpt` and `azure` agent. However there are additional ones
 supported if you locally build the project:
@@ -174,7 +173,7 @@ bugs, suggestions, or feedback. If you would like to give more candid feedback a
 [07]: ./shell/agents/AIShell.Interpreter.Agent/README.md
 [08]: https://learn.microsoft.com/powershell/utility-modules/aishell/how-to/agent-openai
 [09]: https://dotnet.microsoft.com/en-us/download
-[10]: https://github.com/PowerShell/ProjectMercury/issues
+[10]: https://github.com/PowerShell/AIShell/issues
 [11]: https://learn.microsoft.com/powershell/scripting/install/installing-powershell
 [12]: ./docs/SECURITY.md
 [13]: https://learn.microsoft.com/powershell/utility-modules/aishell/install-aishell

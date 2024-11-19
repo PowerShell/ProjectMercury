@@ -13,5 +13,5 @@
     VariablesToExport = '*'
     AliasesToExport = @('aish', 'askai', 'fixit')
     HelpInfoURI = 'https://aka.ms/aishell-help'
-    PrivateData = @{ PSData = @{ Prerelease = 'preview1'; ProjectUri = 'https://github.com/PowerShell/ProjectMercury' } }
+    PrivateData = @{ PSData = @{ Prerelease = 'preview1'; ProjectUri = 'https://github.com/PowerShell/AIShell' } }
 }

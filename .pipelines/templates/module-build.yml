@@ -13,7 +13,7 @@ jobs:
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
   - name: repoRoot
-    value: $(Build.SourcesDirectory)\ProjectMercury
+    value: $(Build.SourcesDirectory)\AIShell
   - name: ob_sdl_sbom_enabled
     value: false
   - name: ob_sdl_codeSignValidation_enabled
@@ -109,7 +109,7 @@ jobs:
   - name: ob_outputDirectory
     value: '$(Build.ArtifactStagingDirectory)/ONEBRANCH_ARTIFACT'
   - name: repoRoot
-    value: $(Build.SourcesDirectory)\ProjectMercury
+    value: $(Build.SourcesDirectory)\AIShell
   - name: ob_sdl_codeSignValidation_enabled
     value: false
   - name: ob_sdl_binskim_enabled

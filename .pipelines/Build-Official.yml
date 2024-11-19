@@ -55,7 +55,7 @@ extends:
         enabled: false
       sbom:
         enabled: true
-        buildComponentPath: $(Build.SourcesDirectory)\ProjectMercury\shell
+        buildComponentPath: $(Build.SourcesDirectory)\AIShell\shell
       codeql:
         compiled:
           enabled: true
