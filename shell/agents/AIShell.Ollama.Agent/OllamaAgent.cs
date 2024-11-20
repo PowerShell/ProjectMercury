@@ -166,6 +166,11 @@ public sealed class OllamaAgent : ILLMAgent
             return false;
         }
 
+        if (!SelfCheck(host))
+        {
+            return false;
+        }
+
         try
         {
             ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
@@ -181,7 +186,7 @@ public sealed class OllamaAgent : ILLMAgent
         }
         catch (HttpRequestException)
         {
-            host.MarkupWarningLine($"[[{Name}]]: Cannot serve the query due to the endpoint or model misconfiguration. Please properly update the setting file.");
+            host.WriteErrorLine($"[{Name}]: Cannot serve the query due to the Endpoint or Model misconfiguration. Please properly update the setting file.");
             return false;
         }
 
@@ -232,6 +237,26 @@ public sealed class OllamaAgent : ILLMAgent
         {
             _reloadSettings = true;
         }
+    }
+
+    internal bool SelfCheck(IHost host)
+    {
+        var settings = new (string settingValue, string settingName)[]
+        {
+            (_settings?.Model, "Model"),
+            (_settings?.Endpoint, "Endpoint")
+        };
+
+        foreach (var (settingValue, settingName) in settings)
+        {
+            if (string.IsNullOrWhiteSpace(settingValue))
+            {
+                host.WriteErrorLine($"[{Name}]: {settingName} is undefined. Please declare it in the setting file.");
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void NewExampleSettingFile()

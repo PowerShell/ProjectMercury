@@ -14,7 +14,7 @@ internal class Settings
     public Settings(ConfigData configData)
     {
         _model = configData?.Model;
-        _endpoint = configData?.Endpoint.TrimEnd('/');
+        _endpoint = configData?.Endpoint?.TrimEnd('/');
     }
 }
 
