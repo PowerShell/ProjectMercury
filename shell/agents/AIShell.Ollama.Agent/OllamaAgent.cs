@@ -177,6 +177,7 @@ public sealed class OllamaAgent : ILLMAgent
         _request.Model = _settings.Model;
         _request.Stream = _settings.Stream;
 
+        // Ollama client is created per chat with reloaded settings
         _client = new OllamaApiClient(_settings.Endpoint);
 
         try
@@ -185,12 +186,22 @@ public sealed class OllamaAgent : ILLMAgent
             {
                 using IStreamRender streamingRender = host.NewStreamRender(token);
 
+                // Last stream response has context value
+                GenerateDoneResponseStream ollamaLastStream = null;
+
                 // Directly process the stream when no spinner is needed
                 await foreach (var ollamaStream in _client.GenerateAsync(_request, token))
                 {
                     // Update the render
                     streamingRender.Refresh(ollamaStream.Response);
+                    if (ollamaStream.Done)
+                    {
+                       ollamaLastStream = (GenerateDoneResponseStream)ollamaStream;
+                    }
                 }
+
+                // Update request context
+                _request.Context = ollamaLastStream.Context;
             }
             else
             {
@@ -199,6 +210,9 @@ public sealed class OllamaAgent : ILLMAgent
                     status: "Thinking ...",
                     func: async () => { return await _client.GenerateAsync(_request, token).StreamToEndAsync(); }
                 ).ConfigureAwait(false);
+
+                // Update request context
+                _request.Context = ollamaResponse.Context;
 
                 // Render the full response
                 host.RenderFullResponse(ollamaResponse.Response);

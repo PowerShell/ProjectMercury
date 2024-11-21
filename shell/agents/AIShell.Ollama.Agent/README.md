@@ -32,7 +32,3 @@ To configure the agent, run `/agent config ollama` to open up the setting file i
 }
 ```
 
-## Known Limitations
-
-- There is no history shared across queries so the model will not be able to remember previous
-  queries
