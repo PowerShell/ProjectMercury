@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using AIShell.Abstraction;
+using OllamaSharp;
+using OllamaSharp.Models;
 
 namespace AIShell.Ollama.Agent;
 
@@ -11,6 +13,8 @@ public sealed class OllamaAgent : ILLMAgent
     private bool _isDisposed;
     private string _configRoot;
     private Settings _settings;
+    private OllamaApiClient _client;
+    private GenerateRequest _request;
     private FileSystemWatcher _watcher;
 
     /// <summary>
@@ -48,12 +52,11 @@ public sealed class OllamaAgent : ILLMAgent
     /// <summary>
     /// These are any optional legal/additional information links you want to provide at start up
     /// </summary>
-    public Dictionary<string, string> LegalLinks { private set; get; }
-
-    /// <summary>
-    /// This is the chat service to call the API from
-    /// </summary>
-    private OllamaChatService _chatService;
+    public Dictionary<string, string> LegalLinks { private set; get; } = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Ollama Docs"] = "https://github.com/ollama/ollama",
+        ["Prerequisites"] = "https://github.com/PowerShell/AIShell/tree/main/shell/agents/AIShell.Ollama.Agent"
+    };
 
     /// <summary>
     /// Dispose method to clean up the unmanaged resource of the chatService
@@ -66,7 +69,6 @@ public sealed class OllamaAgent : ILLMAgent
         }
 
         GC.SuppressFinalize(this);
-        _chatService?.Dispose();
         _watcher.Dispose();
         _isDisposed = true;
     }
@@ -89,7 +91,11 @@ public sealed class OllamaAgent : ILLMAgent
             _settings = ReadSettings();
         }
 
-        _chatService = new OllamaChatService(_settings);
+        _request = new GenerateRequest()
+        {
+            Model = _settings.Model,
+            Stream = _settings.Stream
+        };
 
         _watcher = new FileSystemWatcher(_configRoot, SettingFileName)
         {
@@ -97,12 +103,6 @@ public sealed class OllamaAgent : ILLMAgent
             EnableRaisingEvents = true,
         };
         _watcher.Changed += OnSettingFileChange;
-
-        LegalLinks = new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Ollama Docs"] = "https://github.com/ollama/ollama",
-            ["Prerequisites"] = "https://github.com/PowerShell/AIShell/tree/main/shell/agents/AIShell.Ollama.Agent"
-        };
     }
 
     /// <summary>
@@ -166,34 +166,62 @@ public sealed class OllamaAgent : ILLMAgent
             return false;
         }
 
+        // Self check settings Model and Endpoint
         if (!SelfCheck(host))
         {
             return false;
         }
 
+        // Update request
+        _request.Prompt = input;
+        _request.Model = _settings.Model;
+        _request.Stream = _settings.Stream;
+
+        _client = new OllamaApiClient(_settings.Endpoint);
+
         try
         {
-            ResponseData ollamaResponse = await host.RunWithSpinnerAsync(
-                status: "Thinking ...",
-                func: async context => await _chatService.GetChatResponseAsync(context, input, token)
-            ).ConfigureAwait(false);
-
-            if (ollamaResponse is not null)
+            if (_request.Stream)
             {
-                // render the content
-                host.RenderFullResponse(ollamaResponse.response);
+                using IStreamRender streamingRender = host.NewStreamRender(token);
+
+                // Directly process the stream when no spinner is needed
+                await foreach (var ollamaStream in _client.GenerateAsync(_request, token))
+                {
+                    // Update the render
+                    streamingRender.Refresh(ollamaStream.Response);
+                }
+            }
+            else
+            {
+                // Build single response with spinner
+                var ollamaResponse = await host.RunWithSpinnerAsync(
+                    status: "Thinking ...",
+                    func: async () => { return await _client.GenerateAsync(_request, token).StreamToEndAsync(); }
+                ).ConfigureAwait(false);
+
+                // Render the full response
+                host.RenderFullResponse(ollamaResponse.Response);
             }
         }
-        catch (HttpRequestException)
+        catch (OperationCanceledException)
         {
-            host.WriteErrorLine($"[{Name}]: Cannot serve the query due to the Endpoint or Model misconfiguration. Please properly update the setting file.");
+            // Ignore the cancellation exception.
+        }
+        catch (HttpRequestException e)
+        {
+            host.WriteErrorLine($"[{Name}]: {e.Message}");
+            host.WriteErrorLine($"[{Name}]: Selected Model    : \"{_settings.Model}\"");
+            host.WriteErrorLine($"[{Name}]: Selected Endpoint : \"{_settings.Endpoint}\"");
+            host.WriteErrorLine($"[{Name}]: Configuration File: \"{SettingFile}\"");
             return false;
         }
 
         return true;
     }
 
-    internal void ReloadSettings()
+
+    private void ReloadSettings()
     {
         if (_reloadSettings)
         {
@@ -205,7 +233,6 @@ public sealed class OllamaAgent : ILLMAgent
             }
 
             _settings = settings;
-            _chatService.RefreshSettings(_settings);
         }
     }
 
@@ -239,19 +266,19 @@ public sealed class OllamaAgent : ILLMAgent
         }
     }
 
-    internal bool SelfCheck(IHost host)
+    private bool SelfCheck(IHost host)
     {
         var settings = new (string settingValue, string settingName)[]
         {
-            (_settings?.Model, "Model"),
-            (_settings?.Endpoint, "Endpoint")
+            (_settings.Model, "Model"),
+            (_settings.Endpoint, "Endpoint")
         };
 
         foreach (var (settingValue, settingName) in settings)
         {
             if (string.IsNullOrWhiteSpace(settingValue))
             {
-                host.WriteErrorLine($"[{Name}]: {settingName} is undefined. Please declare it in the setting file.");
+                host.WriteErrorLine($"[{Name}]: {settingName} is undefined in the settings file: \"{SettingFile}\"");
                 return false;
             }
         }
@@ -274,7 +301,9 @@ public sealed class OllamaAgent : ILLMAgent
             // Declare Ollama model
             "Model": "phi3",
             // Declare Ollama endpoint
-            "Endpoint": "http://localhost:11434"
+            "Endpoint": "http://localhost:11434",
+            // Enable Ollama streaming
+            "Stream": false
         }
         """;
         File.WriteAllText(SettingFile, SampleContent, Encoding.UTF8);

@@ -7,14 +7,17 @@ internal class Settings
 {
     private string _model;
     private string _endpoint;
+    private bool _stream;
 
     public string Model => _model;
     public string Endpoint => _endpoint;
+    public bool Stream => _stream;
 
     public Settings(ConfigData configData)
     {
         _model = configData?.Model;
         _endpoint = configData?.Endpoint?.TrimEnd('/');
+        _stream = configData?.Stream ?? false;
     }
 }
 
@@ -22,6 +25,7 @@ internal class ConfigData
 {
     public string Model { get; set; }
     public string Endpoint { get; set; }
+    public bool Stream { get; set; }
 }
 
 /// <summary>

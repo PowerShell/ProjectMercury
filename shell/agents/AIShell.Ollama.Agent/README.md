@@ -26,7 +26,9 @@ To configure the agent, run `/agent config ollama` to open up the setting file i
 	// Declare Ollama model
 	"Model": "phi3",
 	// Declare Ollama endpoint
-	"Endpoint": "http://localhost:11434"
+	"Endpoint": "http://localhost:11434",
+    // Enable Ollama streaming
+    "Stream": false
 }
 ```
 
@@ -34,5 +36,3 @@ To configure the agent, run `/agent config ollama` to open up the setting file i
 
 - There is no history shared across queries so the model will not be able to remember previous
   queries
-- Streaming is currently not supported if you change the stream value to `true` in the data to send
-  to the API it will not work
