@@ -138,6 +138,9 @@ public sealed class OllamaAgent : ILLMAgent
         {
             // Reload the setting file if needed.
             ReloadSettings();
+
+            // Reset context
+            _request.Context = null;
         }
 
         return Task.CompletedTask;
