@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+#Requires -Version 7.4.6
+
 param(
     [Parameter(HelpMessage = "Specify this parameter to uninstall AI Shell")]
     [switch] $Uninstall
