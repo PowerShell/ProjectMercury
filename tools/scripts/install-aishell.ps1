@@ -1,5 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
+
 #Requires -Version 7.4.6
 
 param(
