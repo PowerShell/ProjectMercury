@@ -13,22 +13,18 @@ this agent you need to have Ollama installed and running.
 
 To configure the agent, run `/agent config ollama` to open up the setting file in your default editor, and then update the file based on the following example.
 
-```json
+```jsonc
 {
-	// To use Ollama API service:
-	// 1. Install Ollama:
-	//      winget install Ollama.Ollama
-	// 2. Start Ollama API server:
-	//      ollama serve
-	// 3. Install Ollama model:
-	//      ollama pull phi3
+    // To use Ollama API service:
+    // 1. Install Ollama: `winget install Ollama.Ollama`
+    // 2. Start Ollama API server: `ollama serve`
+    // 3. Install Ollama model: `ollama pull phi3`
 
-	// Declare Ollama model
-	"Model": "phi3",
-	// Declare Ollama endpoint
-	"Endpoint": "http://localhost:11434",
+    // Declare Ollama model
+    "Model": "phi3",
+    // Declare Ollama endpoint
+    "Endpoint": "http://localhost:11434",
     // Enable Ollama streaming
     "Stream": false
 }
 ```
-

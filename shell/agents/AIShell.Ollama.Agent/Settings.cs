@@ -5,19 +5,26 @@ namespace AIShell.Ollama.Agent;
 
 internal class Settings
 {
-    private string _model;
-    private string _endpoint;
-    private bool _stream;
-
-    public string Model => _model;
-    public string Endpoint => _endpoint;
-    public bool Stream => _stream;
+    public string Model { get; }
+    public string Endpoint { get; }
+    public bool Stream { get; }
 
     public Settings(ConfigData configData)
     {
-        _model = configData?.Model;
-        _endpoint = configData?.Endpoint?.TrimEnd('/');
-        _stream = configData?.Stream ?? false;
+        // Validate Model and Endpoint for null or empty values
+        if (string.IsNullOrWhiteSpace(configData.Model))
+        {
+            throw new ArgumentException("\"Model\" key is missing.");
+        }
+
+        if (string.IsNullOrWhiteSpace(configData.Endpoint))
+        {
+            throw new ArgumentException("\"Endpoint\" key is missing.");
+        }
+
+        Model = configData.Model;
+        Endpoint = configData.Endpoint;
+        Stream = configData.Stream;
     }
 }
 

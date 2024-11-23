@@ -91,12 +91,13 @@ public sealed class OllamaAgent : ILLMAgent
             _settings = ReadSettings();
         }
 
-        _request = new GenerateRequest()
-        {
-            Model = _settings.Model,
-            Stream = _settings.Stream
-        };
+        // Create Ollama request
+        _request = new GenerateRequest();
 
+        // Create Ollama client
+        _client = new OllamaApiClient(_settings.Endpoint);
+
+        // Watch for changes to the settings file
         _watcher = new FileSystemWatcher(_configRoot, SettingFileName)
         {
             NotifyFilter = NotifyFilters.LastWrite,
@@ -165,23 +166,14 @@ public sealed class OllamaAgent : ILLMAgent
 
         if (Process.GetProcessesByName("ollama").Length is 0)
         {
-            host.MarkupWarningLine($"[[{Name}]]: Please be sure the Ollama is installed and server is running. Check all the prerequisites in the README of this agent are met.");
+            host.WriteErrorLine("Please be sure the Ollama is installed and server is running. Check all the prerequisites in the README of this agent are met.");
             return false;
         }
 
-        // Self check settings Model and Endpoint
-        if (!SelfCheck(host))
-        {
-            return false;
-        }
-
-        // Update request
+        // Prepare request
         _request.Prompt = input;
         _request.Model = _settings.Model;
         _request.Stream = _settings.Stream;
-
-        // Ollama client is created per chat with reloaded settings
-        _client = new OllamaApiClient(_settings.Endpoint);
 
         try
         {
@@ -189,22 +181,38 @@ public sealed class OllamaAgent : ILLMAgent
             {
                 using IStreamRender streamingRender = host.NewStreamRender(token);
 
-                // Last stream response has context value
-                GenerateDoneResponseStream ollamaLastStream = null;
-
-                // Directly process the stream when no spinner is needed
-                await foreach (var ollamaStream in _client.GenerateAsync(_request, token))
-                {
-                    // Update the render
-                    streamingRender.Refresh(ollamaStream.Response);
-                    if (ollamaStream.Done)
+                // Wait for the stream with the spinner running
+                var ollamaStreamEnumerator = await host.RunWithSpinnerAsync(
+                    status: "Thinking ...",
+                    func: async () =>
                     {
-                       ollamaLastStream = (GenerateDoneResponseStream)ollamaStream;
+                        // Start generating the stream asynchronously and return an enumerator
+                        var enumerator = _client.GenerateAsync(_request, token).GetAsyncEnumerator();
+                        if (await enumerator.MoveNextAsync().ConfigureAwait(false))
+                        {
+                            return enumerator;
+                        }
+                        return null;
                     }
-                }
+                ).ConfigureAwait(false);
 
-                // Update request context
-                _request.Context = ollamaLastStream.Context;
+                if (ollamaStreamEnumerator is not null)
+                {
+                    do
+                    {
+                        var currentStream = ollamaStreamEnumerator.Current;
+
+                        // Update the render with stream response
+                        streamingRender.Refresh(currentStream.Response);
+
+                        if (currentStream.Done)
+                        {
+                            // If the stream is complete, update the request context with the last stream context
+                            var ollamaLastStream = (GenerateDoneResponseStream)currentStream;
+                            _request.Context = ollamaLastStream.Context;
+                        }
+                    } while (await ollamaStreamEnumerator.MoveNextAsync().ConfigureAwait(false));
+                }
             }
             else
             {
@@ -227,16 +235,14 @@ public sealed class OllamaAgent : ILLMAgent
         }
         catch (HttpRequestException e)
         {
-            host.WriteErrorLine($"[{Name}]: {e.Message}");
-            host.WriteErrorLine($"[{Name}]: Selected Model    : \"{_settings.Model}\"");
-            host.WriteErrorLine($"[{Name}]: Selected Endpoint : \"{_settings.Endpoint}\"");
-            host.WriteErrorLine($"[{Name}]: Configuration File: \"{SettingFile}\"");
-            return false;
+            host.WriteErrorLine($"{e.Message}");
+            host.WriteErrorLine($"Ollama model:    \"{_settings.Model}\"");
+            host.WriteErrorLine($"Ollama endpoint: \"{_settings.Endpoint}\"");
+            host.WriteErrorLine($"Ollama settings: \"{SettingFile}\"");
         }
 
         return true;
     }
-
 
     private void ReloadSettings()
     {
@@ -250,6 +256,15 @@ public sealed class OllamaAgent : ILLMAgent
             }
 
             _settings = settings;
+
+            // Check if the endpoint has changed
+            bool isEndpointChanged = !string.Equals(_settings.Endpoint, _client.Uri.OriginalString, StringComparison.OrdinalIgnoreCase);
+
+            if (isEndpointChanged)
+            {
+                // Create a new client with updated endpoint
+                _client = new OllamaApiClient(_settings.Endpoint);
+            }
         }
     }
 
@@ -283,37 +298,14 @@ public sealed class OllamaAgent : ILLMAgent
         }
     }
 
-    private bool SelfCheck(IHost host)
-    {
-        var settings = new (string settingValue, string settingName)[]
-        {
-            (_settings.Model, "Model"),
-            (_settings.Endpoint, "Endpoint")
-        };
-
-        foreach (var (settingValue, settingName) in settings)
-        {
-            if (string.IsNullOrWhiteSpace(settingValue))
-            {
-                host.WriteErrorLine($"[{Name}]: {settingName} is undefined in the settings file: \"{SettingFile}\"");
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     private void NewExampleSettingFile()
     {
         string SampleContent = $$"""
         {
             // To use Ollama API service:
-            // 1. Install Ollama:
-            //      winget install Ollama.Ollama
-            // 2. Start Ollama API server:
-            //      ollama serve
-            // 3. Install Ollama model:
-            //      ollama pull phi3
+            // 1. Install Ollama: `winget install Ollama.Ollama`
+            // 2. Start Ollama API server: `ollama serve`
+            // 3. Install Ollama model: `ollama pull phi3`
 
             // Declare Ollama model
             "Model": "phi3",
