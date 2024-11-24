@@ -1,13 +1,14 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using AIShell.Abstraction;
 using OllamaSharp;
 using OllamaSharp.Models;
 
 namespace AIShell.Ollama.Agent;
 
-public sealed class OllamaAgent : ILLMAgent
+public sealed partial class OllamaAgent : ILLMAgent
 {
     private bool _reloadSettings;
     private bool _isDisposed;
@@ -164,7 +165,7 @@ public sealed class OllamaAgent : ILLMAgent
         // Reload the setting file if needed.
         ReloadSettings();
 
-        if (Process.GetProcessesByName("ollama").Length is 0)
+        if (IsLocalHost().IsMatch(_client.Uri.Host) && Process.GetProcessesByName("ollama").Length is 0)
         {
             host.WriteErrorLine("Please be sure the Ollama is installed and server is running. Check all the prerequisites in the README of this agent are met.");
             return false;
@@ -317,4 +318,11 @@ public sealed class OllamaAgent : ILLMAgent
         """;
         File.WriteAllText(SettingFile, SampleContent, Encoding.UTF8);
     }
+
+    /// <summary>
+    /// Defines a source-generated regular expression to match localhost addresses 
+    /// (e.g., "localhost", "127.0.0.1", "::1") with case-insensitivity.
+    /// </summary>
+    [GeneratedRegex("^(localhost|127\\.0\\.0\\.1|::1)$", RegexOptions.IgnoreCase)]
+    internal partial Regex IsLocalHost();
 }
