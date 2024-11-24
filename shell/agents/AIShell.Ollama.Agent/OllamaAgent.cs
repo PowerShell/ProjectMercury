@@ -36,7 +36,7 @@ public sealed partial class OllamaAgent : ILLMAgent
     /// <summary>
     /// The description of the agent to be shown at start up
     /// </summary>
-    public string Description => "This is an AI assistant to interact with a language model running locally by utilizing the Ollama CLI tool. Be sure to follow all prerequisites in https://github.com/PowerShell/AIShell/tree/main/shell/agents/AIShell.Ollama.Agent";
+    public string Description => "This is an AI assistant to interact with a language model running locally or remotely by utilizing the Ollama API. Be sure to follow all prerequisites in https://github.com/PowerShell/AIShell/tree/main/shell/agents/AIShell.Ollama.Agent";
 
     /// <summary>
     /// This is the company added to /like and /dislike verbiage for who the telemetry helps.
@@ -159,7 +159,7 @@ public sealed partial class OllamaAgent : ILLMAgent
         // Get the shell host
         IHost host = shell.Host;
 
-        // get the cancellation token
+        // Get the cancellation token
         CancellationToken token = shell.CancellationToken;
 
         // Reload the setting file if needed.
@@ -320,9 +320,9 @@ public sealed partial class OllamaAgent : ILLMAgent
     }
 
     /// <summary>
-    /// Defines a source-generated regular expression to match localhost addresses 
-    /// (e.g., "localhost", "127.0.0.1", "::1") with case-insensitivity.
+    /// Defines a generated regular expression to match localhost addresses
+    /// "localhost", "127.0.0.1" and "[::1]" with case-insensitivity.
     /// </summary>
-    [GeneratedRegex("^(localhost|127\\.0\\.0\\.1|::1)$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex("^(localhost|127\\.0\\.0\\.1|\\[::1\\])$", RegexOptions.IgnoreCase)]
     internal partial Regex IsLocalHost();
 }

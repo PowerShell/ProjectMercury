@@ -1,9 +1,9 @@
 # Ollama Plugin
 
-This agent is used to interact with a language model running locally by utilizing the Ollama API. Before using
-this agent you need to have Ollama installed and running.
+This agent is used to interact with a language model running locally or remotely by utilizing the Ollama API.
+Before using this agent locally you need to have Ollama installed and running.
 
-## Pre-requisites to using the agent
+## Pre-requisites to using the agent locally
 
 - Install [Ollama](https://github.com/ollama/ollama)
 - Install a [Ollama model](https://github.com/ollama/ollama?tab=readme-ov-file#model-library), we suggest using the `phi3` model as it is set as the default model in the code
