@@ -180,15 +180,13 @@ public sealed partial class OllamaAgent : ILLMAgent
         {
             if (_request.Stream)
             {
-                using IStreamRender streamingRender = host.NewStreamRender(token);
-
                 // Wait for the stream with the spinner running
                 var ollamaStreamEnumerator = await host.RunWithSpinnerAsync(
                     status: "Thinking ...",
                     func: async () =>
                     {
                         // Start generating the stream asynchronously and return an enumerator
-                        var enumerator = _client.GenerateAsync(_request, token).GetAsyncEnumerator();
+                        var enumerator = _client.GenerateAsync(_request, token).GetAsyncEnumerator(token);
                         if (await enumerator.MoveNextAsync().ConfigureAwait(false))
                         {
                             return enumerator;
@@ -199,6 +197,8 @@ public sealed partial class OllamaAgent : ILLMAgent
 
                 if (ollamaStreamEnumerator is not null)
                 {
+                    using IStreamRender streamingRender = host.NewStreamRender(token);
+
                     do
                     {
                         var currentStream = ollamaStreamEnumerator.Current;
@@ -212,7 +212,8 @@ public sealed partial class OllamaAgent : ILLMAgent
                             var ollamaLastStream = (GenerateDoneResponseStream)currentStream;
                             _request.Context = ollamaLastStream.Context;
                         }
-                    } while (await ollamaStreamEnumerator.MoveNextAsync().ConfigureAwait(false));
+                    }
+                    while (await ollamaStreamEnumerator.MoveNextAsync().ConfigureAwait(false));
                 }
             }
             else
@@ -301,7 +302,7 @@ public sealed partial class OllamaAgent : ILLMAgent
 
     private void NewExampleSettingFile()
     {
-        string SampleContent = $$"""
+        string SampleContent = """
         {
             // To use Ollama API service:
             // 1. Install Ollama: `winget install Ollama.Ollama`
