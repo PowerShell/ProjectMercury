@@ -166,6 +166,26 @@ internal sealed class AgentCommand : CommandBase
             else
             {
                 // On macOS and Linux, we just depend on the default editor.
+                FileInfo fileInfo = new(settingFile);
+                if (fileInfo.Exists)
+                {
+                    UnixFileMode curMode = fileInfo.UnixFileMode;
+                    UnixFileMode newMode = curMode & ~(UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
+
+                    if (newMode != curMode)
+                    {
+                        try
+                        {
+                            File.SetUnixFileMode(settingFile, newMode);
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                            host.WriteErrorLine($"The setting file '{settingFile}' is incorrectly configured with the 'execute' permission. Please remove the 'execute' permission and try again.");
+                            return;
+                        }
+                    }
+                }
+
                 info = new(settingFile) { UseShellExecute = true };
                 Process.Start(info);
             }
