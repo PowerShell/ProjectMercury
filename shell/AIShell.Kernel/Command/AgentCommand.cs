@@ -163,9 +163,9 @@ internal sealed class AgentCommand : CommandBase
 
                 Process.Start(info);
             }
-            else
+            else if (OperatingSystem.IsMacOS())
             {
-                // On macOS and Linux, we just depend on the default editor.
+                // On macOS, we just depend on shell execute to open file in the default editor.
                 FileInfo fileInfo = new(settingFile);
                 if (fileInfo.Exists)
                 {
@@ -188,6 +188,19 @@ internal sealed class AgentCommand : CommandBase
 
                 info = new(settingFile) { UseShellExecute = true };
                 Process.Start(info);
+            }
+            else
+            {
+                (string exe, string[] args) = GetDefaultEditorForLinux();
+
+                info = new(exe);
+                foreach (string arg in args)
+                {
+                    info.ArgumentList.Add(arg);
+                }
+
+                info.ArgumentList.Add(settingFile);
+                Process.Start(info).WaitForExit();
             }
         }
         catch (Exception ex)
@@ -227,6 +240,25 @@ internal sealed class AgentCommand : CommandBase
     {
         string availableAgentNames = string.Join(", ", shell.Agents.Select(AgentName));
         shell.Host.WriteErrorLine($"Cannot find an agent with the name '{name}'. Available agent(s): {availableAgentNames}.");
+    }
+
+    private static (string editor, string[] args) GetDefaultEditorForLinux()
+    {
+        string editor = Environment.GetEnvironmentVariable("EDITOR");
+        if (string.IsNullOrWhiteSpace(editor))
+        {
+            return ("nano", Array.Empty<string>());
+        }
+
+        editor = editor.Trim();
+        int index = editor.IndexOf(' ');
+        if (index is -1)
+        {
+            return (editor, Array.Empty<string>());
+        }
+
+        string[] args = editor[(index + 1)..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return (editor[..index], args);
     }
 }
 
