@@ -165,7 +165,7 @@ internal sealed class AgentCommand : CommandBase
             }
             else if (OperatingSystem.IsMacOS())
             {
-                // On macOS, we just depend on the default editor.
+                // On macOS, we just depend on shell execute to open file in the default editor.
                 FileInfo fileInfo = new(settingFile);
                 if (fileInfo.Exists)
                 {
